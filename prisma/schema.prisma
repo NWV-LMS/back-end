@@ -38,7 +38,11 @@ enum LeadStatus {
 enum AttendanceStatus {
   PRESENT
   ABSENT
-  LATE
+}
+
+enum CourseStatus {
+  ACTIVE
+  INACTIVE
 }
 
 // =========================
@@ -64,6 +68,7 @@ model User {
   organization_id String   @db.Uuid
   full_name       String
   email           String   @unique
+  phone           String   @unique
   password        String
   role            UserRole
   created_at      DateTime @default(now())
@@ -78,7 +83,7 @@ model Course {
   title           String
   description     String?
   price           String
-  status          Boolean
+  status          CourseStatus
   created_at      DateTime @default(now())
 
   organization Organization @relation(fields: [organization_id], references: [id])
