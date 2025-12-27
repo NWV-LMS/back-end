@@ -7,10 +7,6 @@ datasource db {
   provider = "postgresql"
 }
 
-// =========================
-// Enums
-// =========================
-
 enum OrganizationStatus {
   ACTIVE
   INACTIVE
@@ -51,7 +47,9 @@ enum CourseStatus {
 
 model Organization {
   id         String             @id @default(uuid()) @db.Uuid
-  name       String?
+  name       String             @unique
+  email      String             @unique
+  phone      String             @unique
   status     OrganizationStatus
   created_at DateTime           @default(now())
 
@@ -70,6 +68,7 @@ model User {
   email           String   @unique
   phone           String   @unique
   password        String
+  refresh_token   String?
   role            UserRole
   created_at      DateTime @default(now())
 
@@ -78,13 +77,13 @@ model User {
 }
 
 model Course {
-  id              String   @id @default(uuid()) @db.Uuid
-  organization_id String   @db.Uuid
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
   title           String
   description     String?
   price           String
   status          CourseStatus
-  created_at      DateTime @default(now())
+  created_at      DateTime     @default(now())
 
   organization Organization @relation(fields: [organization_id], references: [id])
   groups       Group[]
