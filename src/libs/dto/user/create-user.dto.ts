@@ -8,6 +8,9 @@ import {
 import { UserRole } from 'generated/prisma/enums';
 
 export class CreateUserDto {
+  @IsString()
+  id: string;
+
   @IsNotEmpty()
   @IsString()
   organization_id: string;

@@ -1,22 +1,22 @@
-import { Or } from '@prisma/client/runtime/client'
-import {
-  IsEmail,
-  IsEnum,
-  IsNotEmpty,
-  IsString,
-  MinLength,
-} from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 import { OrganizationStatus, UserRole } from 'generated/prisma/enums';
 
 export class CreateOrganizationDto {
-
   @IsNotEmpty()
   @IsString()
-  name: string;
+  Org_name: string;
 
   @IsNotEmpty()
   @IsEmail()
-  email: string;
+  Org_email: string;
+
+  Org_status?: OrganizationStatus;
+
+  @IsEmail()
+  adminEmail: string;
+
+  @IsString()
+  adminName: string;
 
   @IsNotEmpty()
   @IsString()
@@ -27,9 +27,6 @@ export class CreateOrganizationDto {
   @MinLength(6)
   password: string;
 
-  status?:OrganizationStatus;
-
-  @IsNotEmpty()
-  @IsEnum(UserRole)
-  role: UserRole;
+  @IsString()
+  adminRole: UserRole;
 }

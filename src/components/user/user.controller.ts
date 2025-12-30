@@ -1,48 +1,40 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { CreateUserDto } from '../../libs/dto/user/create-user.dto';
 
-import { CreateOrganizationDto } from 'src/libs/dto/organization/create-organization.dto';
-import { Organ } from 'src/libs/dto/organization/organization-response.dto';
-import { User } from 'src/libs/dto/user/user-response.dto';
+import { UserRole } from 'generated/prisma/enums';
+import { ChangePasswordDto } from 'src/libs/dto/auth/change-password.dto';
+import { LoginDto, LoginResponseDto } from 'src/libs/dto/auth/login.dto';
+import { JwtPayload } from 'src/libs/types/auth';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserService } from './user.service';
-import { LoginDto } from 'src/libs/dto/auth/login.dto'
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
-import { JwtPayload } from 'src/libs/types/auth'
-import { CurrentUser } from '../auth/decorators/current-user.decorator'
-import { ChangePasswordDto } from 'src/libs/dto/auth/change-password.dto'
 
 @Controller('user')
-export class UserController { 
+export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Post('register')
-  public async register(@Body() input: CreateOrganizationDto): Promise<Organ> {
-    console.log('*** Post, register organization ***');
-    return this.userService.register(input);
-  }
-
-  @Post('signup')
-  public async signup(@Body() input: CreateUserDto): Promise<User> {
-    console.log('signup');
-    return this.userService.signup(input);
-  }
-
-
+  @Roles(UserRole.SUPER_ADMIN)
+  //* @UseGuards(JwtAuthGuard)
+  // @Post('register')
+  // public async register(@Body() input: CreateOrganizationDto): Promise<Organ> {
+  //   return this.userService.register(input);
+  // }
   @Post('login')
-  login(@Body() input: LoginDto) {
+  login(@Body() input: LoginDto): Promise<LoginResponseDto> {
+    console.log('User login');
     return this.userService.login(input);
   }
 
-  
   @UseGuards(JwtAuthGuard)
   @Get('me')
   me(@CurrentUser() user: JwtPayload) {
     return this.userService.me(user.sub);
   }
-  
+
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   logout(@CurrentUser() user: JwtPayload) {
+    console.log('Logout', user);
     return this.userService.logout(user.sub);
   }
 

@@ -1,55 +1,35 @@
 import { OrganizationStatus, UserRole } from 'generated/prisma/enums';
 
-// src/libs/dto/organization/admin-info.dto.ts
-// export class AdminInfo {
-//   id: string;
-//   email: string;
-//   full_name: string;
-//   phone?: string; // ixtiyoriy
-// }
-// //Bu responseda keladigon datalar 
-// export class Organ {
-//   organization_id: string;
-//   name: string;
-//   email: string;
-//   phone: string;
-//   status: OrganizationStatus
-//   created_at: Date;
-// }
-
-import { IsString, IsEmail, IsEnum, IsDate, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-
-export class AdminInfo {
-  @IsString()
-  id: string;
-
-  @IsEmail()
-  email: string;
-
-  @IsString()
-  full_name: string;
-}
+import { IsDate, IsEmail, IsEnum, IsNotEmpty, IsString } from 'class-validator';
 
 export class Organ {
   @IsString()
   organization_id: string;
 
   @IsString()
-  name: string;
+  Org_name: string;
 
   @IsEmail()
-  email: string;
+  Org_email: string;
 
+  @IsEnum(OrganizationStatus)
+  Org_status: OrganizationStatus;
+
+  @IsString()
+  id: string;
+
+  @IsEmail()
+  adminEmail: string;
+
+  @IsString()
+  adminName: string;
+  
+  @IsNotEmpty()
   @IsString()
   phone: string;
 
-  @IsEnum(OrganizationStatus)
-  status: OrganizationStatus;
-
-  @ValidateNested()
-  @Type(() => AdminInfo)
-  admin: AdminInfo;
+  @IsString()
+  adminRole: UserRole;
 
   @IsDate()
   created_at: Date;
