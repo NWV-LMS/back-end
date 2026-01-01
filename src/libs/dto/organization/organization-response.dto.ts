@@ -4,6 +4,9 @@ import { IsDate, IsEmail, IsEnum, IsNotEmpty, IsString } from 'class-validator';
 
 export class Organ {
   @IsString()
+  id: string;
+
+  @IsString()
   organization_id: string;
 
   @IsString()
@@ -14,9 +17,6 @@ export class Organ {
 
   @IsEnum(OrganizationStatus)
   Org_status: OrganizationStatus;
-
-  @IsString()
-  id: string;
 
   @IsEmail()
   adminEmail: string;

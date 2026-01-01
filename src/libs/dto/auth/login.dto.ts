@@ -3,6 +3,7 @@ import { UserRole } from 'generated/prisma/enums';
 
 export class LoginDto {
   @IsNotEmpty()
+  @IsString()
   phone:string;
 
   @IsNotEmpty()

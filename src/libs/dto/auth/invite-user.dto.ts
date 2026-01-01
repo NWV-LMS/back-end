@@ -1,6 +1,7 @@
 import {
   IsEmail,
   IsEnum,
+  isNotEmpty,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -9,6 +10,12 @@ import {
 import { UserRole } from 'generated/prisma/enums';
 
 export class InviteUserDto {
+
+  @IsNotEmpty()
+  @IsString()
+  phone: string;
+
+  @IsOptional()
   @IsNotEmpty()
   @IsEmail()
   email: string;

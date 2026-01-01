@@ -30,3 +30,22 @@ export class CreateOrganizationDto {
   @IsString()
   adminRole: UserRole;
 }
+
+export class CreateExpenseDto {
+  title: string;
+  amount: number;
+  category?: string; // rent, salary, ads
+}
+
+//paymant
+export class CreatePaymentDto {
+  student_id: string;
+  amount: number;
+  method?: string; // cash, card
+}
+
+export class DashboardFilterDto {
+  from?: Date;
+  to?: Date;
+}
+
