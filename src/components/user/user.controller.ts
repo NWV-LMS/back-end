@@ -13,12 +13,13 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Roles(UserRole.SUPER_ADMIN)
+  // @Roles(UserRole.SUPER_ADMIN)
   //* @UseGuards(JwtAuthGuard)
   // @Post('register')
   // public async register(@Body() input: CreateOrganizationDto): Promise<Organ> {
   //   return this.userService.register(input);
   // }
+  
   @Post('login')
   login(@Body() input: LoginDto): Promise<LoginResponseDto> {
     console.log('User login');

@@ -22,7 +22,7 @@ export class UserService {
     private authService: AuthService,
   ) {}
 
-  //this only for users
+//* Login
   async login(input: LoginDto): Promise<LoginResponseDto> {
     console.log('User login service');
     const user = await this.database.user.findUnique({
@@ -48,7 +48,7 @@ export class UserService {
       organization_id:
         user.role === UserRole.SUPER_ADMIN ? null : user.organization_id,
     };
-    console.log('payload', payload);
+
 
     const tokens = await this.authService.generateTokens(payload);
     await this.authService.storeRefreshToken(user.id, tokens.refreshToken);
