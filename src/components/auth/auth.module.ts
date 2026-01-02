@@ -24,7 +24,7 @@ import { UserService } from '../user/user.service'
           configService.get<string>('JWT_ACCESS_SECRET') || 'access-secret',
         signOptions: {
           expiresIn:
-            configService.get<string>('JWT_ACCESS_EXPIRES_IN') || '15m',
+            configService.get<string>('JWT_ACCESS_EXPIRES_IN') || '150000m',
         },
       }),
     }),

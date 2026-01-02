@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from 'generated/prisma/enums';
-import { ChangePasswordDto } from 'src/libs/dto/auth/change-password.dto';
+import { UserUpdateDto } from 'src/libs/dto/auth/userUpdate.dto';
 import { InviteUserDto } from 'src/libs/dto/auth/invite-user.dto';
 import { LoginDto, LoginResponseDto } from 'src/libs/dto/auth/login.dto';
 import { User } from 'src/libs/dto/user/user-response.dto';
@@ -44,6 +44,7 @@ export class UserService {
       sub: user.id,
       role: user.role,
       email: user.email,
+      phone: user.phone,
       name: user.full_name,
       organization_id:
         user.role === UserRole.SUPER_ADMIN ? null : user.organization_id,
@@ -92,33 +93,63 @@ export class UserService {
     return { success: true };
   }
 
-  //***Change Password */
+  //*** Update User */
 
-  async changePassword(userId: string, dto: ChangePasswordDto) {
-    const user = await this.database.user.findUnique({
+  async updateUser(userId: string, input: UserUpdateDto): Promise<User> {
+    const user = await this.database.user.update({
       where: { id: userId },
-      select: { password: true, refresh_token: true } as T,
-    });
+      data: {
+        full_name: input.full_name,
+        email: input.email,
+        phone: input.phone,
+      },
+    }
+  )
 
+console.log(user,input)
     if (!user) {
       throw new UnauthorizedException();
     }
-    //@ts-ignore
-    const isMatch = await bcrypt.compare(dto.currentPassword, user.password);
-    if (!isMatch) {
-      throw new BadRequestException('Current password is incorrect');
+
+    if (input.new_password) {
+      if (!input.password) {
+        throw new BadRequestException(
+          'Current password is required to set a new password',
+        );
+      }
+
+      const isMatch = await bcrypt.compare(input.password, user.password);
+      if (!isMatch) {
+        throw new BadRequestException('Current password is incorrect');
+      }
+
+      if (input.new_password !== input.confirm_new_password) {
+        throw new BadRequestException('Passwords do not match');
+      }
+console.log('User update', input);
+      const hashed = await bcrypt.hash(input.new_password, 10);
+      await this.database.user.update({
+        where: { id: userId },
+        data: {
+          password: hashed,
+          refresh_token: null, // force re-login
+        } as T,
+      });
     }
 
-    const hashed = await bcrypt.hash(dto.newPassword, 10);
-    await this.database.user.update({
+    return this.database.user.findUnique({
       where: { id: userId },
-      data: {
-        password: hashed,
-        refresh_token: null, // force re-login
-      } as T,
-    });
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        organization_id: true,
+        full_name: true,
+        phone: true,
+        created_at: true,
 
-    return { success: true };
+      },
+    });
   }
 
   //** invite User */

@@ -141,6 +141,7 @@ export class AuthService {
       phone: user.phone,
       role: user.role,
       created_at: user.created_at,
+      updated_at: user.updated_at,
     };
   }
 
@@ -168,6 +169,7 @@ export class AuthService {
         sub: user.id,
         role: user.role,
         email: user.email,
+        phone: user.phone,
         name: user.full_name,
         organization_id:
           user.role === UserRole.SUPER_ADMIN ? null : user.organization_id,

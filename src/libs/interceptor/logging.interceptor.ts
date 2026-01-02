@@ -16,7 +16,6 @@ export class LoggingInterceptor implements NestInterceptor {
     const type = context.getType();
     if (type === 'http') {
       const req = context.switchToHttp().getRequest();
-	  console.log(req)
       this.logger.log(`${req.method} ${req.url}`, 'REQUEST');
 
       return next.handle().pipe(
