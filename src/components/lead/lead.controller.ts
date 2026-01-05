@@ -19,11 +19,26 @@ import { JwtPayload } from 'src/libs/types/auth';
 import { UserRole } from 'generated/prisma/enums';
 import { Roles } from '../auth/decorators/roles.decorator';
 
+import { QueryLeadDto } from 'src/libs/dto/lead/query-lead.dto';
+import { Query } from '@nestjs/common';
+
+import { ConvertLeadDto } from 'src/libs/dto/lead/convert-lead.dto';
+
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.MANAGER)
 @Controller('lead')
 export class LeadController {
   constructor(private readonly leadService: LeadService) {}
+
+  @Post(':id/convert')
+  convert(
+    @Param('id') id: string,
+    @Body() dto: ConvertLeadDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<any> {
+    if (!user.organization_id) throw new Error('Org ID required');
+    return this.leadService.convert(id, dto, user.organization_id);
+  }
 
   @Post()
   create(
@@ -35,9 +50,12 @@ export class LeadController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: JwtPayload): Promise<LeadResponseDto[]> {
-      if (!user.organization_id) throw new Error('Org ID required');
-    return this.leadService.findAll(user.organization_id);
+  findAll(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: QueryLeadDto,
+  ): Promise<any> {
+    if (!user.organization_id) throw new Error('Org ID required');
+    return this.leadService.findAll(user.organization_id, query);
   }
 
   @Get(':id')

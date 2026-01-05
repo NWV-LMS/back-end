@@ -9,6 +9,11 @@ import { UpdateLeadDto } from 'src/libs/dto/lead/update-lead.dto';
 import { LeadResponseDto } from 'src/libs/dto/lead/lead-response.dto';
 import { LeadStatus } from 'generated/prisma/enums';
 
+import { QueryLeadDto } from 'src/libs/dto/lead/query-lead.dto';
+import { ConvertLeadDto } from 'src/libs/dto/lead/convert-lead.dto';
+import { UserRole, StudentStatus } from 'generated/prisma/enums';
+import * as bcrypt from 'bcrypt';
+
 @Injectable()
 export class LeadService {
   constructor(private readonly database: DatabaseService) {}
@@ -42,11 +47,121 @@ export class LeadService {
     });
   }
 
-  async findAll(organizationId: string): Promise<LeadResponseDto[]> {
-    return this.database.lead.findMany({
-      where: { organization_id: organizationId },
-      orderBy: { status: 'asc' }, // Prioritize NEW leads
+  async findAll(organizationId: string, query: QueryLeadDto) {
+    const { page = 1, limit = 20, search, status, source } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      organization_id: organizationId,
+    };
+
+    if (search) {
+      where.OR = [
+        { full_name: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search } },
+      ];
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (source) {
+      where.source = { contains: source, mode: 'insensitive' };
+    }
+
+    const [data, total] = await Promise.all([
+      this.database.lead.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { status: 'asc' },
+      }),
+      this.database.lead.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        lastPage: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async convert(id: string, dto: ConvertLeadDto, organizationId: string) {
+    const lead = await this.findOne(id, organizationId);
+
+    if (lead.status === LeadStatus.CONVERTED) {
+      throw new BadRequestException('Lead is already converted');
+    }
+
+    // 1. Check or Create User (Global)
+    let user = await this.database.user.findUnique({
+      where: { phone: lead.phone },
     });
+
+    let temporaryPassword;
+
+    if (!user) {
+      const password = dto.password ?? Math.random().toString(36).slice(-8);
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Create User
+      user = await this.database.user.create({
+        data: {
+          organization_id: organizationId,
+          full_name: lead.full_name,
+          email: `${lead.phone}@system.local`, // Fallback email since lead doesn't have one
+          phone: lead.phone,
+          password: hashedPassword,
+          role: UserRole.STUDENT,
+        },
+      });
+      temporaryPassword = password;
+    }
+
+    // 2. Check overlap in Student table (Org scope)
+    const existingStudent = await this.database.student.findFirst({
+      where: { 
+        phone: lead.phone,
+        organization_id: organizationId,
+      }
+    });
+
+    if (existingStudent) {
+       throw new BadRequestException('Student with this phone already exists in this organization');
+    }
+
+    // 3. Transaction: Update Lead -> Create Student
+    const [updatedLead, newStudent] = await this.database.$transaction([
+      this.database.lead.update({
+        where: { id },
+        data: { status: LeadStatus.CONVERTED },
+      }),
+      this.database.student.create({
+        data: {
+          organization_id: organizationId,
+          name: lead.full_name,
+          address: dto.address,
+          phone: lead.phone,
+          parent: dto.parent,
+          status: StudentStatus.ACTIVE,
+        },
+      }),
+    ]);
+
+    return {
+      message: 'Lead converted successfully',
+      student: newStudent,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        role: user.role,
+      },
+      temporaryPassword,
+    };
   }
 
   async findOne(id: string, organizationId: string): Promise<LeadResponseDto> {
