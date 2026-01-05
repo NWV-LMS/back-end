@@ -2,6 +2,7 @@ import { UserRole } from 'generated/prisma/enums';
 
 export interface JwtPayload {
   sub: string;
+  id: string; // Add id alias for convenience
   email: string;
   phone: string;
   name:string

@@ -42,6 +42,7 @@ export class UserService {
 
     const payload: JwtPayload = {
       sub: user.id,
+      id: user.id, // Added id
       role: user.role,
       email: user.email,
       phone: user.phone,

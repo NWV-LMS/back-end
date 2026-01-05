@@ -11,6 +11,7 @@ import { LeadStatus } from 'generated/prisma/enums';
 
 import { QueryLeadDto } from 'src/libs/dto/lead/query-lead.dto';
 import { ConvertLeadDto } from 'src/libs/dto/lead/convert-lead.dto';
+import { CreateNoteDto } from 'src/libs/dto/lead/create-note.dto';
 import { UserRole, StudentStatus } from 'generated/prisma/enums';
 import * as bcrypt from 'bcrypt';
 
@@ -19,7 +20,6 @@ export class LeadService {
   constructor(private readonly database: DatabaseService) {}
 
   async create(createLeadDto: CreateLeadDto, organizationId: string): Promise<LeadResponseDto> {
-    // 1. Check if phone exists in Users (Global uniqueness for login)
     const existingUser = await this.database.user.findUnique({
       where: { phone: createLeadDto.phone },
     });
@@ -27,7 +27,6 @@ export class LeadService {
       throw new BadRequestException('User with this phone already exists');
     }
 
-    // 2. Check if phone exists in Leads within this organization
     const existingLead = await this.database.lead.findFirst({
       where: { 
         phone: createLeadDto.phone,
@@ -90,6 +89,39 @@ export class LeadService {
     };
   }
 
+  async findOne(id: string, organizationId: string): Promise<LeadResponseDto> {
+    const lead = await this.database.lead.findFirst({
+      where: { id, organization_id: organizationId },
+    });
+
+    if (!lead) {
+      throw new NotFoundException('Lead not found');
+    }
+
+    return lead;
+  }
+
+  async update(
+    id: string,
+    updateLeadDto: UpdateLeadDto,
+    organizationId: string,
+  ): Promise<LeadResponseDto> {
+    await this.findOne(id, organizationId);
+
+    return this.database.lead.update({
+      where: { id },
+      data: updateLeadDto,
+    });
+  }
+
+  async remove(id: string, organizationId: string): Promise<LeadResponseDto> {
+    await this.findOne(id, organizationId);
+
+    return this.database.lead.delete({
+      where: { id },
+    });
+  }
+
   async convert(id: string, dto: ConvertLeadDto, organizationId: string) {
     const lead = await this.findOne(id, organizationId);
 
@@ -97,7 +129,6 @@ export class LeadService {
       throw new BadRequestException('Lead is already converted');
     }
 
-    // 1. Check or Create User (Global)
     let user = await this.database.user.findUnique({
       where: { phone: lead.phone },
     });
@@ -108,12 +139,11 @@ export class LeadService {
       const password = dto.password ?? Math.random().toString(36).slice(-8);
       const hashedPassword = await bcrypt.hash(password, 10);
       
-      // Create User
       user = await this.database.user.create({
         data: {
           organization_id: organizationId,
           full_name: lead.full_name,
-          email: `${lead.phone}@system.local`, // Fallback email since lead doesn't have one
+          email: `${lead.phone}@system.local`,
           phone: lead.phone,
           password: hashedPassword,
           role: UserRole.STUDENT,
@@ -122,7 +152,6 @@ export class LeadService {
       temporaryPassword = password;
     }
 
-    // 2. Check overlap in Student table (Org scope)
     const existingStudent = await this.database.student.findFirst({
       where: { 
         phone: lead.phone,
@@ -134,7 +163,6 @@ export class LeadService {
        throw new BadRequestException('Student with this phone already exists in this organization');
     }
 
-    // 3. Transaction: Update Lead -> Create Student
     const [updatedLead, newStudent] = await this.database.$transaction([
       this.database.lead.update({
         where: { id },
@@ -164,37 +192,44 @@ export class LeadService {
     };
   }
 
-  async findOne(id: string, organizationId: string): Promise<LeadResponseDto> {
-    const lead = await this.database.lead.findFirst({
-      where: { id, organization_id: organizationId },
-    });
+  async addNote(leadId: string, dto: CreateNoteDto, userId: string, organizationId: string) {
+    await this.findOne(leadId, organizationId);
 
-    if (!lead) {
-      throw new NotFoundException('Lead not found');
-    }
-
-    return lead;
-  }
-
-  async update(
-    id: string,
-    updateLeadDto: UpdateLeadDto,
-    organizationId: string,
-  ): Promise<LeadResponseDto> {
-    // Check existence and ownership
-    await this.findOne(id, organizationId);
-
-    return this.database.lead.update({
-      where: { id },
-      data: updateLeadDto,
+    return (this.database as any).note.create({
+      data: {
+        lead_id: leadId,
+        organization_id: organizationId,
+        user_id: userId,
+        content: dto.content,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            full_name: true,
+          }
+        }
+      }
     });
   }
 
-  async remove(id: string, organizationId: string): Promise<LeadResponseDto> {
-    await this.findOne(id, organizationId);
+  async getNotes(leadId: string, organizationId: string) {
+    await this.findOne(leadId, organizationId);
 
-    return this.database.lead.delete({
-      where: { id },
+    return (this.database as any).note.findMany({
+      where: { 
+        lead_id: leadId,
+        organization_id: organizationId,
+      },
+      orderBy: { created_at: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            full_name: true,
+          }
+        }
+      }
     });
   }
 }

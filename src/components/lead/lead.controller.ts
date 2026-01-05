@@ -22,6 +22,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { QueryLeadDto } from 'src/libs/dto/lead/query-lead.dto';
 import { Query } from '@nestjs/common';
 
+import { CreateNoteDto } from 'src/libs/dto/lead/create-note.dto';
 import { ConvertLeadDto } from 'src/libs/dto/lead/convert-lead.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -29,6 +30,25 @@ import { ConvertLeadDto } from 'src/libs/dto/lead/convert-lead.dto';
 @Controller('lead')
 export class LeadController {
   constructor(private readonly leadService: LeadService) {}
+
+  @Post(':id/notes')
+  addNote(
+    @Param('id') id: string,
+    @Body() dto: CreateNoteDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (!user.organization_id) throw new Error('Org ID required');
+    return this.leadService.addNote(id, dto, user.id, user.organization_id);
+  }
+
+  @Get(':id/notes')
+  getNotes(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (!user.organization_id) throw new Error('Org ID required');
+    return this.leadService.getNotes(id, user.organization_id);
+  }
 
   @Post(':id/convert')
   convert(

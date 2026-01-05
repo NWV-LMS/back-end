@@ -20,6 +20,7 @@ model Organization {
   payments   Payment[]
   students   Student[]
   users      User[]
+  notes      Note[]
 }
 
 model User {
@@ -35,6 +36,7 @@ model User {
 
   teachingGroups Group[]      @relation("GroupTeacher")
   organization   Organization @relation(fields: [organization_id], references: [id])
+  notes          Note[]
 
   @@unique([organization_id, email]) // Email unique per organization
 }
@@ -150,6 +152,22 @@ model Lead {
   source          String
   status          LeadStatus
   organization    Organization @relation(fields: [organization_id], references: [id])
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @default(now())
+  notes           Note[]
+}
+
+model Note {
+  id              String   @id @default(uuid()) @db.Uuid
+  organization_id String   @db.Uuid
+  lead_id         String   @db.Uuid
+  user_id         String   @db.Uuid
+  content         String
+  created_at      DateTime @default(now())
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  lead         Lead         @relation(fields: [lead_id], references: [id])
+  user         User         @relation(fields: [user_id], references: [id])
 }
 
 model Payment {
