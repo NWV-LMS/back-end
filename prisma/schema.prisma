@@ -7,6 +7,169 @@ datasource db {
   provider = "postgresql"
 }
 
+model Organization {
+  id         String             @id @default(uuid()) @db.Uuid
+  name       String             @unique
+  status     OrganizationStatus
+  created_at DateTime           @default(now())
+  email      String
+  phone      String
+  courses    Course[]
+  groups     Group[]
+  leads      Lead[]
+  payments   Payment[]
+  students   Student[]
+  users      User[]
+}
+
+model User {
+  id              String   @id @default(uuid()) @db.Uuid
+  organization_id String   @db.Uuid
+  full_name       String
+  email           String // Organization scope unique only
+  phone           String   @unique // Global unique for login
+  password        String
+  refresh_token   String?
+  role            UserRole
+  created_at      DateTime @default(now())
+
+  teachingGroups Group[]      @relation("GroupTeacher")
+  organization   Organization @relation(fields: [organization_id], references: [id])
+
+  @@unique([organization_id, email]) // Email unique per organization
+}
+
+model Course {
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  title           String
+  description     String?
+  price           String
+  created_at      DateTime     @default(now())
+  status          CourseStatus
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  groups          Group[]
+  lessons         Lesson[]
+}
+
+model Group {
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  course_id       String       @db.Uuid
+  teacher_id      String       @db.Uuid
+  name            String
+  start_date      DateTime     @db.Date
+  end_date        DateTime     @db.Date
+  created_at      DateTime     @default(now())
+  enrollments     Enrollment[]
+  course          Course       @relation(fields: [course_id], references: [id])
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  teacher         User         @relation("GroupTeacher", fields: [teacher_id], references: [id])
+}
+
+model Lesson {
+  id         String       @id @default(uuid()) @db.Uuid
+  course_id  String       @db.Uuid
+  title      String
+  desc       String?
+  start_date DateTime     @db.Date
+  end_date   DateTime     @db.Date
+  attendance Attendance[]
+  exams      Exam[]
+  course     Course       @relation(fields: [course_id], references: [id])
+  progress   Progress[]
+}
+
+model Student {
+  id              String        @id @default(uuid()) @db.Uuid
+  organization_id String        @db.Uuid
+  name            String
+  parent          String?
+  phone           String
+  address         String
+  status          StudentStatus
+  enrollments     Enrollment[]
+  payments        Payment[]
+  organization    Organization  @relation(fields: [organization_id], references: [id])
+}
+
+model Enrollment {
+  id          String       @id @default(uuid()) @db.Uuid
+  student_id  String       @db.Uuid
+  group_id    String       @db.Uuid
+  enrolled_at DateTime     @default(now())
+  attendance  Attendance[]
+  group       Group        @relation(fields: [group_id], references: [id])
+  student     Student      @relation(fields: [student_id], references: [id])
+  progress    Progress[]
+}
+
+model Attendance {
+  id            String           @id @default(uuid()) @db.Uuid
+  enrollment_id String           @db.Uuid
+  lesson_id     String           @db.Uuid
+  status        AttendanceStatus
+  marked_at     DateTime         @default(now())
+  enrollment    Enrollment       @relation(fields: [enrollment_id], references: [id])
+  lesson        Lesson           @relation(fields: [lesson_id], references: [id])
+}
+
+model Progress {
+  id            String     @id @default(uuid()) @db.Uuid
+  enrollment_id String     @db.Uuid
+  lesson_id     String     @db.Uuid
+  completed     Boolean
+  title         String
+  enrollment    Enrollment @relation(fields: [enrollment_id], references: [id])
+  lesson        Lesson     @relation(fields: [lesson_id], references: [id])
+}
+
+model Exam {
+  id        String  @id @default(uuid()) @db.Uuid
+  lesson_id String  @db.Uuid
+  title     String
+  desc      String?
+  lesson    Lesson  @relation(fields: [lesson_id], references: [id])
+  tests     Test[]
+}
+
+model Test {
+  id       String @id @default(uuid()) @db.Uuid
+  exam_id  String @map("exams_id") @db.Uuid
+  question String
+  scores   Int
+  exam     Exam   @relation(fields: [exam_id], references: [id])
+}
+
+model Lead {
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  admin           String
+  full_name       String
+  phone           String
+  source          String
+  status          LeadStatus
+  organization    Organization @relation(fields: [organization_id], references: [id])
+}
+
+model Payment {
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  student_id      String       @db.Uuid
+  amount          Decimal
+  method          String
+  paid_at         DateTime     @default(now())
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  student         Student      @relation(fields: [student_id], references: [id])
+}
+
+model Archive {
+  id         String   @id @default(uuid()) @db.Uuid
+  status     UserRole
+  change     Json?
+  created_at DateTime @default(now())
+}
+
 enum OrganizationStatus {
   ACTIVE
   INACTIVE
@@ -16,8 +179,8 @@ enum UserRole {
   SUPER_ADMIN
   ADMIN
   TEACHER
-  MANAGER
   STUDENT
+  MANAGER
 }
 
 enum StudentStatus {
@@ -40,181 +203,4 @@ enum AttendanceStatus {
 enum CourseStatus {
   ACTIVE
   INACTIVE
-}
-
-// =========================
-// Core models
-// =========================
-
-model Organization {
-  id         String             @id @default(uuid()) @db.Uuid
-  name       String             @unique
-  email      String             @unique
-  phone      String             @unique
-  status     OrganizationStatus
-  created_at DateTime           @default(now())
-
-  users    User[]
-  courses  Course[]
-  groups   Group[]
-  students Student[]
-  leads    Lead[]
-  payments Payment[]
-}
-
-model User {
-  id              String   @id @default(uuid()) @db.Uuid
-  organization_id String   @db.Uuid
-  full_name       String
-  email           String   @unique
-  phone           String   @unique
-  password        String
-  refresh_token   String?
-  role            UserRole
-  created_at      DateTime @default(now())
-
-  organization   Organization @relation(fields: [organization_id], references: [id])
-  teachingGroups Group[]      @relation("GroupTeacher")
-}
-
-model Course {
-  id              String       @id @default(uuid()) @db.Uuid
-  organization_id String       @db.Uuid
-  title           String
-  description     String?
-  price           String
-  status          CourseStatus
-  created_at      DateTime     @default(now())
-
-  organization Organization @relation(fields: [organization_id], references: [id])
-  groups       Group[]
-  lessons      Lesson[]
-}
-
-model Group {
-  id              String   @id @default(uuid()) @db.Uuid
-  organization_id String   @db.Uuid
-  course_id       String   @db.Uuid
-  teacher_id      String   @db.Uuid
-  name            String
-  start_date      DateTime @db.Date
-  end_date        DateTime @db.Date
-  created_at      DateTime @default(now())
-
-  organization Organization @relation(fields: [organization_id], references: [id])
-  course       Course       @relation(fields: [course_id], references: [id])
-  teacher      User         @relation("GroupTeacher", fields: [teacher_id], references: [id])
-  enrollments  Enrollment[]
-}
-
-model Lesson {
-  id         String   @id @default(uuid()) @db.Uuid
-  course_id  String   @db.Uuid
-  title      String
-  desc       String?
-  start_date DateTime @db.Date
-  end_date   DateTime @db.Date
-
-  course     Course       @relation(fields: [course_id], references: [id])
-  attendance Attendance[]
-  progress   Progress[]
-  exams      Exam[]
-}
-
-model Student {
-  id              String        @id @default(uuid()) @db.Uuid
-  organization_id String        @db.Uuid
-  name            String
-  parent          String?
-  phone           String
-  address         String
-  status          StudentStatus
-
-  organization Organization @relation(fields: [organization_id], references: [id])
-  enrollments  Enrollment[]
-  payments     Payment[]
-}
-
-model Enrollment {
-  id          String   @id @default(uuid()) @db.Uuid
-  student_id  String   @db.Uuid
-  group_id    String   @db.Uuid
-  enrolled_at DateTime @default(now())
-
-  student    Student      @relation(fields: [student_id], references: [id])
-  group      Group        @relation(fields: [group_id], references: [id])
-  attendance Attendance[]
-  progress   Progress[]
-}
-
-model Attendance {
-  id            String           @id @default(uuid()) @db.Uuid
-  enrollment_id String           @db.Uuid
-  lesson_id     String           @db.Uuid
-  status        AttendanceStatus
-  marked_at     DateTime         @default(now())
-
-  enrollment Enrollment @relation(fields: [enrollment_id], references: [id])
-  lesson     Lesson     @relation(fields: [lesson_id], references: [id])
-}
-
-model Progress {
-  id            String  @id @default(uuid()) @db.Uuid
-  enrollment_id String  @db.Uuid
-  lesson_id     String  @db.Uuid
-  completed     Boolean
-  title         String
-
-  enrollment Enrollment @relation(fields: [enrollment_id], references: [id])
-  lesson     Lesson     @relation(fields: [lesson_id], references: [id])
-}
-
-model Exam {
-  id        String  @id @default(uuid()) @db.Uuid
-  lesson_id String  @db.Uuid
-  title     String
-  desc      String?
-
-  lesson Lesson @relation(fields: [lesson_id], references: [id])
-  tests  Test[]
-}
-
-model Test {
-  id       String @id @default(uuid()) @db.Uuid
-  exam_id  String @map("exams_id") @db.Uuid
-  question String
-  scores   Int
-
-  exam Exam @relation(fields: [exam_id], references: [id])
-}
-
-model Lead {
-  id              String     @id @default(uuid()) @db.Uuid
-  organization_id String     @db.Uuid
-  admin           String
-  full_name       String
-  phone           String
-  source          String
-  status          LeadStatus
-
-  organization Organization @relation(fields: [organization_id], references: [id])
-}
-
-model Payment {
-  id              String   @id @default(uuid()) @db.Uuid
-  organization_id String   @db.Uuid
-  student_id      String   @db.Uuid
-  amount          Decimal
-  method          String
-  paid_at         DateTime @default(now())
-
-  organization Organization @relation(fields: [organization_id], references: [id])
-  student      Student      @relation(fields: [student_id], references: [id])
-}
-
-model Archive {
-  id         String   @id @default(uuid()) @db.Uuid
-  status     UserRole
-  change     Json?
-  created_at DateTime @default(now())
 }

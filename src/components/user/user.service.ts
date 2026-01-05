@@ -154,31 +154,52 @@ console.log('User update', input);
 
   //** invite User */
 
-  async inviteUser(dto: InviteUserDto, currentOrgId: string) {
-    if (dto.role === UserRole.SUPER_ADMIN) {
+  async inviteUser(input: InviteUserDto, currentOrgId: string):Promise<User> {
+    console.log('input', input);
+    
+    // 1. SUPER_ADMIN yaratishni oldini olish
+    if (input.role === UserRole.SUPER_ADMIN) {
       throw new ForbiddenException(
         'Cannot create SUPER_ADMIN from organization scope',
       );
     }
 
-    const existing = await this.database.user.findUnique({
-      where: { email: dto.email },
+    // 2. Phone unique tekshirish (GLOBAL - login uchun)
+    const existingByPhone = await this.database.user.findUnique({
+      where: { phone: input.phone },
     });
-    if (existing) {
-      throw new BadRequestException('User already exists');
+    if (existingByPhone) {
+      throw new BadRequestException(
+        'User with this phone already exists',
+      );
     }
 
-    const password = dto.password ?? Math.random().toString(36).slice(-10);
+    // 3. Email unique tekshirish (ORGANIZATION SCOPE)
+    const existingByEmail = await this.database.user.findFirst({
+      where: { 
+        email: input.email,
+        organization_id: currentOrgId,
+      },
+    });
+    if (existingByEmail) {
+      throw new BadRequestException(
+        'User with this email already exists in your organization',
+      );
+    }
+
+    // 4. Password hash (agar berilmasa random generate)
+    const password = input.password ?? Math.random().toString(36).slice(-10);
     const hashed = await bcrypt.hash(password, 10);
 
+    // 5. User yaratish
     const user = await this.database.user.create({
       data: {
         organization_id: currentOrgId,
-        full_name: dto.email,
-        email: dto.email,
-        phone: dto.email,
+        full_name: input.full_name,
+        email: input.email,
+        phone: input.phone,
         password: hashed,
-        role: dto.role,
+        role: input.role,
       },
       select: {
         id: true,
@@ -193,7 +214,7 @@ console.log('User update', input);
 
     return {
       user,
-      temporaryPassword: dto.password ? undefined : password,
+      temporaryPassword: input.password ? undefined : password,
     };
   }
 }

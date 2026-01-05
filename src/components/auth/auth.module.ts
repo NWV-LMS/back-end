@@ -20,11 +20,8 @@ import { UserService } from '../user/user.service'
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret:
-          configService.get<string>('JWT_ACCESS_SECRET') || 'access-secret',
-        signOptions: {
-          expiresIn:
-            configService.get<string>('JWT_ACCESS_EXPIRES_IN') || '150000m',
+        secret:process.env.JWT_ACCESS_SECRET || 'access-secret',
+        signOptions: { expiresIn: `${process.env.JWT_ACCESS_EXPIRES_IN}` || '15m' 
         },
       }),
     }),

@@ -13,14 +13,14 @@ import { OrganizationsController } from '../auth/organizations.controller'
     ConfigModule,
     DatabaseModule,
     forwardRef(() => AuthModule),
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret:`${process.env.JWT_ACCESS_SECRET} || 'access-secret'`,
-        signOptions: { expiresIn: `${process.env.JWT_ACCESS_EXPIRES_IN}` || '150000m' },
-      }),
-    }),
+    // JwtModule.registerAsync({
+    //   imports: [ConfigModule],
+    //   inject: [ConfigService],
+    //   useFactory: (configService: ConfigService) => ({
+    //     secret:`${process.env.JWT_ACCESS_SECRET} || 'access-secret'`,
+    //     signOptions: { expiresIn: `${process.env.JWT_ACCESS_EXPIRES_IN}` || '15m' },
+    //   }),
+    // }),
   ],
   providers: [UserService],
   controllers: [UserController],

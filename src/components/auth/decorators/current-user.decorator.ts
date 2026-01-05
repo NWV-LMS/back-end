@@ -5,7 +5,6 @@ import { JwtPayload } from 'src/libs/types/auth'
 export const CurrentUser = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): string | null => {
     const request = ctx.switchToHttp().getRequest();
-    console.log('request.user', request.user);
     return request.user as string | null;
   },
 );
