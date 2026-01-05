@@ -152,9 +152,9 @@ console.log('User update', input);
     });
   }
 
-  //** invite User */
+  //** invite User promiseda <any> ozgaritiramiz */
 
-  async inviteUser(input: InviteUserDto, currentOrgId: string):Promise<User> {
+  async inviteUser(input: InviteUserDto, currentOrgId: string):Promise<any> {
     console.log('input', input);
     
     // 1. SUPER_ADMIN yaratishni oldini olish

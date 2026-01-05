@@ -17,7 +17,7 @@ export class OrganizationsController {
 
   @Roles(UserRole.ADMIN)
   @Post('users')
-  inviteUser(@Body() input: InviteUserDto, @CurrentUser() user: JwtPayload):Promise<User> {
+  inviteUser(@Body() input: InviteUserDto, @CurrentUser() user: JwtPayload):Promise<any> {
     console.log('input',input );
     if (!user.organization_id) {
       throw new Error('organization_id is required for this action');
