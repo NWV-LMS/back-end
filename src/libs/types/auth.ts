@@ -5,7 +5,7 @@ export interface JwtPayload {
   id: string; // Add id alias for convenience
   email: string;
   phone: string;
-  name:string
+  name: string;
   role: UserRole;
   organization_id: string | null;
 }

@@ -41,7 +41,7 @@ export class LoggingInterceptor implements NestInterceptor {
           'refreshToken',
           'refresh_token',
           'token',
-		  'id'
+          'id',
         ];
         return sensitiveKeys.includes(key) ? undefined : value;
       }).slice(50, 150);

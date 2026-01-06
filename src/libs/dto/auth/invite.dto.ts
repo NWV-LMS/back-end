@@ -1,6 +1,13 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MinLength,
+} from 'class-validator';
 import { UserRole } from 'generated/prisma/enums';
-
 
 export class InviteUserDto {
   @IsNotEmpty({ message: 'Full name is required' })

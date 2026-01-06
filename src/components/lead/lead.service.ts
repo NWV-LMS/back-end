@@ -19,7 +19,10 @@ import * as bcrypt from 'bcrypt';
 export class LeadService {
   constructor(private readonly database: DatabaseService) {}
 
-  async create(createLeadDto: CreateLeadDto, organizationId: string): Promise<LeadResponseDto> {
+  async create(
+    createLeadDto: CreateLeadDto,
+    organizationId: string,
+  ): Promise<LeadResponseDto> {
     const existingUser = await this.database.user.findUnique({
       where: { phone: createLeadDto.phone },
     });
@@ -28,13 +31,15 @@ export class LeadService {
     }
 
     const existingLead = await this.database.lead.findFirst({
-      where: { 
+      where: {
         phone: createLeadDto.phone,
-        organization_id: organizationId 
+        organization_id: organizationId,
       },
     });
     if (existingLead) {
-      throw new BadRequestException('Lead with this phone already exists in your organization');
+      throw new BadRequestException(
+        'Lead with this phone already exists in your organization',
+      );
     }
 
     return this.database.lead.create({
@@ -138,7 +143,7 @@ export class LeadService {
     if (!user) {
       const password = dto.password ?? Math.random().toString(36).slice(-8);
       const hashedPassword = await bcrypt.hash(password, 10);
-      
+
       user = await this.database.user.create({
         data: {
           organization_id: organizationId,
@@ -153,14 +158,16 @@ export class LeadService {
     }
 
     const existingStudent = await this.database.student.findFirst({
-      where: { 
+      where: {
         phone: lead.phone,
         organization_id: organizationId,
-      }
+      },
     });
 
     if (existingStudent) {
-       throw new BadRequestException('Student with this phone already exists in this organization');
+      throw new BadRequestException(
+        'Student with this phone already exists in this organization',
+      );
     }
 
     const [updatedLead, newStudent] = await this.database.$transaction([
@@ -192,44 +199,50 @@ export class LeadService {
     };
   }
 
-  async addNote(leadId: string, dto: CreateNoteDto, userId: string, organizationId: string) {
-    await this.findOne(leadId, organizationId);
+  // async addNote(
+  //   leadId: string,
+  //   dto: CreateNoteDto,
+  //   userId: string,
+  //   organizationId: string,
+  // ) {
+  //   console.log('addnode');
+  //   await this.findOne(leadId, organizationId);
 
-    return (this.database as any).note.create({
-      data: {
-        lead_id: leadId,
-        organization_id: organizationId,
-        user_id: userId,
-        content: dto.content,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            full_name: true,
-          }
-        }
-      }
-    });
-  }
+  //   return (this.database as any).note.create({
+  //     data: {
+  //       lead_id: leadId,
+  //       organization_id: organizationId,
+  //       user_id: userId,
+  //       content: dto.content,
+  //     },
+  //     include: {
+  //       user: {
+  //         select: {
+  //           id: true,
+  //           full_name: true,
+  //         },
+  //       },
+  //     },
+  //   });
+  // }
 
-  async getNotes(leadId: string, organizationId: string) {
-    await this.findOne(leadId, organizationId);
+  // async getNotes(leadId: string, organizationId: string) {
+  //   await this.findOne(leadId, organizationId);
 
-    return (this.database as any).note.findMany({
-      where: { 
-        lead_id: leadId,
-        organization_id: organizationId,
-      },
-      orderBy: { created_at: 'desc' },
-      include: {
-        user: {
-          select: {
-            id: true,
-            full_name: true,
-          }
-        }
-      }
-    });
-  }
+  //   return (this.database as any).note.findMany({
+  //     where: {
+  //       lead_id: leadId,
+  //       organization_id: organizationId,
+  //     },
+  //     orderBy: { created_at: 'desc' },
+  //     include: {
+  //       user: {
+  //         select: {
+  //           id: true,
+  //           full_name: true,
+  //         },
+  //       },
+  //     },
+  //   });
+  // }
 }

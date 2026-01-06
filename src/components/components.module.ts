@@ -7,7 +7,14 @@ import { CourseModule } from './course/course.module';
 import { GroupModule } from './group/group.module';
 
 @Module({
-  imports: [AuthModule, UserModule, LeadModule, StudentModule, CourseModule, GroupModule],
-  exports: [AuthModule, UserModule]
+  imports: [
+    AuthModule,
+    UserModule,
+    LeadModule,
+    StudentModule,
+    CourseModule,
+    GroupModule,
+  ],
+  exports: [AuthModule, UserModule],
 })
 export class ComponentsModule {}

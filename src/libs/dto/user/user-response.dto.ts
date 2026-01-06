@@ -1,6 +1,6 @@
 import { UserRole } from 'generated/prisma/enums';
 
-//Bu responseda keladigon datalar 
+//Bu responseda keladigon datalar
 export class User {
   id: string;
   organization_id?: string;

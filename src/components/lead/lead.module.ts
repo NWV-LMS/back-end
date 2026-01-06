@@ -4,6 +4,6 @@ import { LeadService } from './lead.service';
 
 @Module({
   controllers: [LeadController],
-  providers: [LeadService]
+  providers: [LeadService],
 })
 export class LeadModule {}

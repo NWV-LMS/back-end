@@ -31,24 +31,22 @@ import { ConvertLeadDto } from 'src/libs/dto/lead/convert-lead.dto';
 export class LeadController {
   constructor(private readonly leadService: LeadService) {}
 
-  @Post(':id/notes')
-  addNote(
-    @Param('id') id: string,
-    @Body() dto: CreateNoteDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    if (!user.organization_id) throw new Error('Org ID required');
-    return this.leadService.addNote(id, dto, user.id, user.organization_id);
-  }
+//   @Post(':id/notes')
+//   addNote(
+//     @Param('id') id: string,
+//     @Body() dto: CreateNoteDto,
+//     @CurrentUser() user: JwtPayload,
+//   ) {
+//     console.log('notes')
+//     if (!user.organization_id) throw new Error('Org ID required');
+//     return this.leadService.addNote(id, dto, user.id, user.organization_id);
+//   }
 
-  @Get(':id/notes')
-  getNotes(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    if (!user.organization_id) throw new Error('Org ID required');
-    return this.leadService.getNotes(id, user.organization_id);
-  }
+//   @Get(':id/notes')
+//   getNotes(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+//     if (!user.organization_id) throw new Error('Org ID required');
+//     return this.leadService.getNotes(id, user.organization_id);
+//   }
 
   @Post(':id/convert')
   convert(
@@ -56,6 +54,7 @@ export class LeadController {
     @Body() dto: ConvertLeadDto,
     @CurrentUser() user: JwtPayload,
   ): Promise<any> {
+    console.log(user);
     if (!user.organization_id) throw new Error('Org ID required');
     return this.leadService.convert(id, dto, user.organization_id);
   }
@@ -79,8 +78,11 @@ export class LeadController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload): Promise<LeadResponseDto> {
-      if (!user.organization_id) throw new Error('Org ID required');
+  findOne(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<LeadResponseDto> {
+    if (!user.organization_id) throw new Error('Org ID required');
     return this.leadService.findOne(id, user.organization_id);
   }
 
@@ -90,13 +92,16 @@ export class LeadController {
     @Body() updateLeadDto: UpdateLeadDto,
     @CurrentUser() user: JwtPayload,
   ): Promise<LeadResponseDto> {
-      if (!user.organization_id) throw new Error('Org ID required');
+    if (!user.organization_id) throw new Error('Org ID required');
     return this.leadService.update(id, updateLeadDto, user.organization_id);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @CurrentUser() user: JwtPayload): Promise<LeadResponseDto> {
-      if (!user.organization_id) throw new Error('Org ID required');
+  remove(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<LeadResponseDto> {
+    if (!user.organization_id) throw new Error('Org ID required');
     return this.leadService.remove(id, user.organization_id);
   }
 }

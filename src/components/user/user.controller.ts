@@ -10,7 +10,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserService } from './user.service';
 import { User } from 'src/libs/dto/user/user-response.dto';
 
-
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -39,8 +38,8 @@ export class UserController {
   changePassword(
     @CurrentUser() user: JwtPayload,
     @Body() input: UserUpdateDto,
-  ):Promise<User> {
-    console.log('User update',input);
+  ): Promise<User> {
+    console.log('User update', input);
     return this.userService.updateUser(user.sub, input);
   }
 }

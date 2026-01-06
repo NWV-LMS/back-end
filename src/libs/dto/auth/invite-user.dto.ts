@@ -11,7 +11,6 @@ import {
 import { UserRole } from 'generated/prisma/enums';
 
 export class InviteUserDto {
-
   @IsNotEmpty()
   @IsString()
   @MinLength(2)

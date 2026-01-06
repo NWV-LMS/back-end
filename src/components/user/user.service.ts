@@ -22,7 +22,7 @@ export class UserService {
     private authService: AuthService,
   ) {}
 
-//* Login
+  //* Login
   async login(input: LoginDto): Promise<LoginResponseDto> {
     console.log('User login service');
     const user = await this.database.user.findUnique({
@@ -51,11 +51,10 @@ export class UserService {
         user.role === UserRole.SUPER_ADMIN ? null : user.organization_id,
     };
 
-
     const tokens = await this.authService.generateTokens(payload);
     await this.authService.storeRefreshToken(user.id, tokens.refreshToken);
 
-    const { password: _pw, refresh_token: _rt, ...safeUser } = user;
+    const { password, refresh_token, ...safeUser } = user;
     return {
       ...tokens,
       user: this.authService.sanitizeUser(safeUser as unknown as User),
@@ -104,10 +103,9 @@ export class UserService {
         email: input.email,
         phone: input.phone,
       },
-    }
-  )
+    });
 
-console.log(user,input)
+    console.log(user, input);
     if (!user) {
       throw new UnauthorizedException();
     }
@@ -127,7 +125,7 @@ console.log(user,input)
       if (input.new_password !== input.confirm_new_password) {
         throw new BadRequestException('Passwords do not match');
       }
-console.log('User update', input);
+      console.log('User update', input);
       const hashed = await bcrypt.hash(input.new_password, 10);
       await this.database.user.update({
         where: { id: userId },
@@ -148,16 +146,15 @@ console.log('User update', input);
         full_name: true,
         phone: true,
         created_at: true,
-
       },
     });
   }
 
   //** invite User promiseda <any> ozgaritiramiz */
 
-  async inviteUser(input: InviteUserDto, currentOrgId: string):Promise<any> {
+  async inviteUser(input: InviteUserDto, currentOrgId: string): Promise<any> {
     console.log('input', input);
-    
+
     // 1. SUPER_ADMIN yaratishni oldini olish
     if (input.role === UserRole.SUPER_ADMIN) {
       throw new ForbiddenException(
@@ -170,14 +167,12 @@ console.log('User update', input);
       where: { phone: input.phone },
     });
     if (existingByPhone) {
-      throw new BadRequestException(
-        'User with this phone already exists',
-      );
+      throw new BadRequestException('User with this phone already exists');
     }
 
     // 3. Email unique tekshirish (ORGANIZATION SCOPE)
     const existingByEmail = await this.database.user.findFirst({
-      where: { 
+      where: {
         email: input.email,
         organization_id: currentOrgId,
       },

@@ -23,7 +23,7 @@ export class Organ {
 
   @IsString()
   adminName: string;
-  
+
   @IsNotEmpty()
   @IsString()
   phone: string;

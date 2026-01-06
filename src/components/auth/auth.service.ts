@@ -178,7 +178,6 @@ export class AuthService {
 
       const tokens = await this.generateTokens(payload);
       await this.storeRefreshToken(user.id, tokens.refreshToken);
-      //@ts-ignore
       const { password: _pw, refresh_token: _rt, ...safeUser } = user;
       return {
         ...tokens,
