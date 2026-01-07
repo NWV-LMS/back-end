@@ -1,4 +1,11 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsPhoneNumber, IsString, MinLength } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsPhoneNumber,
+  IsString,
+  MinLength,
+} from 'class-validator';
 import { StudentStatus } from 'generated/prisma/enums';
 
 export class CreateStudentDto {

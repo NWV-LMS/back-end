@@ -170,7 +170,7 @@ export class LeadService {
       );
     }
 
-    const [updatedLead, newStudent] = await this.database.$transaction([
+    const [_, newStudent] = await this.database.$transaction([
       this.database.lead.update({
         where: { id },
         data: { status: LeadStatus.CONVERTED },
