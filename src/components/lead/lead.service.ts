@@ -11,7 +11,6 @@ import { LeadStatus } from 'generated/prisma/enums';
 
 import { QueryLeadDto } from 'src/libs/dto/lead/query-lead.dto';
 import { ConvertLeadDto } from 'src/libs/dto/lead/convert-lead.dto';
-import { CreateNoteDto } from 'src/libs/dto/lead/create-note.dto';
 import { UserRole, StudentStatus } from 'generated/prisma/enums';
 import * as bcrypt from 'bcrypt';
 
@@ -170,7 +169,7 @@ export class LeadService {
       );
     }
 
-    const [_, newStudent] = await this.database.$transaction([
+    const [, newStudent] = await this.database.$transaction([
       this.database.lead.update({
         where: { id },
         data: { status: LeadStatus.CONVERTED },

@@ -88,17 +88,17 @@ export class GroupService {
 
     // Optional: Validate course/teacher if they are being updated
     if (dto.course_id) {
-        const course = await this.database.course.findFirst({
-            where: { id: dto.course_id, organization_id: organizationId },
-        });
-        if (!course) throw new NotFoundException('Course not found');
+      const course = await this.database.course.findFirst({
+        where: { id: dto.course_id, organization_id: organizationId },
+      });
+      if (!course) throw new NotFoundException('Course not found');
     }
 
     if (dto.teacher_id) {
-        const teacher = await this.database.user.findFirst({
-            where: { id: dto.teacher_id, organization_id: organizationId },
-        });
-        if (!teacher) throw new NotFoundException('Teacher not found');
+      const teacher = await this.database.user.findFirst({
+        where: { id: dto.teacher_id, organization_id: organizationId },
+      });
+      if (!teacher) throw new NotFoundException('Teacher not found');
     }
 
     const updated = await this.database.group.update({
@@ -122,11 +122,13 @@ export class GroupService {
 
     // Check for enrollments before deleting
     const enrollments = await this.database.enrollment.findFirst({
-        where: { group_id: id },
+      where: { group_id: id },
     });
 
     if (enrollments) {
-        throw new BadRequestException('Cannot delete group with existing enrollments');
+      throw new BadRequestException(
+        'Cannot delete group with existing enrollments',
+      );
     }
 
     await this.database.group.delete({

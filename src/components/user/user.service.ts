@@ -54,7 +54,10 @@ export class UserService {
     const tokens = await this.authService.generateTokens(payload);
     await this.authService.storeRefreshToken(user.id, tokens.refreshToken);
 
-    const { password, refresh_token, ...safeUser } = user;
+    const safeUser = { ...user };
+    delete (safeUser as any).password;
+    delete (safeUser as any).refresh_token;
+
     return {
       ...tokens,
       user: this.authService.sanitizeUser(safeUser as unknown as User),
@@ -214,8 +217,8 @@ export class UserService {
     };
   }
 
-  // statusiniham return qilish kk 
-  getAllUsers():Promise<User[]>{
+  // statusiniham return qilish kk
+  getAllUsers(): Promise<User[]> {
     return this.database.user.findMany({
       select: {
         id: true,

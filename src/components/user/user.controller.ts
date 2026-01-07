@@ -1,11 +1,9 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 
-import { UserRole } from 'generated/prisma/enums';
 import { UserUpdateDto } from 'src/libs/dto/auth/userUpdate.dto';
 import { LoginDto, LoginResponseDto } from 'src/libs/dto/auth/login.dto';
 import { JwtPayload } from 'src/libs/types/auth';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserService } from './user.service';
 import { User } from 'src/libs/dto/user/user-response.dto';
@@ -42,5 +40,4 @@ export class UserController {
     console.log('User update', input);
     return this.userService.updateUser(user.sub, input); //user.sub bu userni idsi
   }
-  
 }

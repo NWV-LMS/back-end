@@ -33,7 +33,10 @@ export class CourseService {
     });
   }
 
-  async findOne(id: string, organizationId: string): Promise<CourseResponseDto> {
+  async findOne(
+    id: string,
+    organizationId: string,
+  ): Promise<CourseResponseDto> {
     const course = await this.database.course.findFirst({
       where: { id, organization_id: organizationId },
     });
@@ -60,14 +63,16 @@ export class CourseService {
 
   async remove(id: string, organizationId: string): Promise<void> {
     await this.findOne(id, organizationId);
-    
+
     // Check if course has groups before deleting
     const groups = await this.database.group.findFirst({
       where: { course_id: id },
     });
 
     if (groups) {
-      throw new BadRequestException('Cannot delete course with existing groups');
+      throw new BadRequestException(
+        'Cannot delete course with existing groups',
+      );
     }
 
     await this.database.course.delete({

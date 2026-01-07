@@ -22,7 +22,6 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { QueryLeadDto } from 'src/libs/dto/lead/query-lead.dto';
 import { Query } from '@nestjs/common';
 
-import { CreateNoteDto } from 'src/libs/dto/lead/create-note.dto';
 import { ConvertLeadDto } from 'src/libs/dto/lead/convert-lead.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)

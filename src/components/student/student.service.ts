@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { CreateStudentDto } from '../../libs/dto/student/create-student.dto';
 import { EnrollStudentDto } from '../../libs/dto/student/enroll-student.dto';
@@ -14,7 +18,10 @@ import * as bcrypt from 'bcrypt';
 export class StudentService {
   constructor(private readonly database: DatabaseService) {}
 
-  async create(organizationId: string, dto: CreateStudentDto): Promise<CreateStudentResponseDto> {
+  async create(
+    organizationId: string,
+    dto: CreateStudentDto,
+  ): Promise<CreateStudentResponseDto> {
     // 1. Check if user exists globally by phone
     let user = await this.database.user.findFirst({
       where: { phone: dto.phone },
@@ -44,7 +51,7 @@ export class StudentService {
           temporaryPassword =
             dto.password || Math.random().toString(36).slice(-8);
           const uniqueEmail = `${dto.phone.replace('+', '')}@system.local`;
-          
+
           user = await tx.user.create({
             data: {
               organization_id: organizationId,
@@ -81,7 +88,10 @@ export class StudentService {
     };
   }
 
-  async findAll(organizationId: string, query: QueryStudentDto): Promise<PaginatedStudentResponseDto> {
+  async findAll(
+    organizationId: string,
+    query: QueryStudentDto,
+  ): Promise<PaginatedStudentResponseDto> {
     const { page, limit, search, status } = query;
     const skip = (page - 1) * limit;
 
@@ -154,7 +164,10 @@ export class StudentService {
     return updated as StudentResponseDto;
   }
 
-  async remove(id: string, organizationId: string): Promise<{ message: string }> {
+  async remove(
+    id: string,
+    organizationId: string,
+  ): Promise<{ message: string }> {
     await this.findOne(id, organizationId);
 
     await this.database.student.delete({
@@ -169,7 +182,7 @@ export class StudentService {
     dto: EnrollStudentDto,
     organizationId: string,
   ): Promise<any> {
-    const student = await this.findOne(studentId, organizationId);
+    await this.findOne(studentId, organizationId);
 
     const group = await this.database.group.findFirst({
       where: {
@@ -190,7 +203,9 @@ export class StudentService {
     });
 
     if (existingEnrollment) {
-      throw new BadRequestException('Student is already enrolled in this group');
+      throw new BadRequestException(
+        'Student is already enrolled in this group',
+      );
     }
 
     return this.database.enrollment.create({

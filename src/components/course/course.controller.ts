@@ -31,7 +31,7 @@ export class CourseController {
     @CurrentUser() user: JwtPayload,
   ): Promise<CourseResponseDto> {
     if (!user.organization_id) {
-       throw new Error('Organization ID is required');
+      throw new Error('Organization ID is required');
     }
     return this.courseService.create(dto, user.organization_id);
   }
@@ -40,8 +40,8 @@ export class CourseController {
   @Get()
   findAll(@CurrentUser() user: JwtPayload): Promise<CourseResponseDto[]> {
     if (!user.organization_id) {
-        throw new Error('Organization ID is required');
-     }
+      throw new Error('Organization ID is required');
+    }
     return this.courseService.findAll(user.organization_id);
   }
 
@@ -52,8 +52,8 @@ export class CourseController {
     @CurrentUser() user: JwtPayload,
   ): Promise<CourseResponseDto> {
     if (!user.organization_id) {
-        throw new Error('Organization ID is required');
-     }
+      throw new Error('Organization ID is required');
+    }
     return this.courseService.findOne(id, user.organization_id);
   }
 
@@ -65,8 +65,8 @@ export class CourseController {
     @CurrentUser() user: JwtPayload,
   ): Promise<CourseResponseDto> {
     if (!user.organization_id) {
-        throw new Error('Organization ID is required');
-     }
+      throw new Error('Organization ID is required');
+    }
     return this.courseService.update(id, dto, user.organization_id);
   }
 
@@ -77,8 +77,8 @@ export class CourseController {
     @CurrentUser() user: JwtPayload,
   ): Promise<void> {
     if (!user.organization_id) {
-        throw new Error('Organization ID is required');
-     }
+      throw new Error('Organization ID is required');
+    }
     return this.courseService.remove(id, user.organization_id);
   }
 }

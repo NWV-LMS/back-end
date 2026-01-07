@@ -38,7 +38,7 @@ export class StudentController {
     if (!user.organization_id) throw new Error('Org ID required');
     return this.studentService.create(user.organization_id, dto);
   }
-// bu erda nega body emas query da kelyabti ?  biz pagelar berganimiz uchun 
+  // bu erda nega body emas query da kelyabti ?  biz pagelar berganimiz uchun
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get()
   findAll(
