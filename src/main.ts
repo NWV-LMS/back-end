@@ -1,11 +1,20 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import 'dotenv/config';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './libs/interceptor/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Security
+  app.use(helmet());
+  app.enableCors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+    credentials: true,
+  });
+
   console.log('Starting server...');
   app.useGlobalPipes(
     new ValidationPipe({
