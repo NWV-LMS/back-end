@@ -5,6 +5,7 @@ import { LeadModule } from './lead/lead.module';
 import { StudentModule } from './student/student.module';
 import { CourseModule } from './course/course.module';
 import { GroupModule } from './group/group.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { GroupModule } from './group/group.module';
     StudentModule,
     CourseModule,
     GroupModule,
+    HealthModule,
   ],
   exports: [AuthModule, UserModule],
 })
