@@ -7,7 +7,7 @@ import { LoggingInterceptor } from './libs/interceptor/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   // Security
   app.use(helmet());
   app.enableCors({

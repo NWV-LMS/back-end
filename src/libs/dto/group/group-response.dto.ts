@@ -7,7 +7,7 @@ export class GroupResponseDto {
   start_date: Date;
   end_date: Date;
   created_at: Date;
-  
+
   // Relations (optional in response depending on query, but good to type)
   course?: {
     id: string;

@@ -1,4 +1,3 @@
-import { Type } from 'class-transformer';
 import { IsDateString, IsNotEmpty, IsString, IsUUID } from 'class-validator';
 
 export class CreateGroupDto {
