@@ -8,7 +8,6 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { Roles } from './decorators/roles.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
-import { User } from 'src/libs/dto/user/user-response.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('organizations')

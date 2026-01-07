@@ -177,18 +177,22 @@ export class AuthService {
           user.role === UserRole.SUPER_ADMIN ? null : user.organization_id,
       };
 
+      this.sanitizeUser(user as any); // Use sanitizeUser helper
       const tokens = await this.generateTokens(payload);
       await this.storeRefreshToken(user.id, tokens.refreshToken);
-      const { password: _pw, refresh_token: _rt, ...safeUser } = user;
+      const safeUser = this.sanitizeUser(user as any);
       return {
         ...tokens,
-        user: this.sanitizeUser(safeUser as unknown as User),
+        user: safeUser,
       };
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
-  async updateOrganization(orgId: string, input: UpdateOrganizationDto): Promise<Organ> {
+  async updateOrganization(
+    orgId: string,
+    input: UpdateOrganizationDto,
+  ): Promise<Organ> {
     const existing = await this.database.organization.findUnique({
       where: { id: orgId },
     });

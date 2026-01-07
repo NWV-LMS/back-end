@@ -1,10 +1,9 @@
-import { Body, Controller, Get, Patch, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Param, Post } from '@nestjs/common';
 import { CreateOrganizationDto } from 'src/libs/dto/organization/create-organization.dto';
 import { UpdateOrganizationDto } from 'src/libs/dto/organization/update-organization.dto';
 import { Organ } from 'src/libs/dto/organization/organization-response.dto';
 import { UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { User } from 'src/libs/dto/user/user-response.dto';
 
 //! @UseGuards(JwtAuthGuard, RolesGuard)
@@ -23,10 +22,10 @@ export class PlatformController {
     return await this.authService.register(input);
   }
 
-    // @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   // @Roles(UserRole.SUPER_ADMIN)
   @Get('all')
-  getAllUsers():Promise<User[]>{
+  getAllUsers(): Promise<User[]> {
     return this.userService.getAllUsers();
   }
   // @UseGuards(JwtAuthGuard)
