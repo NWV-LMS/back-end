@@ -213,4 +213,19 @@ export class UserService {
       temporaryPassword: input.password ? undefined : password,
     };
   }
+
+  // statusiniham return qilish kk 
+  getAllUsers():Promise<User[]>{
+    return this.database.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        organization_id: true,
+        full_name: true,
+        phone: true,
+        created_at: true,
+      },
+    }) as Promise<User[]>;
+  }
 }

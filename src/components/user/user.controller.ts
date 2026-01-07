@@ -35,11 +35,12 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard)
   @Post('update')
-  changePassword(
+  updateUser(
     @CurrentUser() user: JwtPayload,
     @Body() input: UserUpdateDto,
   ): Promise<User> {
     console.log('User update', input);
-    return this.userService.updateUser(user.sub, input);
+    return this.userService.updateUser(user.sub, input); //user.sub bu userni idsi
   }
+  
 }
