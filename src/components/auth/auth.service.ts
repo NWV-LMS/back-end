@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { OrganizationStatus, UserRole } from 'generated/prisma/enums';
 import { CreateOrganizationDto } from 'src/libs/dto/organization/create-organization.dto';
+import { UpdateOrganizationDto } from 'src/libs/dto/organization/update-organization.dto';
 import { Organ } from 'src/libs/dto/organization/organization-response.dto';
 import { Message } from 'src/libs/enums/common.enums';
 import { T } from 'src/libs/types/common';
@@ -186,5 +187,39 @@ export class AuthService {
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');
     }
+  }
+  async updateOrganization(orgId: string, input: UpdateOrganizationDto): Promise<Organ> {
+    const existing = await this.database.organization.findUnique({
+      where: { id: orgId },
+    });
+
+    if (!existing) {
+      throw new BadRequestException('Organization not found');
+    }
+
+    const updated = await this.database.organization.update({
+      where: { id: orgId },
+      data: {
+        name: input.name,
+        email: input.email,
+        phone: input.phone,
+        status: input.status,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        status: true,
+        created_at: true,
+      },
+    });
+
+    return {
+      organization_id: updated.id,
+      Org_name: updated.name,
+      Org_email: updated.email,
+      Org_status: updated.status,
+      created_at: updated.created_at,
+    } as Organ;
   }
 }
