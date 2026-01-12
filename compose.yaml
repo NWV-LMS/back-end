@@ -4,21 +4,22 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - '3003:3000'
     environment:
+      - DATABASE_URL=postgresql://leo:123456@db:5432/crm
       - DB_HOST=db
-      - DB_USER=user
-      - DB_PASSWORD=password
-      - DB_NAME=mydatabase
+      - DB_USER=leo
+      - DB_PASSWORD=123456
+      - DB_NAME=crm
     depends_on:
       - db
 
   db:
     image: postgres:13
     environment:
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: crm
+      POSTGRES_USER: leo
+      POSTGRES_PASSWORD: 123456
     volumes:
       - db-data:/var/lib/postgresql/data
 

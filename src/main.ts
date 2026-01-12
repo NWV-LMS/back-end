@@ -11,7 +11,8 @@ async function bootstrap() {
   // Security
   app.use(helmet());
   app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+    // origin: process.env.ALLOWED_ORIGINS?.split(',') || '*', //keynchalik togrilemiz
+    origin: true,
     credentials: true,
   });
 

@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -17,28 +16,27 @@ model Organization {
   courses    Course[]
   groups     Group[]
   leads      Lead[]
+  notes      Note[]
   payments   Payment[]
   students   Student[]
   users      User[]
-  notes      Note[]
 }
 
 model User {
-  id              String   @id @default(uuid()) @db.Uuid
-  organization_id String   @db.Uuid
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
   full_name       String
-  email           String // Organization scope unique only
-  phone           String   @unique // Global unique for login
+  email           String
   password        String
-  refresh_token   String?
   role            UserRole
-  created_at      DateTime @default(now())
+  created_at      DateTime     @default(now())
+  phone           String       @unique
+  refresh_token   String?
+  teachingGroups  Group[]      @relation("GroupTeacher")
+  notes           Note[]
+  organization    Organization @relation(fields: [organization_id], references: [id])
 
-  teachingGroups Group[]      @relation("GroupTeacher")
-  organization   Organization @relation(fields: [organization_id], references: [id])
-  notes          Note[]
-
-  @@unique([organization_id, email]) // Email unique per organization
+  @@unique([organization_id, email])
 }
 
 model Course {
@@ -85,7 +83,6 @@ model Lesson {
 model Student {
   id              String        @id @default(uuid()) @db.Uuid
   organization_id String        @db.Uuid
-  user_id         String        @db.Uuid
   name            String
   parent          String?
   phone           String
@@ -152,23 +149,22 @@ model Lead {
   phone           String
   source          String
   status          LeadStatus
-  organization    Organization @relation(fields: [organization_id], references: [id])
   created_at      DateTime     @default(now())
   updated_at      DateTime     @default(now())
+  organization    Organization @relation(fields: [organization_id], references: [id])
   notes           Note[]
 }
 
 model Note {
-  id              String   @id @default(uuid()) @db.Uuid
-  organization_id String   @db.Uuid
-  lead_id         String   @db.Uuid
-  user_id         String   @db.Uuid
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  lead_id         String       @db.Uuid
+  user_id         String       @db.Uuid
   content         String
-  created_at      DateTime @default(now())
-
-  organization Organization @relation(fields: [organization_id], references: [id])
-  lead         Lead         @relation(fields: [lead_id], references: [id])
-  user         User         @relation(fields: [user_id], references: [id])
+  created_at      DateTime     @default(now())
+  lead            Lead         @relation(fields: [lead_id], references: [id])
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  user            User         @relation(fields: [user_id], references: [id])
 }
 
 model Payment {
