@@ -1,27 +1,34 @@
+
 services:
   api:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: crm-lms-api
     ports:
       - '3003:3000'
     environment:
       - DATABASE_URL=postgresql://leo:123456@db:5432/crm
-      - DB_HOST=db
-      - DB_USER=leo
-      - DB_PASSWORD=123456
-      - DB_NAME=crm
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    restart: unless-stopped
 
   db:
     image: postgres:13
+    container_name: crm-lms-db
     environment:
       POSTGRES_DB: crm
       POSTGRES_USER: leo
       POSTGRES_PASSWORD: 123456
     volumes:
       - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U leo -d crm']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
 volumes:
   db-data:

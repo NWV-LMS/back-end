@@ -87,7 +87,7 @@ export class AuthService {
         organization_id: result.organization.id,
         Org_name: result.organization.name,
         Org_status: result.organization.status,
-        Org_email: result.organization.email, // Email
+        Org_email: result.organization.email,
         id: result.admin.id,
         adminEmail: result.admin.email,
         adminName: result.admin.full_name,

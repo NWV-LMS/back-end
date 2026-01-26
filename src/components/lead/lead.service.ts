@@ -8,10 +8,10 @@ import { CreateLeadDto } from 'src/libs/dto/lead/create-lead.dto';
 import { UpdateLeadDto } from 'src/libs/dto/lead/update-lead.dto';
 import { LeadResponseDto } from 'src/libs/dto/lead/lead-response.dto';
 import { LeadStatus } from 'generated/prisma/enums';
-
+import { UserRole, StudentStatus } from '@prisma/client';
 import { QueryLeadDto } from 'src/libs/dto/lead/query-lead.dto';
 import { ConvertLeadDto } from 'src/libs/dto/lead/convert-lead.dto';
-import { UserRole, StudentStatus } from 'generated/prisma/enums';
+
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -114,7 +114,7 @@ export class LeadService {
 
     return this.database.lead.update({
       where: { id },
-      data: updateLeadDto,
+      data: updateLeadDto, // TODO: Contacted ishlatish mumkin 
     });
   }
 
@@ -140,7 +140,7 @@ export class LeadService {
     let temporaryPassword;
 
     if (!user) {
-      const password = dto.password ?? Math.random().toString(36).slice(-8);
+      const password = dto.password ?? '123456';
       const hashedPassword = await bcrypt.hash(password, 10);
 
       user = await this.database.user.create({
@@ -198,50 +198,4 @@ export class LeadService {
     };
   }
 
-  // async addNote(
-  //   leadId: string,
-  //   dto: CreateNoteDto,
-  //   userId: string,
-  //   organizationId: string,
-  // ) {
-  //   console.log('addnode');
-  //   await this.findOne(leadId, organizationId);
-
-  //   return (this.database as any).note.create({
-  //     data: {
-  //       lead_id: leadId,
-  //       organization_id: organizationId,
-  //       user_id: userId,
-  //       content: dto.content,
-  //     },
-  //     include: {
-  //       user: {
-  //         select: {
-  //           id: true,
-  //           full_name: true,
-  //         },
-  //       },
-  //     },
-  //   });
-  // }
-
-  // async getNotes(leadId: string, organizationId: string) {
-  //   await this.findOne(leadId, organizationId);
-
-  //   return (this.database as any).note.findMany({
-  //     where: {
-  //       lead_id: leadId,
-  //       organization_id: organizationId,
-  //     },
-  //     orderBy: { created_at: 'desc' },
-  //     include: {
-  //       user: {
-  //         select: {
-  //           id: true,
-  //           full_name: true,
-  //         },
-  //       },
-  //     },
-  //   });
-  // }
 }

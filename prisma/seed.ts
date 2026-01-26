@@ -2,9 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
 import { Pool } from 'pg';
-
-import { UserRole } from '../generated/prisma/enums';
-import { PrismaClient } from '@prisma/client/default'
+import { PrismaClient, UserRole } from '@prisma/client'
 dotenv.config();
 
 const connectionString = process.env.DATABASE_URL;
@@ -57,45 +55,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-
-// async function main() {
-//   const orgId = uuidv4();
-
-//   // Organization
-//   const org = await prisma.organization.create({
-//     data: {
-//       id: orgId,
-//       name: 'Platform Super Admin',
-//       email: 'platform@admin.com',
-//       phone: '+998901234567',
-//       address: 'Platform HQ',
-//       status: 'ACTIVE',
-//       industry: 'TECHNOLOGY',
-//       subscription_plan: 'ENTERPRISE',
-//     },
-//   });
-
-//   // User (password hashed)
-//   const hashedPassword = await bcrypt.hash('StrongPassword123', 10);
-
-//   const user = await prisma.user.create({
-//     data: {
-//       id: uuidv4(),
-//       email: 'admin@platform.com',
-//       phone: '+998901234567',
-//       first_name: 'Admin',
-//       last_name: 'Platform',
-//       password: hashedPassword,
-//       role: 'SUPER_ADMIN',
-//       status: 'ACTIVE',
-//       organization_id: orgId,
-//     },
-//   });
-
-//   console.log('✅ Organization:', org.id);
-//   console.log('✅ User:', user.email);
-// }
-
-// main()
-//   .catch(e => console.error(e))
-//   .finally(() => prisma.$disconnect());

@@ -30,23 +30,6 @@ import { ConvertLeadDto } from 'src/libs/dto/lead/convert-lead.dto';
 export class LeadController {
   constructor(private readonly leadService: LeadService) {}
 
-  //   @Post(':id/notes')
-  //   addNote(
-  //     @Param('id') id: string,
-  //     @Body() dto: CreateNoteDto,
-  //     @CurrentUser() user: JwtPayload,
-  //   ) {
-  //     console.log('notes')
-  //     if (!user.organization_id) throw new Error('Org ID required');
-  //     return this.leadService.addNote(id, dto, user.id, user.organization_id);
-  //   }
-
-  //   @Get(':id/notes')
-  //   getNotes(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
-  //     if (!user.organization_id) throw new Error('Org ID required');
-  //     return this.leadService.getNotes(id, user.organization_id);
-  //   }
-
   @Post(':id/convert')
   convert(
     @Param('id') id: string,

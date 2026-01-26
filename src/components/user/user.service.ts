@@ -39,7 +39,7 @@ export class UserService {
       throw new UnauthorizedException('Invalid credentials');
     }
     console.log('User login service3');
-
+  
     const payload: JwtPayload = {
       sub: user.id,
       id: user.id, // Added id
@@ -54,9 +54,9 @@ export class UserService {
     const tokens = await this.authService.generateTokens(payload);
     await this.authService.storeRefreshToken(user.id, tokens.refreshToken);
 
-    const safeUser = { ...user };
-    delete (safeUser as any).password;
-    delete (safeUser as any).refresh_token;
+    const safeUser = { ...user }; 
+    delete (safeUser as any).password; 
+    delete (safeUser as any).refresh_token; 
 
     return {
       ...tokens,
@@ -214,7 +214,7 @@ export class UserService {
     return {
       user,
       temporaryPassword: input.password ? undefined : password,
-    };
+    }; 
   }
 
   // statusiniham return qilish kk

@@ -1,10 +1,40 @@
+# Dependencies
 node_modules
+
+# Build output
 dist
+
+# Git
 .git
+.gitignore
+
+# Docker files (not needed inside container)
 Dockerfile
 docker-compose*.yaml
+compose.yaml
+
+# Documentation
 README.md
+
+# Logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+.cursor
+
+# Environment (use env_file in compose instead)
+.env.local
+.env.development
+
+# Tests
+coverage
+*.spec.ts
