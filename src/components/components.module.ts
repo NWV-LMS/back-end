@@ -10,6 +10,7 @@ import { EnrollmentModule } from './enrollment/enrollment.module';
 import { OrganizationModule } from './organization/organization.module';
 import { LessonModule } from './lesson/lesson.module';
 import { AttendanceModule } from './attendance/attendance.module';
+import { ProgressModule } from './progress/progress.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AttendanceModule } from './attendance/attendance.module';
     OrganizationModule,
     LessonModule,
     AttendanceModule,
+    ProgressModule,
   ],
   exports: [AuthModule, UserModule],
 })
