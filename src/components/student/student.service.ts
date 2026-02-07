@@ -13,6 +13,9 @@ import { CreateStudentResponseDto } from '../../libs/dto/student/create-student-
 import { PaginatedStudentResponseDto } from '../../libs/dto/student/paginated-student-response.dto';
 import { StudentStatus, UserRole } from 'generated/prisma/enums';
 import * as bcrypt from 'bcrypt';
+import { toStudentResponse } from '../../libs/mappers/student.mapper';
+import { toUserInfo } from '../../libs/mappers/user.mapper';
+import { toEnrollmentResponse } from '../../libs/mappers/enrollment.mapper';
 
 @Injectable()
 export class StudentService {
@@ -82,8 +85,9 @@ export class StudentService {
 
     return {
       message: 'Student created successfully',
-      student: newStudent as any,
-      user: updatedUser as any,
+      // Always return API-safe DTOs, not raw DB entities.
+      student: toStudentResponse(newStudent),
+      user: toUserInfo(updatedUser),
       temporaryPassword,
     };
   }
@@ -121,7 +125,8 @@ export class StudentService {
     ]);
 
     return {
-      items: items as StudentResponseDto[],
+      // Map DB entities to DTOs to keep API contract stable.
+      items: items.map(toStudentResponse),
       meta: {
         total,
         page,
@@ -146,7 +151,8 @@ export class StudentService {
       throw new NotFoundException('Student not found');
     }
 
-    return student as StudentResponseDto;
+    // Convert DB entity to response DTO.
+    return toStudentResponse(student);
   }
 
   async update(
@@ -161,7 +167,8 @@ export class StudentService {
       data: dto,
     });
 
-    return updated as StudentResponseDto;
+    // Convert DB entity to response DTO.
+    return toStudentResponse(updated);
   }
 
   async remove(
@@ -208,8 +215,9 @@ export class StudentService {
       );
     }
 
-    return this.database.enrollment.create({
+    const enrollment = await this.database.enrollment.create({
       data: {
+        organization_id: organizationId,
         student_id: studentId,
         group_id: dto.group_id,
       },
@@ -221,5 +229,7 @@ export class StudentService {
         },
       },
     });
+    // Convert DB entity to response DTO.
+    return toEnrollmentResponse(enrollment as any);
   }
 }

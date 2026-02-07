@@ -13,6 +13,7 @@ import {
   DeleteEnrollmentResponseDto,
 } from '../../libs/dto/enrollment/enrollment-response.dto';
 import { PaginatedEnrollmentResponseDto } from '../../libs/dto/enrollment/paginated-enrollment-response.dto';
+import { toEnrollmentResponse } from '../../libs/mappers/enrollment.mapper';
 
 const ENROLLMENT_INCLUDE = {
   student: {
@@ -86,6 +87,7 @@ export class EnrollmentService {
 
     const enrollment = await this.database.enrollment.create({
       data: {
+        organization_id: organizationId,
         student_id: dto.student_id,
         group_id: dto.group_id,
       },
@@ -94,7 +96,8 @@ export class EnrollmentService {
 
     return {
       message: 'Enrollment created successfully',
-      enrollment: enrollment as unknown as EnrollmentResponseDto,
+      // Always return API-safe DTO, not raw DB entity.
+      enrollment: toEnrollmentResponse(enrollment),
     };
   }
 
@@ -132,7 +135,8 @@ export class EnrollmentService {
     ]);
 
     return {
-      items: items as unknown as EnrollmentResponseDto[],
+      // Map DB entities to DTOs to keep API contract stable.
+      items: items.map(toEnrollmentResponse),
       meta: {
         total,
         page,
@@ -160,7 +164,8 @@ export class EnrollmentService {
       throw new NotFoundException('Enrollment not found');
     }
 
-    return enrollment as unknown as EnrollmentResponseDto;
+    // Convert DB entity to response DTO.
+    return toEnrollmentResponse(enrollment);
   }
 
   async findByGroup(
@@ -186,7 +191,8 @@ export class EnrollmentService {
       include: ENROLLMENT_INCLUDE,
     });
 
-    return enrollments as unknown as EnrollmentResponseDto[];
+    // Map DB entities to DTOs to keep API contract stable.
+    return enrollments.map(toEnrollmentResponse);
   }
 
   async findByStudent(
@@ -215,7 +221,8 @@ export class EnrollmentService {
       include: ENROLLMENT_INCLUDE,
     });
 
-    return enrollments as unknown as EnrollmentResponseDto[];
+    // Map DB entities to DTOs to keep API contract stable.
+    return enrollments.map(toEnrollmentResponse);
   }
 
   async update(
@@ -256,7 +263,8 @@ export class EnrollmentService {
       include: ENROLLMENT_INCLUDE,
     });
 
-    return updated as unknown as EnrollmentResponseDto;
+    // Convert DB entity to response DTO.
+    return toEnrollmentResponse(updated);
   }
 
   async remove(
