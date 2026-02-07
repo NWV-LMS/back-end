@@ -28,6 +28,7 @@ export class PlatformController {
   getAllUsers(): Promise<User[]> {
     return this.userService.getAllUsers();
   }
+  
   // @UseGuards(JwtAuthGuard)
   // @Roles(UserRole.SUPER_ADMIN)
   @Patch(':id')
