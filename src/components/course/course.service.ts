@@ -4,9 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CourseStatus } from 'generated/prisma/enums';
-import { CourseResponseDto } from 'src/libs/dto/course/course-response.dto';
-import { CreateCourseDto } from 'src/libs/dto/course/create-course.dto';
-import { UpdateCourseDto } from 'src/libs/dto/course/update-course.dto';
+import { CourseResponseDto } from '../../libs/dto/course/course-response.dto';
+import { CreateCourseDto } from '../../libs/dto/course/create-course.dto';
+import { UpdateCourseDto } from '../../libs/dto/course/update-course.dto';
+import { toCourseResponse } from '../../libs/mappers/course.mapper';
 import { DatabaseService } from '../../database/database.service';
 
 @Injectable()
@@ -17,20 +18,24 @@ export class CourseService {
     dto: CreateCourseDto,
     organizationId: string,
   ): Promise<CourseResponseDto> {
-    return this.database.course.create({
+    const course = await this.database.course.create({
       data: {
         ...dto,
         organization_id: organizationId,
         status: dto.status || CourseStatus.ACTIVE,
       },
     });
+    // Always return API-safe DTO, not raw DB entity.
+    return toCourseResponse(course);
   }
 
   async findAll(organizationId: string): Promise<CourseResponseDto[]> {
-    return this.database.course.findMany({
+    const courses = await this.database.course.findMany({
       where: { organization_id: organizationId },
       orderBy: { created_at: 'desc' },
     });
+    // Map DB entities to DTOs to keep API contract stable.
+    return courses.map(toCourseResponse);
   }
 
   async findOne(
@@ -45,7 +50,8 @@ export class CourseService {
       throw new NotFoundException('Course not found');
     }
 
-    return course;
+    // Convert DB entity to response DTO.
+    return toCourseResponse(course);
   }
 
   async update(
@@ -55,10 +61,12 @@ export class CourseService {
   ): Promise<CourseResponseDto> {
     await this.findOne(id, organizationId);
 
-    return this.database.course.update({
+    const course = await this.database.course.update({
       where: { id },
       data: dto,
     });
+    // Convert DB entity to response DTO.
+    return toCourseResponse(course);
   }
 
   async remove(id: string, organizationId: string): Promise<void> {

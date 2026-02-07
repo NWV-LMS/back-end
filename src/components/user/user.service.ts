@@ -6,12 +6,13 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from 'generated/prisma/enums';
-import { UserUpdateDto } from 'src/libs/dto/auth/userUpdate.dto';
-import { InviteUserDto } from 'src/libs/dto/auth/invite-user.dto';
-import { LoginDto, LoginResponseDto } from 'src/libs/dto/auth/login.dto';
-import { User } from 'src/libs/dto/user/user-response.dto';
-import { JwtPayload } from 'src/libs/types/auth';
-import { T } from 'src/libs/types/common';
+import { UserUpdateDto } from '../../libs/dto/auth/userUpdate.dto';
+import { InviteUserDto } from '../../libs/dto/auth/invite-user.dto';
+import { LoginDto, LoginResponseDto } from '../../libs/dto/auth/login.dto';
+import { User } from '../../libs/dto/user/user-response.dto';
+import { JwtPayload } from '../../libs/types/auth';
+import { T } from '../../libs/types/common';
+import { toUserResponse } from '../../libs/mappers/user.mapper';
 import { DatabaseService } from '../../database/database.service';
 import { AuthService } from '../auth/auth.service';
 
@@ -54,13 +55,10 @@ export class UserService {
     const tokens = await this.authService.generateTokens(payload);
     await this.authService.storeRefreshToken(user.id, tokens.refreshToken);
 
-    const safeUser = { ...user }; 
-    delete (safeUser as any).password; 
-    delete (safeUser as any).refresh_token; 
-
     return {
       ...tokens,
-      user: this.authService.sanitizeUser(safeUser as unknown as User),
+      // Always return API-safe DTO, not raw DB entity.
+      user: toUserResponse(user),
     } as LoginResponseDto;
   }
 
@@ -76,6 +74,7 @@ export class UserService {
         full_name: true,
         phone: true,
         created_at: true,
+        updated_at: true,
       },
     });
 
@@ -83,7 +82,8 @@ export class UserService {
       throw new UnauthorizedException();
     }
 
-    return this.authService.sanitizeUser(user as unknown as User);
+    // Convert DB entity to response DTO.
+    return toUserResponse(user as any);
   }
 
   //****  Logout */
@@ -139,7 +139,7 @@ export class UserService {
       });
     }
 
-    return this.database.user.findUnique({
+    const updated = await this.database.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -149,23 +149,26 @@ export class UserService {
         full_name: true,
         phone: true,
         created_at: true,
+        updated_at: true,
       },
     });
+    // Convert DB entity to response DTO.
+    return toUserResponse(updated as any);
   }
 
-  //** invite User promiseda <any> ozgaritiramiz */
-
-  async inviteUser(input: InviteUserDto, currentOrgId: string): Promise<any> {
-    console.log('input', input);
-
-    // 1. SUPER_ADMIN yaratishni oldini olish
+  /**
+   * Invite a new user to the organization
+   * Only ADMIN can invite users
+   */
+  async inviteUser(input: InviteUserDto, organizationId: string): Promise<any> {
+    // Prevent SUPER_ADMIN creation from organization scope
     if (input.role === UserRole.SUPER_ADMIN) {
       throw new ForbiddenException(
         'Cannot create SUPER_ADMIN from organization scope',
       );
     }
 
-    // 2. Phone unique tekshirish (GLOBAL - login uchun)
+    // Check phone uniqueness (GLOBAL - used for login)
     const existingByPhone = await this.database.user.findUnique({
       where: { phone: input.phone },
     });
@@ -173,11 +176,11 @@ export class UserService {
       throw new BadRequestException('User with this phone already exists');
     }
 
-    // 3. Email unique tekshirish (ORGANIZATION SCOPE)
+    // Check email uniqueness (ORGANIZATION SCOPE)
     const existingByEmail = await this.database.user.findFirst({
       where: {
         email: input.email,
-        organization_id: currentOrgId,
+        organization_id: organizationId,
       },
     });
     if (existingByEmail) {
@@ -186,14 +189,14 @@ export class UserService {
       );
     }
 
-    // 4. Password hash (agar berilmasa random generate)
+    // Generate password if not provided
     const password = input.password ?? Math.random().toString(36).slice(-10);
     const hashed = await bcrypt.hash(password, 10);
 
-    // 5. User yaratish
+    // Create user
     const user = await this.database.user.create({
       data: {
-        organization_id: currentOrgId,
+        organization_id: organizationId,
         full_name: input.full_name,
         email: input.email,
         phone: input.phone,
@@ -212,14 +215,16 @@ export class UserService {
     });
 
     return {
-      user,
+      // Always return API-safe DTO, not raw DB entity.
+      user: toUserResponse(user as any),
       temporaryPassword: input.password ? undefined : password,
-    }; 
+    };
   }
 
   // statusiniham return qilish kk
   getAllUsers(): Promise<User[]> {
-    return this.database.user.findMany({
+    return this.database.user
+      .findMany({
       select: {
         id: true,
         email: true,
@@ -228,7 +233,9 @@ export class UserService {
         full_name: true,
         phone: true,
         created_at: true,
+        updated_at: true,
       },
-    }) as Promise<User[]>;
+      })
+      .then((users) => users.map((u) => toUserResponse(u as any)));
   }
 }

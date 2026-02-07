@@ -9,17 +9,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UserRole } from 'generated/prisma/enums';
-import { CreateGroupDto } from 'src/libs/dto/group/create-group.dto';
-import { GroupResponseDto } from 'src/libs/dto/group/group-response.dto';
-import { UpdateGroupDto } from 'src/libs/dto/group/update-group.dto';
-import { JwtPayload } from 'src/libs/types/auth';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CreateGroupDto } from '../../libs/dto/group/create-group.dto';
+import { GroupResponseDto } from '../../libs/dto/group/group-response.dto';
+import { UpdateGroupDto } from '../../libs/dto/group/update-group.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
+import { OrganizationId } from '../auth/decorators/organization-id.decorator';
 import { GroupService } from './group.service';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, OrganizationIdGuard)
 @Controller('groups')
 export class GroupController {
   constructor(private readonly groupService: GroupService) {}
@@ -28,27 +28,26 @@ export class GroupController {
   @Post()
   create(
     @Body() dto: CreateGroupDto,
-    @CurrentUser() user: JwtPayload,
+    @OrganizationId() organizationId: string,
   ): Promise<GroupResponseDto> {
-    if (!user.organization_id) throw new Error('Org ID required');
-    return this.groupService.create(dto, user.organization_id);
+    return this.groupService.create(dto, organizationId);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER, UserRole.STUDENT)
   @Get()
-  findAll(@CurrentUser() user: JwtPayload): Promise<GroupResponseDto[]> {
-    if (!user.organization_id) throw new Error('Org ID required');
-    return this.groupService.findAll(user.organization_id);
+  findAll(
+    @OrganizationId() organizationId: string,
+  ): Promise<GroupResponseDto[]> {
+    return this.groupService.findAll(organizationId);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get(':id')
   findOne(
     @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
+    @OrganizationId() organizationId: string,
   ): Promise<GroupResponseDto> {
-    if (!user.organization_id) throw new Error('Org ID required');
-    return this.groupService.findOne(id, user.organization_id);
+    return this.groupService.findOne(id, organizationId);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
@@ -56,19 +55,17 @@ export class GroupController {
   update(
     @Param('id') id: string,
     @Body() dto: UpdateGroupDto,
-    @CurrentUser() user: JwtPayload,
+    @OrganizationId() organizationId: string,
   ): Promise<GroupResponseDto> {
-    if (!user.organization_id) throw new Error('Org ID required');
-    return this.groupService.update(id, dto, user.organization_id);
+    return this.groupService.update(id, dto, organizationId);
   }
 
   @Roles(UserRole.ADMIN)
   @Delete(':id')
   remove(
     @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
+    @OrganizationId() organizationId: string,
   ): Promise<void> {
-    if (!user.organization_id) throw new Error('Org ID required');
-    return this.groupService.remove(id, user.organization_id);
+    return this.groupService.remove(id, organizationId);
   }
 }

@@ -4,13 +4,14 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
-import { CreateLeadDto } from 'src/libs/dto/lead/create-lead.dto';
-import { UpdateLeadDto } from 'src/libs/dto/lead/update-lead.dto';
-import { LeadResponseDto } from 'src/libs/dto/lead/lead-response.dto';
+import { CreateLeadDto } from '../../libs/dto/lead/create-lead.dto';
+import { UpdateLeadDto } from '../../libs/dto/lead/update-lead.dto';
+import { LeadResponseDto } from '../../libs/dto/lead/lead-response.dto';
 import { LeadStatus } from 'generated/prisma/enums';
 import { UserRole, StudentStatus } from '@prisma/client';
-import { QueryLeadDto } from 'src/libs/dto/lead/query-lead.dto';
-import { ConvertLeadDto } from 'src/libs/dto/lead/convert-lead.dto';
+import { QueryLeadDto } from '../../libs/dto/lead/query-lead.dto';
+import { ConvertLeadDto } from '../../libs/dto/lead/convert-lead.dto';
+import { toLeadResponse } from '../../libs/mappers/lead.mapper';
 
 import * as bcrypt from 'bcrypt';
 
@@ -41,13 +42,15 @@ export class LeadService {
       );
     }
 
-    return this.database.lead.create({
+    const lead = await this.database.lead.create({
       data: {
         ...createLeadDto,
         status: createLeadDto.status || LeadStatus.NEW,
         organization_id: organizationId,
       },
     });
+    // Always return API-safe DTO, not raw DB entity.
+    return toLeadResponse(lead);
   }
 
   async findAll(organizationId: string, query: QueryLeadDto) {
@@ -84,7 +87,8 @@ export class LeadService {
     ]);
 
     return {
-      data,
+      // Map DB entities to DTOs to keep API contract stable.
+      data: data.map(toLeadResponse),
       meta: {
         total,
         page,
@@ -102,7 +106,8 @@ export class LeadService {
       throw new NotFoundException('Lead not found');
     }
 
-    return lead;
+    // Convert DB entity to response DTO.
+    return toLeadResponse(lead);
   }
 
   async update(
@@ -112,18 +117,22 @@ export class LeadService {
   ): Promise<LeadResponseDto> {
     await this.findOne(id, organizationId);
 
-    return this.database.lead.update({
+    const lead = await this.database.lead.update({
       where: { id },
       data: updateLeadDto, // TODO: Contacted ishlatish mumkin 
     });
+    // Convert DB entity to response DTO.
+    return toLeadResponse(lead);
   }
 
   async remove(id: string, organizationId: string): Promise<LeadResponseDto> {
     await this.findOne(id, organizationId);
 
-    return this.database.lead.delete({
+    const lead = await this.database.lead.delete({
       where: { id },
     });
+    // Convert DB entity to response DTO.
+    return toLeadResponse(lead);
   }
 
   async convert(id: string, dto: ConvertLeadDto, organizationId: string) {

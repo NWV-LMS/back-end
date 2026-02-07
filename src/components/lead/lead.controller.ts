@@ -9,22 +9,22 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { LeadService } from './lead.service';
-import { CreateLeadDto } from 'src/libs/dto/lead/create-lead.dto';
-import { UpdateLeadDto } from 'src/libs/dto/lead/update-lead.dto';
-import { LeadResponseDto } from 'src/libs/dto/lead/lead-response.dto';
+import { CreateLeadDto } from '../../libs/dto/lead/create-lead.dto';
+import { UpdateLeadDto } from '../../libs/dto/lead/update-lead.dto';
+import { LeadResponseDto } from '../../libs/dto/lead/lead-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtPayload } from 'src/libs/types/auth';
+import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
+import { OrganizationId } from '../auth/decorators/organization-id.decorator';
 import { UserRole } from 'generated/prisma/enums';
 import { Roles } from '../auth/decorators/roles.decorator';
 
-import { QueryLeadDto } from 'src/libs/dto/lead/query-lead.dto';
+import { QueryLeadDto } from '../../libs/dto/lead/query-lead.dto';
 import { Query } from '@nestjs/common';
 
-import { ConvertLeadDto } from 'src/libs/dto/lead/convert-lead.dto';
+import { ConvertLeadDto } from '../../libs/dto/lead/convert-lead.dto';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, OrganizationIdGuard)
 @Roles(UserRole.ADMIN, UserRole.MANAGER)
 @Controller('lead')
 export class LeadController {
@@ -34,56 +34,49 @@ export class LeadController {
   convert(
     @Param('id') id: string,
     @Body() dto: ConvertLeadDto,
-    @CurrentUser() user: JwtPayload,
+    @OrganizationId() organizationId: string,
   ): Promise<any> {
-    console.log(user);
-    if (!user.organization_id) throw new Error('Org ID required');
-    return this.leadService.convert(id, dto, user.organization_id);
+    return this.leadService.convert(id, dto, organizationId);
   }
 
   @Post()
   create(
     @Body() createLeadDto: CreateLeadDto,
-    @CurrentUser() user: JwtPayload,
+    @OrganizationId() organizationId: string,
   ): Promise<LeadResponseDto> {
-    if (!user.organization_id) throw new Error('Org ID required');
-    return this.leadService.create(createLeadDto, user.organization_id);
+    return this.leadService.create(createLeadDto, organizationId);
   }
 
   @Get()
   findAll(
-    @CurrentUser() user: JwtPayload,
     @Query() query: QueryLeadDto,
+    @OrganizationId() organizationId: string,
   ): Promise<any> {
-    if (!user.organization_id) throw new Error('Org ID required');
-    return this.leadService.findAll(user.organization_id, query);
+    return this.leadService.findAll(organizationId, query);
   }
 
   @Get(':id')
   findOne(
     @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
+    @OrganizationId() organizationId: string,
   ): Promise<LeadResponseDto> {
-    if (!user.organization_id) throw new Error('Org ID required');
-    return this.leadService.findOne(id, user.organization_id);
+    return this.leadService.findOne(id, organizationId);
   }
 
   @Patch(':id')
   update(
     @Param('id') id: string,
     @Body() updateLeadDto: UpdateLeadDto,
-    @CurrentUser() user: JwtPayload,
+    @OrganizationId() organizationId: string,
   ): Promise<LeadResponseDto> {
-    if (!user.organization_id) throw new Error('Org ID required');
-    return this.leadService.update(id, updateLeadDto, user.organization_id);
+    return this.leadService.update(id, updateLeadDto, organizationId);
   }
 
   @Delete(':id')
   remove(
     @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
+    @OrganizationId() organizationId: string,
   ): Promise<LeadResponseDto> {
-    if (!user.organization_id) throw new Error('Org ID required');
-    return this.leadService.remove(id, user.organization_id);
+    return this.leadService.remove(id, organizationId);
   }
 }

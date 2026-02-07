@@ -3,9 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateGroupDto } from 'src/libs/dto/group/create-group.dto';
-import { GroupResponseDto } from 'src/libs/dto/group/group-response.dto';
-import { UpdateGroupDto } from 'src/libs/dto/group/update-group.dto';
+import { CreateGroupDto } from '../../libs/dto/group/create-group.dto';
+import { GroupResponseDto } from '../../libs/dto/group/group-response.dto';
+import { UpdateGroupDto } from '../../libs/dto/group/update-group.dto';
+import { toGroupResponse } from '../../libs/mappers/group.mapper';
 import { DatabaseService } from '../../database/database.service';
 
 @Injectable()
@@ -48,7 +49,8 @@ export class GroupService {
       },
     });
 
-    return group as unknown as GroupResponseDto;
+    // Always return API-safe DTO, not raw DB entity.
+    return toGroupResponse(group);
   }
 
   async findAll(organizationId: string): Promise<GroupResponseDto[]> {
@@ -60,7 +62,8 @@ export class GroupService {
         teacher: { select: { id: true, full_name: true } },
       },
     });
-    return groups as unknown as GroupResponseDto[];
+    // Map DB entities to DTOs to keep API contract stable.
+    return groups.map(toGroupResponse);
   }
 
   async findOne(id: string, organizationId: string): Promise<GroupResponseDto> {
@@ -76,7 +79,8 @@ export class GroupService {
       throw new NotFoundException('Group not found');
     }
 
-    return group as unknown as GroupResponseDto;
+    // Convert DB entity to response DTO.
+    return toGroupResponse(group);
   }
 
   async update(
@@ -114,7 +118,8 @@ export class GroupService {
       },
     });
 
-    return updated as unknown as GroupResponseDto;
+    // Convert DB entity to response DTO.
+    return toGroupResponse(updated);
   }
 
   async remove(id: string, organizationId: string): Promise<void> {
