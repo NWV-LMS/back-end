@@ -6,6 +6,7 @@ import { StudentModule } from './student/student.module';
 import { CourseModule } from './course/course.module';
 import { GroupModule } from './group/group.module';
 import { HealthModule } from './health/health.module';
+import { EnrollmentModule } from './enrollment/enrollment.module';
 
 @Module({
   imports: [
@@ -16,7 +17,9 @@ import { HealthModule } from './health/health.module';
     CourseModule,
     GroupModule,
     HealthModule,
+    EnrollmentModule, // Yangi enrollment moduli
   ],
   exports: [AuthModule, UserModule],
 })
 export class ComponentsModule {}
+
