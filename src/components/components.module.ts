@@ -7,6 +7,9 @@ import { CourseModule } from './course/course.module';
 import { GroupModule } from './group/group.module';
 import { HealthModule } from './health/health.module';
 import { EnrollmentModule } from './enrollment/enrollment.module';
+import { OrganizationModule } from './organization/organization.module';
+import { LessonModule } from './lesson/lesson.module';
+import { AttendanceModule } from './attendance/attendance.module';
 
 @Module({
   imports: [
@@ -17,9 +20,11 @@ import { EnrollmentModule } from './enrollment/enrollment.module';
     CourseModule,
     GroupModule,
     HealthModule,
-    EnrollmentModule, // Yangi enrollment moduli
+    EnrollmentModule,
+    OrganizationModule,
+    LessonModule,
+    AttendanceModule,
   ],
   exports: [AuthModule, UserModule],
 })
 export class ComponentsModule {}
-

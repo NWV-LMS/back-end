@@ -7,14 +7,15 @@ import { DatabaseModule } from '../../database/database.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { OrganizationsController } from './organizations.controller';
-import { PlatformController } from './platform.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UserModule } from '../user/user.module';
+import { OrganizationModule } from '../organization/organization.module';
 
 @Module({
   imports: [
     forwardRef(() => UserModule),
     DatabaseModule,
+    OrganizationModule,
     PassportModule,
     ConfigModule,
     JwtModule.registerAsync({
@@ -28,7 +29,7 @@ import { UserModule } from '../user/user.module';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController, PlatformController, OrganizationsController],
+  controllers: [AuthController, OrganizationsController],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService],
 })

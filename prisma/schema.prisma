@@ -12,19 +12,25 @@ datasource db {
 }
 
 model Organization {
-  id         String             @id @default(uuid()) @db.Uuid
-  name       String             @unique
-  status     OrganizationStatus
-  created_at DateTime           @default(now())
-  email      String
-  phone      String
-  courses    Course[]
-  groups     Group[]
-  leads      Lead[]
-  notes      Note[]
-  payments   Payment[]
-  students   Student[]
-  users      User[]
+  id          String             @id @default(uuid()) @db.Uuid
+  name        String             @unique
+  status      OrganizationStatus
+  created_at  DateTime           @default(now())
+  updated_at  DateTime           @default(now()) @updatedAt
+  email       String
+  phone       String
+  courses     Course[]
+  groups      Group[]
+  leads       Lead[]
+  notes       Note[]
+  payments    Payment[]
+  students    Student[]
+  users       User[]
+  enrollments Enrollment[]
+  attendances Attendance[]
+  progresses  Progress[]
+  exams       Exam[]
+  tests       Test[]
 }
 
 model User {
@@ -35,6 +41,7 @@ model User {
   password        String
   role            UserRole
   created_at      DateTime     @default(now())
+  updated_at      DateTime     @default(now()) @updatedAt
   phone           String       @unique
   refresh_token   String?
   teachingGroups  Group[]      @relation("GroupTeacher")
@@ -51,6 +58,7 @@ model Course {
   description     String?
   price           String
   created_at      DateTime     @default(now())
+  updated_at      DateTime     @default(now()) @updatedAt
   status          CourseStatus
   organization    Organization @relation(fields: [organization_id], references: [id])
   groups          Group[]
@@ -66,6 +74,7 @@ model Group {
   start_date      DateTime     @db.Date
   end_date        DateTime     @db.Date
   created_at      DateTime     @default(now())
+  updated_at      DateTime     @default(now()) @updatedAt
   enrollments     Enrollment[]
   course          Course       @relation(fields: [course_id], references: [id])
   organization    Organization @relation(fields: [organization_id], references: [id])
@@ -93,57 +102,79 @@ model Student {
   phone           String
   address         String
   status          StudentStatus
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @default(now()) @updatedAt
   enrollments     Enrollment[]
   payments        Payment[]
   organization    Organization  @relation(fields: [organization_id], references: [id])
 }
 
 model Enrollment {
-  id          String       @id @default(uuid()) @db.Uuid
-  student_id  String       @db.Uuid
-  group_id    String       @db.Uuid
-  enrolled_at DateTime     @default(now())
-  attendance  Attendance[]
-  group       Group        @relation(fields: [group_id], references: [id])
-  student     Student      @relation(fields: [student_id], references: [id])
-  progress    Progress[]
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  student_id      String       @db.Uuid
+  group_id        String       @db.Uuid
+  enrolled_at     DateTime     @default(now())
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @default(now()) @updatedAt
+  attendance      Attendance[]
+  group           Group        @relation(fields: [group_id], references: [id])
+  student         Student      @relation(fields: [student_id], references: [id])
+  organization    Organization @relation(fields: [organization_id], references: [id])
+  progress        Progress[]
 }
 
 model Attendance {
-  id            String           @id @default(uuid()) @db.Uuid
-  enrollment_id String           @db.Uuid
-  lesson_id     String           @db.Uuid
-  status        AttendanceStatus
-  marked_at     DateTime         @default(now())
-  enrollment    Enrollment       @relation(fields: [enrollment_id], references: [id])
-  lesson        Lesson           @relation(fields: [lesson_id], references: [id])
+  id              String           @id @default(uuid()) @db.Uuid
+  organization_id String           @db.Uuid
+  enrollment_id   String           @db.Uuid
+  lesson_id       String           @db.Uuid
+  status          AttendanceStatus
+  marked_at       DateTime         @default(now())
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @default(now()) @updatedAt
+  enrollment      Enrollment       @relation(fields: [enrollment_id], references: [id])
+  lesson          Lesson           @relation(fields: [lesson_id], references: [id])
+  organization    Organization     @relation(fields: [organization_id], references: [id])
 }
 
 model Progress {
-  id            String     @id @default(uuid()) @db.Uuid
-  enrollment_id String     @db.Uuid
-  lesson_id     String     @db.Uuid
-  completed     Boolean
-  title         String
-  enrollment    Enrollment @relation(fields: [enrollment_id], references: [id])
-  lesson        Lesson     @relation(fields: [lesson_id], references: [id])
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  enrollment_id   String       @db.Uuid
+  lesson_id       String       @db.Uuid
+  completed       Boolean
+  title           String
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @default(now()) @updatedAt
+  enrollment      Enrollment   @relation(fields: [enrollment_id], references: [id])
+  lesson          Lesson       @relation(fields: [lesson_id], references: [id])
+  organization    Organization @relation(fields: [organization_id], references: [id])
 }
 
 model Exam {
-  id        String  @id @default(uuid()) @db.Uuid
-  lesson_id String  @db.Uuid
-  title     String
-  desc      String?
-  lesson    Lesson  @relation(fields: [lesson_id], references: [id])
-  tests     Test[]
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  lesson_id       String       @db.Uuid
+  title           String
+  desc            String?
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @default(now()) @updatedAt
+  lesson          Lesson       @relation(fields: [lesson_id], references: [id])
+  tests           Test[]
+  organization    Organization @relation(fields: [organization_id], references: [id])
 }
 
 model Test {
-  id       String @id @default(uuid()) @db.Uuid
-  exam_id  String @map("exams_id") @db.Uuid
-  question String
-  scores   Int
-  exam     Exam   @relation(fields: [exam_id], references: [id])
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  exam_id         String       @map("exams_id") @db.Uuid
+  question        String
+  scores          Int
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @default(now()) @updatedAt
+  exam            Exam         @relation(fields: [exam_id], references: [id])
+  organization    Organization @relation(fields: [organization_id], references: [id])
 }
 
 model Lead {
@@ -155,7 +186,7 @@ model Lead {
   source          String
   status          LeadStatus
   created_at      DateTime     @default(now())
-  updated_at      DateTime     @default(now())
+  updated_at      DateTime     @default(now()) @updatedAt
   organization    Organization @relation(fields: [organization_id], references: [id])
   notes           Note[]
 }
@@ -179,6 +210,7 @@ model Payment {
   amount          Decimal
   method          String
   paid_at         DateTime     @default(now())
+  updated_at      DateTime     @default(now()) @updatedAt
   organization    Organization @relation(fields: [organization_id], references: [id])
   student         Student      @relation(fields: [student_id], references: [id])
 }
