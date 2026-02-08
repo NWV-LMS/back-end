@@ -6,6 +6,7 @@ import { ComponentsModule } from './components/components.module';
 import { DatabaseModule } from './database/database.module';
 import { APP_GUARD } from '@nestjs/core';
 import { RateLimitGuard } from './components/auth/guards/rate-limit.guard';
+import { OrganizationActiveGuard } from './components/auth/guards/organization-active.guard';
 
 @Module({
   imports: [
@@ -20,6 +21,8 @@ import { RateLimitGuard } from './components/auth/guards/rate-limit.guard';
     AppService,
     // Rate limit only endpoints decorated with @RateLimit.
     { provide: APP_GUARD, useClass: RateLimitGuard },
+    // Block access for users belonging to inactive organizations.
+    { provide: APP_GUARD, useClass: OrganizationActiveGuard },
   ],
 })
 export class AppModule {}

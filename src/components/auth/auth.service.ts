@@ -8,7 +8,7 @@ import { toUserResponse } from '../../libs/mappers/user.mapper';
 import { DatabaseService } from '../../database/database.service';
 import { RefreshTokenDto } from '../../libs/dto/auth/refresh-token.dto';
 import { JwtPayload, JwtTokens } from '../../libs/types/auth';
-import { UserRole } from 'generated/prisma/enums';
+import { OrganizationStatus, UserRole } from 'generated/prisma/enums';
 
 @Injectable()
 export class AuthService {
@@ -62,9 +62,18 @@ export class AuthService {
 
       const user = await this.database.user.findUnique({
         where: { id: decoded.sub },
+        include: { organization: { select: { status: true } } },
       });
       if (!user || !user.refresh_token) {
         throw new UnauthorizedException('Refresh token not found');
+      }
+
+      // Block org users if the organization is inactive.
+      if (
+        user.role !== UserRole.SUPER_ADMIN &&
+        user.organization?.status !== OrganizationStatus.ACTIVE
+      ) {
+        throw new UnauthorizedException('Organization is inactive');
       }
       const match = await bcrypt.compare(dto.refreshToken, user.refresh_token);
       if (!match) {

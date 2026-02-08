@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { UserRole } from 'generated/prisma/enums';
+import { OrganizationStatus, UserRole } from 'generated/prisma/enums';
 import { UserUpdateDto } from '../../libs/dto/auth/userUpdate.dto';
 import { InviteUserDto } from '../../libs/dto/auth/invite-user.dto';
 import { LoginDto, LoginResponseDto } from '../../libs/dto/auth/login.dto';
@@ -28,12 +28,21 @@ export class UserService {
     console.log('User login service');
     const user = await this.database.user.findUnique({
       where: { phone: input.phone },
+      include: { organization: { select: { status: true } } },
     });
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
     console.log('User login service2');
+
+    // Block org users if the organization is inactive.
+    if (
+      user.role !== UserRole.SUPER_ADMIN &&
+      user.organization?.status !== OrganizationStatus.ACTIVE
+    ) {
+      throw new ForbiddenException('Organization is inactive');
+    }
 
     const passwordMatch = await bcrypt.compare(input.password, user.password);
     if (!passwordMatch) {
