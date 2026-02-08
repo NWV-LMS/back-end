@@ -31,6 +31,8 @@ model Organization {
   progresses  Progress[]
   exams       Exam[]
   tests       Test[]
+
+  @@index([status])
 }
 
 model User {
@@ -49,6 +51,7 @@ model User {
   organization    Organization @relation(fields: [organization_id], references: [id])
 
   @@unique([organization_id, email])
+  @@index([organization_id, role])
 }
 
 model Course {
@@ -63,6 +66,9 @@ model Course {
   organization    Organization @relation(fields: [organization_id], references: [id])
   groups          Group[]
   lessons         Lesson[]
+
+  @@index([organization_id])
+  @@index([organization_id, status])
 }
 
 model Group {
@@ -79,6 +85,10 @@ model Group {
   course          Course       @relation(fields: [course_id], references: [id])
   organization    Organization @relation(fields: [organization_id], references: [id])
   teacher         User         @relation("GroupTeacher", fields: [teacher_id], references: [id])
+
+  @@index([organization_id])
+  @@index([course_id])
+  @@index([teacher_id])
 }
 
 model Lesson {
@@ -107,6 +117,10 @@ model Student {
   enrollments     Enrollment[]
   payments        Payment[]
   organization    Organization  @relation(fields: [organization_id], references: [id])
+
+  // Prevent duplicate student phone numbers inside the same organization.
+  @@unique([organization_id, phone])
+  @@index([organization_id, status])
 }
 
 model Enrollment {
@@ -122,6 +136,12 @@ model Enrollment {
   student         Student      @relation(fields: [student_id], references: [id])
   organization    Organization @relation(fields: [organization_id], references: [id])
   progress        Progress[]
+
+  // Prevent duplicate enrollments of the same student in the same group.
+  @@unique([student_id, group_id])
+  @@index([organization_id])
+  @@index([student_id])
+  @@index([group_id])
 }
 
 model Attendance {
@@ -136,6 +156,11 @@ model Attendance {
   enrollment      Enrollment       @relation(fields: [enrollment_id], references: [id])
   lesson          Lesson           @relation(fields: [lesson_id], references: [id])
   organization    Organization     @relation(fields: [organization_id], references: [id])
+
+  // Prevent duplicate attendance rows for the same lesson/enrollment.
+  @@unique([enrollment_id, lesson_id])
+  @@index([organization_id])
+  @@index([lesson_id])
 }
 
 model Progress {
@@ -150,6 +175,10 @@ model Progress {
   enrollment      Enrollment   @relation(fields: [enrollment_id], references: [id])
   lesson          Lesson       @relation(fields: [lesson_id], references: [id])
   organization    Organization @relation(fields: [organization_id], references: [id])
+
+  @@index([organization_id])
+  @@index([enrollment_id])
+  @@index([lesson_id])
 }
 
 model Exam {
@@ -189,6 +218,10 @@ model Lead {
   updated_at      DateTime     @default(now()) @updatedAt
   organization    Organization @relation(fields: [organization_id], references: [id])
   notes           Note[]
+
+  // Prevent duplicate leads by phone inside the same organization.
+  @@unique([organization_id, phone])
+  @@index([organization_id, status])
 }
 
 model Note {
