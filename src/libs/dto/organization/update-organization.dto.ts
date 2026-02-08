@@ -17,4 +17,13 @@ export class UpdateOrganizationDto {
   @IsOptional()
   @IsEnum(OrganizationStatus)
   status?: OrganizationStatus;
+
+  // Notification targets (optional)
+  @IsOptional()
+  @IsString()
+  telegram_chat_id?: string;
+
+  @IsOptional()
+  @IsString()
+  whatsapp_target?: string;
 }

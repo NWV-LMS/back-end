@@ -105,6 +105,8 @@ export class OrganizationService {
         email: input.email,
         phone: input.phone,
         status: input.status,
+        telegram_chat_id: input.telegram_chat_id,
+        whatsapp_target: input.whatsapp_target,
       },
       select: {
         id: true,
