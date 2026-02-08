@@ -13,6 +13,7 @@ import { ProgressModule } from './progress/progress.module';
 import { PaymentModule } from './payment/payment.module';
 import { ExpenseModule } from './expense/expense.module';
 import { FinanceModule } from './finance/finance.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { FinanceModule } from './finance/finance.module';
     PaymentModule,
     ExpenseModule,
     FinanceModule,
+    DashboardModule,
   ],
   exports: [AuthModule, UserModule],
 })
