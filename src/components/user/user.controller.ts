@@ -4,6 +4,7 @@ import { UserUpdateDto } from '../../libs/dto/auth/userUpdate.dto';
 import { LoginDto, LoginResponseDto } from '../../libs/dto/auth/login.dto';
 import { JwtPayload } from '../../libs/types/auth';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RateLimit } from '../auth/decorators/rate-limit.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserService } from './user.service';
 import { User } from '../../libs/dto/user/user-response.dto';
@@ -13,6 +14,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post('login')
+  @RateLimit({ limit: 10, windowMs: 60_000, keyPrefix: 'auth:login' })
   login(@Body() input: LoginDto): Promise<LoginResponseDto> {
     console.log('User login');
     return this.userService.login(input);

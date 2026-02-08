@@ -4,6 +4,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ComponentsModule } from './components/components.module';
 import { DatabaseModule } from './database/database.module';
+import { APP_GUARD } from '@nestjs/core';
+import { RateLimitGuard } from './components/auth/guards/rate-limit.guard';
 
 @Module({
   imports: [
@@ -14,6 +16,10 @@ import { DatabaseModule } from './database/database.module';
     DatabaseModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Rate limit only endpoints decorated with @RateLimit.
+    { provide: APP_GUARD, useClass: RateLimitGuard },
+  ],
 })
 export class AppModule {}
