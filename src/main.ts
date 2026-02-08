@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './libs/interceptor/logging.interceptor';
 import { validateEnvOrThrow } from './libs/env.validation';
+import { PrismaExceptionFilter } from './database/prisma-exception.filter';
 
 async function bootstrap() {
   // Fail fast on misconfiguration (especially in production).
@@ -24,6 +25,7 @@ async function bootstrap() {
   });
 
   console.log('Starting server...');
+  app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
