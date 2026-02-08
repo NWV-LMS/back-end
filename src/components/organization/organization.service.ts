@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { OrganizationStatus } from 'generated/prisma/enums';
+import { OrganizationStatus } from '@prisma/client';
 import { CreateOrganizationDto } from '../../libs/dto/organization/create-organization.dto';
 import { UpdateOrganizationDto } from '../../libs/dto/organization/update-organization.dto';
 import { Organ } from '../../libs/dto/organization/organization-response.dto';

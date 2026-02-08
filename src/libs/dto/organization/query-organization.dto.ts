@@ -1,4 +1,4 @@
-import { OrganizationStatus } from 'generated/prisma/enums';
+import { OrganizationStatus } from '@prisma/client';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 

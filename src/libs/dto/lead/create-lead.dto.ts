@@ -6,7 +6,7 @@ import {
   Matches,
   MinLength,
 } from 'class-validator';
-import { LeadStatus } from 'generated/prisma/enums';
+import { LeadStatus } from '@prisma/client';
 
 export class CreateLeadDto {
   @IsNotEmpty({ message: 'Full name is required' })

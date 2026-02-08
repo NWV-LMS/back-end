@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
-import { AttendanceStatus } from 'generated/prisma/enums';
+import { AttendanceStatus } from '@prisma/client';
 
 export class MarkAttendanceDto {
   @IsUUID()

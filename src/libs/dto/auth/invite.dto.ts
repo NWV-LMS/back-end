@@ -7,7 +7,7 @@ import {
   Matches,
   MinLength,
 } from 'class-validator';
-import { UserRole } from 'generated/prisma/enums';
+import { UserRole } from '@prisma/client';
 
 export class InviteUserDto {
   @IsNotEmpty({ message: 'Full name is required' })

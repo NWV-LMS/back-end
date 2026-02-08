@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { OrganizationStatus, UserRole } from 'generated/prisma/enums';
+import { OrganizationStatus, UserRole } from '@prisma/client';
 import { UserUpdateDto } from '../../libs/dto/auth/userUpdate.dto';
 import { InviteUserDto } from '../../libs/dto/auth/invite-user.dto';
 import { LoginDto, LoginResponseDto } from '../../libs/dto/auth/login.dto';

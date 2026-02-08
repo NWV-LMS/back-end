@@ -1,5 +1,5 @@
 import { IsEnum, IsOptional, IsUUID } from 'class-validator';
-import { AttendanceStatus } from 'generated/prisma/enums';
+import { AttendanceStatus } from '@prisma/client';
 import { PaginationDto } from '../common/pagination.dto';
 
 export class QueryAttendanceDto extends PaginationDto {

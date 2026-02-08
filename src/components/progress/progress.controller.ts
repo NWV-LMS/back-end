@@ -20,7 +20,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../../libs/types/auth';
-import { UserRole } from 'generated/prisma/enums';
+import { UserRole } from '@prisma/client';
 
 @UseGuards(JwtAuthGuard, OrganizationIdGuard, RolesGuard)
 @Controller('progress')

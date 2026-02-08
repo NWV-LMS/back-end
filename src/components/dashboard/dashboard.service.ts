@@ -5,7 +5,7 @@ import {
   CourseStatus,
   LeadStatus,
   StudentStatus,
-} from 'generated/prisma/enums';
+} from '@prisma/client';
 import { DatabaseService } from '../../database/database.service';
 import { QueryDashboardDto } from '../../libs/dto/dashboard/query-dashboard.dto';
 import {

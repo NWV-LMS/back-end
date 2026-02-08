@@ -20,7 +20,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
 import { JwtPayload } from '../../libs/types/auth';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from 'generated/prisma/enums';
+import { UserRole } from '@prisma/client';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 

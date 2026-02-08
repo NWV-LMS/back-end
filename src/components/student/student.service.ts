@@ -11,7 +11,7 @@ import { QueryStudentDto } from '../../libs/dto/student/query-student.dto';
 import { StudentResponseDto } from '../../libs/dto/student/student-response.dto';
 import { CreateStudentResponseDto } from '../../libs/dto/student/create-student-response.dto';
 import { PaginatedStudentResponseDto } from '../../libs/dto/student/paginated-student-response.dto';
-import { StudentStatus, UserRole } from 'generated/prisma/enums';
+import { StudentStatus, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { toStudentResponse } from '../../libs/mappers/student.mapper';
 import { toUserInfo } from '../../libs/mappers/user.mapper';

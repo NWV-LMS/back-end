@@ -5,7 +5,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { OrganizationStatus, UserRole } from 'generated/prisma/enums';
+import { OrganizationStatus, UserRole } from '@prisma/client';
 import { DatabaseService } from '../../../database/database.service';
 import { JwtPayload } from '../../../libs/types/auth';
 

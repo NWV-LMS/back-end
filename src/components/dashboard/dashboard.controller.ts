@@ -4,7 +4,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { UserRole } from 'generated/prisma/enums';
+import { UserRole } from '@prisma/client';
 import { QueryDashboardDto } from '../../libs/dto/dashboard/query-dashboard.dto';
 import { DashboardService } from './dashboard.service';
 import { DashboardSummaryDto } from '../../libs/dto/dashboard/dashboard-summary.dto';

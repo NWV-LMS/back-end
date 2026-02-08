@@ -9,7 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { UserRole } from 'generated/prisma/enums';
+import { UserRole } from '@prisma/client';
 import { CreateGroupDto } from '../../libs/dto/group/create-group.dto';
 import { GroupResponseDto } from '../../libs/dto/group/group-response.dto';
 import { UpdateGroupDto } from '../../libs/dto/group/update-group.dto';

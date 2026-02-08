@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CourseStatus } from 'generated/prisma/enums';
+import { CourseStatus } from '@prisma/client';
 import { CourseResponseDto } from '../../libs/dto/course/course-response.dto';
 import { CreateCourseDto } from '../../libs/dto/course/create-course.dto';
 import { UpdateCourseDto } from '../../libs/dto/course/update-course.dto';

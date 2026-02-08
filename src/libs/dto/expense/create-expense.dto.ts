@@ -1,5 +1,5 @@
 import { IsNumber, IsEnum, IsString, Min } from 'class-validator';
-import { ExpenseCategory } from 'generated/prisma/enums';
+import { ExpenseCategory } from '@prisma/client';
 
 export class CreateExpenseDto {
   @IsEnum(ExpenseCategory)

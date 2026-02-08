@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PaymentStatus } from 'generated/prisma/enums';
+import { PaymentStatus } from '@prisma/client';
 import { FinanceQueryDto } from '../../libs/dto/finance/finance-query.dto';
 import {
   FinanceSummaryDto,

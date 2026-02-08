@@ -1,6 +1,6 @@
 import { IsEnum, IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
-import { LeadStatus } from 'generated/prisma/enums';
+import { LeadStatus } from '@prisma/client';
 
 export class QueryLeadDto {
   @IsOptional()

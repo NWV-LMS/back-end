@@ -1,4 +1,4 @@
-import { LeadStatus } from 'generated/prisma/enums';
+import { LeadStatus } from '@prisma/client';
 
 export class LeadResponseDto {
   id: string;

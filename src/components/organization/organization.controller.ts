@@ -26,7 +26,7 @@ import { PaginatedUserResponseDto } from '../../libs/dto/user/paginated-user-res
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from 'generated/prisma/enums';
+import { UserRole } from '@prisma/client';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPER_ADMIN)

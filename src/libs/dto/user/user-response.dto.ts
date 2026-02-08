@@ -1,4 +1,4 @@
-import { UserRole } from 'generated/prisma/enums';
+import { UserRole } from '@prisma/client';
 
 //Bu responseda keladigon datalar
 export class User {

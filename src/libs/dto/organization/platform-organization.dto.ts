@@ -1,4 +1,4 @@
-import { OrganizationStatus } from 'generated/prisma/enums';
+import { OrganizationStatus } from '@prisma/client';
 
 class PaginationMeta {
   total: number;

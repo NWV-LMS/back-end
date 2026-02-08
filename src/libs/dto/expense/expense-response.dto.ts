@@ -1,4 +1,4 @@
-import { ExpenseCategory } from 'generated/prisma/enums';
+import { ExpenseCategory } from '@prisma/client';
 
 export interface ExpenseResponseDto {
   id: string;

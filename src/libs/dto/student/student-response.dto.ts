@@ -1,4 +1,4 @@
-import { StudentStatus } from 'generated/prisma/enums';
+import { StudentStatus } from '@prisma/client';
 
 export class StudentResponseDto {
   id: string;

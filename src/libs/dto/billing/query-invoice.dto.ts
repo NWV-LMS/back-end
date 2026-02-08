@@ -1,8 +1,8 @@
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
-import { UserRole } from '@prisma/client';
+import { InvoiceStatus } from '@prisma/client';
 
-export class QueryPlatformUserDto {
+export class QueryInvoiceDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -16,16 +16,22 @@ export class QueryPlatformUserDto {
   @Max(100)
   limit?: number = 20;
 
+  // YYYY-MM (e.g., 2026-02)
   @IsOptional()
   @IsString()
-  search?: string; // name/email/phone
+  month?: string;
+
+  @IsOptional()
+  @IsEnum(InvoiceStatus)
+  status?: InvoiceStatus;
 
   @IsOptional()
   @IsString()
-  organization_id?: string;
+  student_id?: string;
 
+  // search by student name/phone
   @IsOptional()
-  @IsEnum(UserRole)
-  role?: UserRole;
+  @IsString()
+  search?: string;
 }
 

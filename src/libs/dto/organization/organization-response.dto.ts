@@ -1,4 +1,4 @@
-import { OrganizationStatus, UserRole } from 'generated/prisma/enums';
+import { OrganizationStatus, UserRole } from '@prisma/client';
 
 import { IsDate, IsEmail, IsEnum, IsNotEmpty, IsString } from 'class-validator';
 

@@ -1,5 +1,5 @@
 import { IsEnum, IsNumber, IsOptional, IsString, Min, Max } from 'class-validator';
-import { ExpenseCategory } from 'generated/prisma/enums';
+import { ExpenseCategory } from '@prisma/client';
 import { Type } from 'class-transformer';
 
 export class QueryExpenseDto {

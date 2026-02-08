@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { CourseStatus } from 'generated/prisma/enums';
+import { CourseStatus } from '@prisma/client';
 
 export class CreateCourseDto {
   @IsNotEmpty()

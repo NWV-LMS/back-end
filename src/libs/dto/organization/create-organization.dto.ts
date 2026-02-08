@@ -6,7 +6,7 @@ import {
   IsString,
   MinLength,
 } from 'class-validator';
-import { OrganizationStatus, UserRole } from 'generated/prisma/enums';
+import { OrganizationStatus, UserRole } from '@prisma/client';
 
 export class CreateOrganizationDto {
   @IsNotEmpty()

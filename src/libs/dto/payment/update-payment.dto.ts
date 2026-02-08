@@ -1,5 +1,5 @@
 import { IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
-import { PaymentMethod, PaymentStatus } from 'generated/prisma/enums';
+import { PaymentMethod, PaymentStatus } from '@prisma/client';
 
 export class UpdatePaymentDto {
   @IsOptional()

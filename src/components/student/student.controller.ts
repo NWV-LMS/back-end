@@ -16,7 +16,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { OrganizationId } from '../auth/decorators/organization-id.decorator';
-import { UserRole } from 'generated/prisma/enums';
+import { UserRole } from '@prisma/client';
 import { CreateStudentDto } from '../../libs/dto/student/create-student.dto';
 import { UpdateStudentDto } from '../../libs/dto/student/update-student.dto';
 import { QueryStudentDto } from '../../libs/dto/student/query-student.dto';

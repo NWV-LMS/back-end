@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsString, MinLength } from 'class-validator';
-import { UserRole } from 'generated/prisma/enums';
+import { UserRole } from '@prisma/client';
 
 export class LoginDto {
   @IsNotEmpty()

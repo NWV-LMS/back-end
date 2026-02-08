@@ -17,7 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
 import { OrganizationId } from '../auth/decorators/organization-id.decorator';
-import { UserRole } from 'generated/prisma/enums';
+import { UserRole } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 import { QueryLeadDto } from '../../libs/dto/lead/query-lead.dto';

@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { PaymentStatus } from 'generated/prisma/enums';
+import { PaymentStatus } from '@prisma/client';
 import { CreatePaymentDto } from '../../libs/dto/payment/create-payment.dto';
 import { UpdatePaymentDto } from '../../libs/dto/payment/update-payment.dto';
 import { QueryPaymentDto } from '../../libs/dto/payment/query-payment.dto';

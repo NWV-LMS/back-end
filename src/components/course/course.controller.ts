@@ -9,7 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { UserRole } from 'generated/prisma/enums';
+import { UserRole } from '@prisma/client';
 import { CourseResponseDto } from '../../libs/dto/course/course-response.dto';
 import { CreateCourseDto } from '../../libs/dto/course/create-course.dto';
 import { UpdateCourseDto } from '../../libs/dto/course/update-course.dto';

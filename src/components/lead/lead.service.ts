@@ -7,7 +7,7 @@ import { DatabaseService } from '../../database/database.service';
 import { CreateLeadDto } from '../../libs/dto/lead/create-lead.dto';
 import { UpdateLeadDto } from '../../libs/dto/lead/update-lead.dto';
 import { LeadResponseDto } from '../../libs/dto/lead/lead-response.dto';
-import { LeadStatus } from 'generated/prisma/enums';
+import { LeadStatus } from '@prisma/client';
 import { UserRole, StudentStatus } from '@prisma/client';
 import { QueryLeadDto } from '../../libs/dto/lead/query-lead.dto';
 import { ConvertLeadDto } from '../../libs/dto/lead/convert-lead.dto';

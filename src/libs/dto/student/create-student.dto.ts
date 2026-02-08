@@ -6,7 +6,7 @@ import {
   IsString,
   MinLength,
 } from 'class-validator';
-import { StudentStatus } from 'generated/prisma/enums';
+import { StudentStatus } from '@prisma/client';
 
 export class CreateStudentDto {
   @IsString()

@@ -1,4 +1,4 @@
-import { StudentStatus, UserRole } from 'generated/prisma/enums';
+import { StudentStatus, UserRole } from '@prisma/client';
 
 class UserInfo {
   id: string;

@@ -1,6 +1,6 @@
 import { IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { StudentStatus } from 'generated/prisma/enums';
+import { StudentStatus } from '@prisma/client';
 
 export class QueryStudentDto {
   @IsNumber()

@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 
 
-import { UserRole } from 'generated/prisma/enums';
+import { UserRole } from '@prisma/client';
 import { InviteUserDto } from '../../libs/dto/auth/invite-user.dto';
 import { UserService } from '../user/user.service';
 import { Roles } from './decorators/roles.decorator';

@@ -8,7 +8,7 @@ import { toUserResponse } from '../../libs/mappers/user.mapper';
 import { DatabaseService } from '../../database/database.service';
 import { RefreshTokenDto } from '../../libs/dto/auth/refresh-token.dto';
 import { JwtPayload, JwtTokens } from '../../libs/types/auth';
-import { OrganizationStatus, UserRole } from 'generated/prisma/enums';
+import { OrganizationStatus, UserRole } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
