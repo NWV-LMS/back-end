@@ -31,6 +31,7 @@ model Organization {
   progresses  Progress[]
   exams       Exam[]
   tests       Test[]
+  expenses    Expense[]
 
   @@index([status])
 }
@@ -48,6 +49,7 @@ model User {
   refresh_token   String?
   teachingGroups  Group[]      @relation("GroupTeacher")
   notes           Note[]
+  expenses        Expense[]
   organization    Organization @relation(fields: [organization_id], references: [id])
 
   @@unique([organization_id, email])
@@ -237,15 +239,39 @@ model Note {
 }
 
 model Payment {
-  id              String       @id @default(uuid()) @db.Uuid
-  organization_id String       @db.Uuid
-  student_id      String       @db.Uuid
+  id              String        @id @default(uuid()) @db.Uuid
+  organization_id String        @db.Uuid
+  student_id      String        @db.Uuid
   amount          Decimal
-  method          String
-  paid_at         DateTime     @default(now())
-  updated_at      DateTime     @default(now()) @updatedAt
-  organization    Organization @relation(fields: [organization_id], references: [id])
-  student         Student      @relation(fields: [student_id], references: [id])
+  method          PaymentMethod
+  status          PaymentStatus @default(COMPLETED)
+  description     String?
+  paid_at         DateTime      @default(now())
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @default(now()) @updatedAt
+  organization    Organization  @relation(fields: [organization_id], references: [id])
+  student         Student       @relation(fields: [student_id], references: [id])
+
+  @@index([organization_id])
+  @@index([organization_id, status])
+  @@index([student_id])
+}
+
+model Expense {
+  id              String          @id @default(uuid()) @db.Uuid
+  organization_id String          @db.Uuid
+  category        ExpenseCategory
+  amount          Decimal
+  description     String
+  paid_at         DateTime        @default(now())
+  created_by      String          @db.Uuid
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @default(now()) @updatedAt
+  organization    Organization    @relation(fields: [organization_id], references: [id])
+  creator         User            @relation(fields: [created_by], references: [id])
+
+  @@index([organization_id])
+  @@index([organization_id, category])
 }
 
 model Archive {
@@ -288,4 +314,26 @@ enum AttendanceStatus {
 enum CourseStatus {
   ACTIVE
   INACTIVE
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum ExpenseCategory {
+  SALARY
+  RENT
+  UTILITIES
+  SUPPLIES
+  MARKETING
+  OTHER
 }
