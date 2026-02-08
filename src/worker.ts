@@ -2,14 +2,13 @@ import 'dotenv/config';
 import { NotificationChannel, NotificationJobStatus } from '@prisma/client';
 import { DatabaseService } from './database/database.service';
 import { WhatsAppTemplates, WhatsAppLanguageCode } from './libs/notification/whatsapp-templates';
+import { decryptSecret } from './libs/crypto/secrets';
 
 async function sleep(ms: number) {
   await new Promise((r) => setTimeout(r, ms));
 }
 
-async function sendTelegram(message: string, chatId: string) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token) throw new Error('TELEGRAM_BOT_TOKEN is not set');
+async function sendTelegram(message: string, chatId: string, token: string) {
   const url = `https://api.telegram.org/bot${token}/sendMessage`;
   const res = await fetch(url, {
     method: 'POST',
@@ -29,23 +28,26 @@ type WhatsAppTemplateMessage = {
   components?: any[];
 };
 
-async function sendWhatsappText(message: string, targetRaw: string) {
-  const token = process.env.WHATSAPP_CLOUD_TOKEN;
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const version = process.env.WHATSAPP_API_VERSION || 'v18.0';
-  const baseUrl = process.env.WHATSAPP_CLOUD_BASE_URL || 'https://graph.facebook.com';
+type WhatsAppCloudConfig = {
+  token: string;
+  phoneNumberId: string;
+  version: string;
+  baseUrl: string;
+};
 
-  if (!token) throw new Error('WHATSAPP_CLOUD_TOKEN is not set');
-  if (!phoneNumberId) throw new Error('WHATSAPP_PHONE_NUMBER_ID is not set');
-
+async function sendWhatsappText(
+  message: string,
+  targetRaw: string,
+  cfg: WhatsAppCloudConfig,
+) {
   const target = normalizeWhatsAppTarget(targetRaw);
   if (!target) throw new Error('Invalid WhatsApp target');
 
-  const url = `${baseUrl}/${version}/${phoneNumberId}/messages`;
+  const url = `${cfg.baseUrl}/${cfg.version}/${cfg.phoneNumberId}/messages`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      authorization: `Bearer ${token}`,
+      authorization: `Bearer ${cfg.token}`,
       'content-type': 'application/json',
     },
     body: JSON.stringify({
@@ -69,23 +71,16 @@ async function sendWhatsappText(message: string, targetRaw: string) {
 async function sendWhatsappTemplate(
   msg: WhatsAppTemplateMessage,
   targetRaw: string,
+  cfg: WhatsAppCloudConfig,
 ) {
-  const token = process.env.WHATSAPP_CLOUD_TOKEN;
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const version = process.env.WHATSAPP_API_VERSION || 'v18.0';
-  const baseUrl = process.env.WHATSAPP_CLOUD_BASE_URL || 'https://graph.facebook.com';
-
-  if (!token) throw new Error('WHATSAPP_CLOUD_TOKEN is not set');
-  if (!phoneNumberId) throw new Error('WHATSAPP_PHONE_NUMBER_ID is not set');
-
   const target = normalizeWhatsAppTarget(targetRaw);
   if (!target) throw new Error('Invalid WhatsApp target');
 
-  const url = `${baseUrl}/${version}/${phoneNumberId}/messages`;
+  const url = `${cfg.baseUrl}/${cfg.version}/${cfg.phoneNumberId}/messages`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      authorization: `Bearer ${token}`,
+      authorization: `Bearer ${cfg.token}`,
       'content-type': 'application/json',
     },
     body: JSON.stringify({
@@ -107,7 +102,99 @@ async function sendWhatsappTemplate(
   }
 }
 
+type OrgNotificationConfig = {
+  telegram: {
+    enabled: boolean;
+    botToken: string | null;
+    chatId: string | null;
+  };
+  whatsapp: {
+    enabled: boolean;
+    cloudToken: string | null;
+    phoneNumberId: string | null;
+    apiVersion: string | null;
+    cloudBaseUrl: string | null;
+    target: string | null;
+  };
+};
+
+const orgConfigCache = new Map<string, { expiresAt: number; cfg: OrgNotificationConfig }>();
+
+async function getOrgConfig(db: DatabaseService, organizationId: string): Promise<OrgNotificationConfig> {
+  const cached = orgConfigCache.get(organizationId);
+  const now = Date.now();
+  if (cached && cached.expiresAt > now) return cached.cfg;
+
+  const org = await db.organization.findUnique({
+    where: { id: organizationId },
+    select: {
+      telegram_enabled: true,
+      telegram_bot_token: true,
+      telegram_chat_id: true,
+      whatsapp_enabled: true,
+      whatsapp_cloud_token: true,
+      whatsapp_phone_number_id: true,
+      whatsapp_api_version: true,
+      whatsapp_cloud_base_url: true,
+      whatsapp_target: true,
+    },
+  });
+
+  const telegramToken = org?.telegram_bot_token
+    ? decryptSecret(org.telegram_bot_token)
+    : process.env.TELEGRAM_BOT_TOKEN ?? null;
+  const whatsappToken = org?.whatsapp_cloud_token
+    ? decryptSecret(org.whatsapp_cloud_token)
+    : process.env.WHATSAPP_CLOUD_TOKEN ?? null;
+
+  const cfg: OrgNotificationConfig = {
+    telegram: {
+      enabled: !!org?.telegram_enabled,
+      botToken: telegramToken ?? null,
+      chatId: org?.telegram_chat_id ?? process.env.TELEGRAM_CHAT_ID ?? null,
+    },
+    whatsapp: {
+      enabled: !!org?.whatsapp_enabled,
+      cloudToken: whatsappToken ?? null,
+      phoneNumberId: org?.whatsapp_phone_number_id ?? process.env.WHATSAPP_PHONE_NUMBER_ID ?? null,
+      apiVersion: org?.whatsapp_api_version ?? process.env.WHATSAPP_API_VERSION ?? 'v18.0',
+      cloudBaseUrl:
+        org?.whatsapp_cloud_base_url ??
+        process.env.WHATSAPP_CLOUD_BASE_URL ??
+        'https://graph.facebook.com',
+      target: org?.whatsapp_target ?? process.env.WHATSAPP_TARGET ?? null,
+    },
+  };
+
+  // Cache for a short time (tokens rarely change, reduces DB reads).
+  orgConfigCache.set(organizationId, { cfg, expiresAt: now + 60_000 });
+  return cfg;
+}
+
+function requireWhatsAppConfig(orgCfg: OrgNotificationConfig): WhatsAppCloudConfig {
+  const token = orgCfg.whatsapp.cloudToken;
+  const phoneNumberId = orgCfg.whatsapp.phoneNumberId;
+  if (!token) throw new Error('CONFIG: WhatsApp token is not configured');
+  if (!phoneNumberId) throw new Error('CONFIG: WhatsApp phone_number_id is not configured');
+  return {
+    token,
+    phoneNumberId,
+    version: orgCfg.whatsapp.apiVersion ?? 'v18.0',
+    baseUrl: orgCfg.whatsapp.cloudBaseUrl ?? 'https://graph.facebook.com',
+  };
+}
+
+function requireTelegramConfig(orgCfg: OrgNotificationConfig): { token: string; chatId: string } {
+  const token = orgCfg.telegram.botToken;
+  const chatId = orgCfg.telegram.chatId;
+  if (!token) throw new Error('CONFIG: Telegram bot token is not configured');
+  if (!chatId) throw new Error('CONFIG: Telegram chat_id is not configured');
+  return { token, chatId };
+}
+
 async function processJob(db: DatabaseService, job: any) {
+  const orgCfg = await getOrgConfig(db, job.organization_id);
+
   if (job.type === 'PAYMENT_REMINDER') {
     const invoiceId = job.payload?.invoiceId;
     if (!invoiceId) throw new Error('Missing payload.invoiceId');
@@ -125,24 +212,22 @@ async function processJob(db: DatabaseService, job: any) {
     const due = invoice.due_date.toISOString().slice(0, 10);
     const msg = `Payment reminder\nStudent: ${invoice.student.name} (${invoice.student.phone})\nMonth: ${month}\nDue: ${due}\nDebt: ${debt.toString()}`;
 
-    const org = await db.organization.findUnique({
-      where: { id: job.organization_id },
-      select: { telegram_chat_id: true, whatsapp_target: true },
-    });
-    const telegramTarget = org?.telegram_chat_id ?? process.env.TELEGRAM_CHAT_ID ?? null;
     const whatsappTarget =
-      job.payload?.to ?? org?.whatsapp_target ?? process.env.WHATSAPP_TARGET ?? null;
+      job.payload?.to ?? invoice.student.phone ?? orgCfg.whatsapp.target ?? null;
     const lang = (job.payload?.lang ??
       process.env.WHATSAPP_DEFAULT_LANG ??
       'uz') as WhatsAppLanguageCode;
 
     if (job.channel === NotificationChannel.TELEGRAM) {
-      if (!telegramTarget) throw new Error('No telegram_chat_id configured');
-      await sendTelegram(msg, telegramTarget);
+      if (!orgCfg.telegram.enabled) return; // org disabled after job was queued
+      const t = requireTelegramConfig(orgCfg);
+      await sendTelegram(msg, t.chatId, t.token);
       return;
     }
     if (job.channel === NotificationChannel.WHATSAPP) {
-      if (!whatsappTarget) throw new Error('No whatsapp_target configured');
+      if (!orgCfg.whatsapp.enabled) return; // org disabled after job was queued
+      if (!whatsappTarget) throw new Error('CONFIG: No WhatsApp recipient is configured');
+      const waCfg = requireWhatsAppConfig(orgCfg);
       const tpl = WhatsAppTemplates.PAYMENT_REMINDER;
       const languageCode = tpl.languages[lang] ?? tpl.languages.uz;
       // Optional: pass body parameters if your template uses variables.
@@ -161,6 +246,7 @@ async function processJob(db: DatabaseService, job: any) {
       await sendWhatsappTemplate(
         { templateName: tpl.name, languageCode, components },
         whatsappTarget,
+        waCfg,
       );
       return;
     }
@@ -205,9 +291,12 @@ async function processJob(db: DatabaseService, job: any) {
       },
     ];
 
+    if (!orgCfg.whatsapp.enabled) return;
+    const waCfg = requireWhatsAppConfig(orgCfg);
     await sendWhatsappTemplate(
       { templateName: tpl.name, languageCode, components },
       String(to),
+      waCfg,
     );
     return;
   }
@@ -263,13 +352,18 @@ async function run() {
       } catch (e: any) {
         const attempts = (j.attempts ?? 0) + 1;
         const backoffMs = Math.min(attempts * 60_000, 10 * 60_000);
+        const msg = String(e?.message ?? e);
         await db.notificationJob.update({
           where: { id: j.id },
           data: {
             status:
-              attempts >= 5 ? NotificationJobStatus.FAILED : NotificationJobStatus.PENDING,
+              msg.startsWith('CONFIG:')
+                ? NotificationJobStatus.FAILED
+                : attempts >= 5
+                  ? NotificationJobStatus.FAILED
+                  : NotificationJobStatus.PENDING,
             next_run_at: new Date(Date.now() + backoffMs),
-            last_error: String(e?.message ?? e),
+            last_error: msg,
           },
         });
       }

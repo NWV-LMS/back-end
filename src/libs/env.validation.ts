@@ -53,6 +53,15 @@ export function validateEnvOrThrow(): void {
     }
   }
 
+  // If you store provider tokens in the DB (per-organization WhatsApp/Telegram),
+  // encrypt them at rest. This key is required in production.
+  if (nodeEnv === 'production') {
+    const k = process.env.APP_ENCRYPTION_KEY;
+    if (!isNonEmpty(k) || k.trim().length < 32) {
+      errors.push('APP_ENCRYPTION_KEY is required in production (min 32 chars or base64 32 bytes)');
+    }
+  }
+
   if (errors.length > 0) {
     // Keep error text readable in container logs.
     const message = ['Invalid environment configuration:', ...errors.map((e) => `- ${e}`)].join(
@@ -61,4 +70,3 @@ export function validateEnvOrThrow(): void {
     throw new Error(message);
   }
 }
-

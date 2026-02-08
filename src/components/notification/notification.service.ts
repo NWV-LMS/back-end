@@ -5,6 +5,9 @@ import {
   NotificationJobStatus,
 } from '@prisma/client';
 import { DatabaseService } from '../../database/database.service';
+import { encryptSecret } from '../../libs/crypto/secrets';
+import { NotificationSettingsResponseDto } from '../../libs/dto/notification/notification-settings-response.dto';
+import { UpdateNotificationSettingsDto } from '../../libs/dto/notification/update-notification-settings.dto';
 
 function parseMonth(month?: string): Date {
   if (!month) {
@@ -26,6 +29,127 @@ function parseMonth(month?: string): Date {
 @Injectable()
 export class NotificationService {
   constructor(private readonly database: DatabaseService) {}
+
+  async getSettings(organizationId: string): Promise<NotificationSettingsResponseDto> {
+    const org = await this.database.organization.findUnique({
+      where: { id: organizationId },
+      select: {
+        telegram_enabled: true,
+        telegram_chat_id: true,
+        telegram_bot_token: true,
+        whatsapp_enabled: true,
+        whatsapp_target: true,
+        whatsapp_cloud_token: true,
+        whatsapp_phone_number_id: true,
+        whatsapp_api_version: true,
+        whatsapp_cloud_base_url: true,
+      },
+    });
+    if (!org) throw new BadRequestException('Organization not found');
+
+    return {
+      telegram: {
+        enabled: org.telegram_enabled,
+        chatId: org.telegram_chat_id ?? null,
+        tokenSet: !!(org.telegram_bot_token && org.telegram_bot_token.trim().length > 0),
+      },
+      whatsapp: {
+        enabled: org.whatsapp_enabled,
+        target: org.whatsapp_target ?? null,
+        phoneNumberId: org.whatsapp_phone_number_id ?? null,
+        apiVersion: org.whatsapp_api_version ?? null,
+        cloudBaseUrl: org.whatsapp_cloud_base_url ?? null,
+        tokenSet: !!(org.whatsapp_cloud_token && org.whatsapp_cloud_token.trim().length > 0),
+      },
+    };
+  }
+
+  async updateSettings(
+    organizationId: string,
+    dto: UpdateNotificationSettingsDto,
+  ): Promise<NotificationSettingsResponseDto> {
+    const org = await this.database.organization.findUnique({
+      where: { id: organizationId },
+      select: {
+        telegram_enabled: true,
+        telegram_chat_id: true,
+        telegram_bot_token: true,
+        whatsapp_enabled: true,
+        whatsapp_target: true,
+        whatsapp_cloud_token: true,
+        whatsapp_phone_number_id: true,
+        whatsapp_api_version: true,
+        whatsapp_cloud_base_url: true,
+      },
+    });
+    if (!org) throw new BadRequestException('Organization not found');
+
+    const next = {
+      telegram_enabled: dto.telegram_enabled ?? org.telegram_enabled,
+      telegram_chat_id:
+        dto.telegram_chat_id === '' ? null : dto.telegram_chat_id ?? org.telegram_chat_id,
+      telegram_bot_token:
+        dto.telegram_bot_token === ''
+          ? null
+          : dto.telegram_bot_token
+            ? encryptSecret(dto.telegram_bot_token)
+            : org.telegram_bot_token,
+
+      whatsapp_enabled: dto.whatsapp_enabled ?? org.whatsapp_enabled,
+      whatsapp_target:
+        dto.whatsapp_target === '' ? null : dto.whatsapp_target ?? org.whatsapp_target,
+      whatsapp_cloud_token:
+        dto.whatsapp_cloud_token === ''
+          ? null
+          : dto.whatsapp_cloud_token
+            ? encryptSecret(dto.whatsapp_cloud_token)
+            : org.whatsapp_cloud_token,
+      whatsapp_phone_number_id:
+        dto.whatsapp_phone_number_id === ''
+          ? null
+          : dto.whatsapp_phone_number_id ?? org.whatsapp_phone_number_id,
+      whatsapp_api_version:
+        dto.whatsapp_api_version === ''
+          ? null
+          : dto.whatsapp_api_version ?? org.whatsapp_api_version,
+      whatsapp_cloud_base_url:
+        dto.whatsapp_cloud_base_url === ''
+          ? null
+          : dto.whatsapp_cloud_base_url ?? org.whatsapp_cloud_base_url,
+    };
+
+    // Production guardrails: if a channel is enabled, it must be fully configured.
+    if (next.telegram_enabled) {
+      const hasToken = !!(next.telegram_bot_token && next.telegram_bot_token.trim().length > 0);
+      if (!hasToken) {
+        throw new BadRequestException('telegram_bot_token is required when telegram_enabled=true');
+      }
+      if (!next.telegram_chat_id) {
+        throw new BadRequestException('telegram_chat_id is required when telegram_enabled=true');
+      }
+    }
+
+    if (next.whatsapp_enabled) {
+      const hasToken = !!(next.whatsapp_cloud_token && next.whatsapp_cloud_token.trim().length > 0);
+      if (!hasToken) {
+        throw new BadRequestException(
+          'whatsapp_cloud_token is required when whatsapp_enabled=true',
+        );
+      }
+      if (!next.whatsapp_phone_number_id) {
+        throw new BadRequestException(
+          'whatsapp_phone_number_id is required when whatsapp_enabled=true',
+        );
+      }
+    }
+
+    await this.database.organization.update({
+      where: { id: organizationId },
+      data: next,
+    });
+
+    return this.getSettings(organizationId);
+  }
 
   async dispatchPaymentReminders(
     organizationId: string,
@@ -57,11 +181,17 @@ export class NotificationService {
 
     const org = await this.database.organization.findUnique({
       where: { id: organizationId },
-      select: { telegram_chat_id: true, whatsapp_target: true },
+      select: {
+        telegram_enabled: true,
+        telegram_chat_id: true,
+        whatsapp_enabled: true,
+      },
     });
 
-    const telegramTarget = org?.telegram_chat_id ?? process.env.TELEGRAM_CHAT_ID ?? null;
-    const whatsappTarget = org?.whatsapp_target ?? process.env.WHATSAPP_TARGET ?? null;
+    const telegramTarget = org?.telegram_enabled
+      ? org?.telegram_chat_id ?? process.env.TELEGRAM_CHAT_ID ?? null
+      : null;
+    const whatsappEnabled = !!org?.whatsapp_enabled;
 
     const jobs: Prisma.NotificationJobCreateManyInput[] = [];
     for (const r of rows) {
@@ -79,7 +209,7 @@ export class NotificationService {
           next_run_at: new Date(),
         });
       }
-      if (whatsappTarget) {
+      if (whatsappEnabled) {
         jobs.push({
           organization_id: organizationId,
           channel: NotificationChannel.WHATSAPP,
@@ -93,8 +223,7 @@ export class NotificationService {
 
     if (jobs.length === 0) {
       return {
-        message:
-          'No notification targets configured (telegram_chat_id/whatsapp_target)',
+        message: 'No notification channels enabled/configured',
         queued: 0,
       };
     }
@@ -108,6 +237,14 @@ export class NotificationService {
     organizationId: string,
     opts: { minutesAhead: number; lang?: string },
   ): Promise<{ message: string; queued: number }> {
+    const org = await this.database.organization.findUnique({
+      where: { id: organizationId },
+      select: { whatsapp_enabled: true },
+    });
+    if (!org?.whatsapp_enabled) {
+      return { message: 'WhatsApp notifications are disabled for this organization', queued: 0 };
+    }
+
     const minutesAhead = opts.minutesAhead ?? 180;
     const now = new Date();
     const to = new Date(now.getTime() + minutesAhead * 60_000);
