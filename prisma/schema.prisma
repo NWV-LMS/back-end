@@ -12,27 +12,30 @@ datasource db {
 }
 
 model Organization {
-  id          String             @id @default(uuid()) @db.Uuid
-  name        String             @unique
-  status      OrganizationStatus
-  created_at  DateTime           @default(now())
-  updated_at  DateTime           @default(now()) @updatedAt
-  email       String
-  phone       String
-  courses     Course[]
-  groups      Group[]
-  leads       Lead[]
-  notes       Note[]
-  payments    Payment[]
-  students    Student[]
-  users       User[]
-  enrollments Enrollment[]
-  attendances Attendance[]
-  progresses  Progress[]
-  exams       Exam[]
-  tests       Test[]
-  expenses    Expense[]
-  invoices    Invoice[]
+  id               String             @id @default(uuid()) @db.Uuid
+  name             String             @unique
+  status           OrganizationStatus
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @default(now()) @updatedAt
+  email            String
+  phone            String
+  telegram_chat_id String?
+  whatsapp_target  String?
+  courses          Course[]
+  groups           Group[]
+  leads            Lead[]
+  notes            Note[]
+  payments         Payment[]
+  notificationJobs NotificationJob[]
+  students         Student[]
+  users            User[]
+  enrollments      Enrollment[]
+  attendances      Attendance[]
+  progresses       Progress[]
+  exams            Exam[]
+  tests            Test[]
+  expenses         Expense[]
+  invoices         Invoice[]
 
   @@index([status])
 }
@@ -336,6 +339,26 @@ model Archive {
   created_at DateTime @default(now())
 }
 
+model NotificationJob {
+  id              String                @id @default(uuid()) @db.Uuid
+  organization_id String                @db.Uuid
+  channel         NotificationChannel
+  type            String
+  payload         Json
+  status          NotificationJobStatus @default(PENDING)
+  attempts        Int                   @default(0)
+  next_run_at     DateTime              @default(now())
+  last_error      String?
+  sent_at         DateTime?
+  created_at      DateTime              @default(now())
+  updated_at      DateTime              @default(now()) @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+
+  @@index([organization_id])
+  @@index([status, next_run_at])
+}
+
 enum OrganizationStatus {
   ACTIVE
   INACTIVE
@@ -389,6 +412,20 @@ enum InvoiceStatus {
   PAID
   OVERDUE
   VOID
+}
+
+enum NotificationChannel {
+  TELEGRAM
+  WHATSAPP
+  EMAIL
+  SMS
+}
+
+enum NotificationJobStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
 }
 
 enum ExpenseCategory {

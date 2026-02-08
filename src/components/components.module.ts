@@ -15,6 +15,7 @@ import { ExpenseModule } from './expense/expense.module';
 import { FinanceModule } from './finance/finance.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { BillingModule } from './billing/billing.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { BillingModule } from './billing/billing.module';
     FinanceModule,
     DashboardModule,
     BillingModule,
+    NotificationModule,
   ],
   exports: [AuthModule, UserModule],
 })
