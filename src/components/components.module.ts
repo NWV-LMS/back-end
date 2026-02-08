@@ -5,7 +5,7 @@ import { LeadModule } from './lead/lead.module';
 import { StudentModule } from './student/student.module';
 import { CourseModule } from './course/course.module';
 import { GroupModule } from './group/group.module';
-import { HealthModule } from './health/health.module';
+
 import { EnrollmentModule } from './enrollment/enrollment.module';
 import { OrganizationModule } from './organization/organization.module';
 import { LessonModule } from './lesson/lesson.module';
@@ -20,7 +20,7 @@ import { ProgressModule } from './progress/progress.module';
     StudentModule,
     CourseModule,
     GroupModule,
-    HealthModule,
+
     EnrollmentModule,
     OrganizationModule,
     LessonModule,
