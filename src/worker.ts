@@ -22,9 +22,40 @@ async function sendTelegram(message: string, chatId: string) {
 }
 
 async function sendWhatsapp(_message: string, _target: string) {
-  // Provider is not configured yet.
-  // When you pick a provider (Meta WhatsApp Cloud API / Twilio), implement here.
-  return;
+  const token = process.env.WHATSAPP_CLOUD_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const version = process.env.WHATSAPP_API_VERSION || 'v18.0';
+  const baseUrl = process.env.WHATSAPP_CLOUD_BASE_URL || 'https://graph.facebook.com';
+
+  if (!token) throw new Error('WHATSAPP_CLOUD_TOKEN is not set');
+  if (!phoneNumberId) throw new Error('WHATSAPP_PHONE_NUMBER_ID is not set');
+
+  const target = normalizeWhatsAppTarget(_target);
+  if (!target) throw new Error('Invalid WhatsApp target');
+
+  const url = `${baseUrl}/${version}/${phoneNumberId}/messages`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${token}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: target,
+      type: 'text',
+      text: {
+        preview_url: false,
+        body: _message,
+      },
+    }),
+  });
+
+  const text = await res.text().catch(() => '');
+  if (!res.ok) {
+    throw new Error(`WhatsApp send failed: ${res.status} ${text}`);
+  }
 }
 
 async function processJob(db: DatabaseService, job: any) {
@@ -65,6 +96,13 @@ async function processJob(db: DatabaseService, job: any) {
   }
 
   throw new Error(`Unsupported job type/channel: ${job.type}/${job.channel}`);
+}
+
+function normalizeWhatsAppTarget(raw: string): string {
+  const s = String(raw ?? '').trim();
+  if (!s) return '';
+  const digits = s.startsWith('+') ? s.slice(1) : s;
+  return digits.replace(/\D/g, '');
 }
 
 async function run() {
@@ -128,4 +166,3 @@ run().catch((e) => {
   console.error(e);
   process.exit(1);
 });
-
