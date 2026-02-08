@@ -1,16 +1,14 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsNumber, IsEnum, IsString, Min } from 'class-validator';
+import { ExpenseCategory } from 'generated/prisma/enums';
 
 export class CreateExpenseDto {
-  @IsNotEmpty()
-  @IsString()
-  title: string;
+  @IsEnum(ExpenseCategory)
+  category: ExpenseCategory;
 
   @IsNumber()
   @Min(0)
   amount: number;
 
-  @IsOptional()
   @IsString()
-  category?: string; // rent, salary, ads
+  description: string;
 }
-
