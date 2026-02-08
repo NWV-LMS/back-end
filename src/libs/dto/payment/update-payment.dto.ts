@@ -1,16 +1,15 @@
-import { IsUUID, IsNumber, IsEnum, IsOptional, IsString, Min } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { PaymentMethod, PaymentStatus } from 'generated/prisma/enums';
 
-export class CreatePaymentDto {
-  @IsUUID()
-  student_id: string;
-
+export class UpdatePaymentDto {
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  amount: number;
+  amount?: number;
 
+  @IsOptional()
   @IsEnum(PaymentMethod)
-  method: PaymentMethod;
+  method?: PaymentMethod;
 
   @IsOptional()
   @IsEnum(PaymentStatus)
