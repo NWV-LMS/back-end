@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import 'dotenv/config';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -24,6 +25,21 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Swagger API Documentation
+  if (!isProd) {
+    const config = new DocumentBuilder()
+      .setTitle('CRM-LMS API')
+      .setDescription('Education Center CRM + LMS Backend API')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addTag('payment', 'Payment management')
+      .addTag('expense', 'Expense management')
+      .addTag('finance', 'Finance dashboard & reports')
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api-docs', app, document);
+  }
+
   console.log('Starting server...');
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalPipes(
@@ -36,5 +52,8 @@ async function bootstrap() {
   app.enableShutdownHooks();
   await app.listen(process.env.PORT || 3000);
   console.log(`Application is running on: ${await app.getUrl()}`);
+  if (!isProd) {
+    console.log(`Swagger docs: ${await app.getUrl()}/api-docs`);
+  }
 }
 bootstrap();
