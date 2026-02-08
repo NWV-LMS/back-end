@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { NotificationChannel, NotificationJobStatus } from '@prisma/client';
 import { DatabaseService } from './database/database.service';
+import { WhatsAppTemplates, WhatsAppLanguageCode } from './libs/notification/whatsapp-templates';
 
 async function sleep(ms: number) {
   await new Promise((r) => setTimeout(r, ms));
@@ -21,7 +22,14 @@ async function sendTelegram(message: string, chatId: string) {
   }
 }
 
-async function sendWhatsapp(_message: string, _target: string) {
+type WhatsAppTemplateMessage = {
+  templateName: string;
+  languageCode: string;
+  // Optional template components.
+  components?: any[];
+};
+
+async function sendWhatsappText(message: string, targetRaw: string) {
   const token = process.env.WHATSAPP_CLOUD_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const version = process.env.WHATSAPP_API_VERSION || 'v18.0';
@@ -30,7 +38,7 @@ async function sendWhatsapp(_message: string, _target: string) {
   if (!token) throw new Error('WHATSAPP_CLOUD_TOKEN is not set');
   if (!phoneNumberId) throw new Error('WHATSAPP_PHONE_NUMBER_ID is not set');
 
-  const target = normalizeWhatsAppTarget(_target);
+  const target = normalizeWhatsAppTarget(targetRaw);
   if (!target) throw new Error('Invalid WhatsApp target');
 
   const url = `${baseUrl}/${version}/${phoneNumberId}/messages`;
@@ -47,7 +55,7 @@ async function sendWhatsapp(_message: string, _target: string) {
       type: 'text',
       text: {
         preview_url: false,
-        body: _message,
+        body: message,
       },
     }),
   });
@@ -58,8 +66,49 @@ async function sendWhatsapp(_message: string, _target: string) {
   }
 }
 
+async function sendWhatsappTemplate(
+  msg: WhatsAppTemplateMessage,
+  targetRaw: string,
+) {
+  const token = process.env.WHATSAPP_CLOUD_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const version = process.env.WHATSAPP_API_VERSION || 'v18.0';
+  const baseUrl = process.env.WHATSAPP_CLOUD_BASE_URL || 'https://graph.facebook.com';
+
+  if (!token) throw new Error('WHATSAPP_CLOUD_TOKEN is not set');
+  if (!phoneNumberId) throw new Error('WHATSAPP_PHONE_NUMBER_ID is not set');
+
+  const target = normalizeWhatsAppTarget(targetRaw);
+  if (!target) throw new Error('Invalid WhatsApp target');
+
+  const url = `${baseUrl}/${version}/${phoneNumberId}/messages`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${token}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: target,
+      type: 'template',
+      template: {
+        name: msg.templateName,
+        language: { code: msg.languageCode },
+        ...(msg.components ? { components: msg.components } : {}),
+      },
+    }),
+  });
+
+  const text = await res.text().catch(() => '');
+  if (!res.ok) {
+    throw new Error(`WhatsApp template send failed: ${res.status} ${text}`);
+  }
+}
+
 async function processJob(db: DatabaseService, job: any) {
-  if (job.type === 'INVOICE_REMINDER') {
+  if (job.type === 'PAYMENT_REMINDER') {
     const invoiceId = job.payload?.invoiceId;
     if (!invoiceId) throw new Error('Missing payload.invoiceId');
 
@@ -74,7 +123,7 @@ async function processJob(db: DatabaseService, job: any) {
 
     const month = invoice.month.toISOString().slice(0, 7);
     const due = invoice.due_date.toISOString().slice(0, 10);
-    const msg = `Payment reminder\\nStudent: ${invoice.student.name} (${invoice.student.phone})\\nMonth: ${month}\\nDue: ${due}\\nDebt: ${debt.toString()}`;
+    const msg = `Payment reminder\nStudent: ${invoice.student.name} (${invoice.student.phone})\nMonth: ${month}\nDue: ${due}\nDebt: ${debt.toString()}`;
 
     const org = await db.organization.findUnique({
       where: { id: job.organization_id },
@@ -82,6 +131,9 @@ async function processJob(db: DatabaseService, job: any) {
     });
     const telegramTarget = org?.telegram_chat_id ?? process.env.TELEGRAM_CHAT_ID ?? null;
     const whatsappTarget = org?.whatsapp_target ?? process.env.WHATSAPP_TARGET ?? null;
+    const lang = (job.payload?.lang ??
+      process.env.WHATSAPP_DEFAULT_LANG ??
+      'uz') as WhatsAppLanguageCode;
 
     if (job.channel === NotificationChannel.TELEGRAM) {
       if (!telegramTarget) throw new Error('No telegram_chat_id configured');
@@ -90,7 +142,25 @@ async function processJob(db: DatabaseService, job: any) {
     }
     if (job.channel === NotificationChannel.WHATSAPP) {
       if (!whatsappTarget) throw new Error('No whatsapp_target configured');
-      await sendWhatsapp(msg, whatsappTarget);
+      const tpl = WhatsAppTemplates.PAYMENT_REMINDER;
+      const languageCode = tpl.languages[lang] ?? tpl.languages.uz;
+      // Optional: pass body parameters if your template uses variables.
+      // Adjust parameter ordering to match your template definition.
+      const components = [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: invoice.student.name },
+            { type: 'text', text: month },
+            { type: 'text', text: due },
+            { type: 'text', text: debt.toString() },
+          ],
+        },
+      ];
+      await sendWhatsappTemplate(
+        { templateName: tpl.name, languageCode, components },
+        whatsappTarget,
+      );
       return;
     }
   }

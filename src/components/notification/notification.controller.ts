@@ -22,7 +22,7 @@ export class NotificationController {
     return this.notificationService.dispatchPaymentReminders(organizationId, {
       month: dto.month,
       daysAhead: dto.daysAhead ?? 3,
+      lang: dto.lang,
     });
   }
 }
-

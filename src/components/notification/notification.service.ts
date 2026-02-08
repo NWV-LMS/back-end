@@ -29,7 +29,7 @@ export class NotificationService {
 
   async dispatchPaymentReminders(
     organizationId: string,
-    opts: { month?: string; daysAhead: number },
+    opts: { month?: string; daysAhead: number; lang?: string },
   ): Promise<{ message: string; queued: number }> {
     const monthDate = parseMonth(opts.month);
     const daysAhead = opts.daysAhead ?? 3;
@@ -65,12 +65,15 @@ export class NotificationService {
 
     const jobs: Prisma.NotificationJobCreateManyInput[] = [];
     for (const r of rows) {
-      const payload = { invoiceId: r.id };
+      const payload = {
+        invoiceId: r.id,
+        lang: opts.lang ?? process.env.WHATSAPP_DEFAULT_LANG ?? 'uz',
+      };
       if (telegramTarget) {
         jobs.push({
           organization_id: organizationId,
           channel: NotificationChannel.TELEGRAM,
-          type: 'INVOICE_REMINDER',
+          type: 'PAYMENT_REMINDER',
           payload,
           status: NotificationJobStatus.PENDING,
           next_run_at: new Date(),
@@ -80,7 +83,7 @@ export class NotificationService {
         jobs.push({
           organization_id: organizationId,
           channel: NotificationChannel.WHATSAPP,
-          type: 'INVOICE_REMINDER',
+          type: 'PAYMENT_REMINDER',
           payload,
           status: NotificationJobStatus.PENDING,
           next_run_at: new Date(),
@@ -101,4 +104,3 @@ export class NotificationService {
     return { message: 'Notification jobs queued', queued: jobs.length };
   }
 }
-
