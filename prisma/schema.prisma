@@ -12,31 +12,40 @@ datasource db {
 }
 
 model Organization {
-  id               String             @id @default(uuid()) @db.Uuid
-  name             String             @unique
-  status           OrganizationStatus
-  created_at       DateTime           @default(now())
-  updated_at       DateTime           @default(now()) @updatedAt
-  email            String
-  phone            String
-  telegram_chat_id String?
-  whatsapp_target  String?
-  courses          Course[]
-  groups           Group[]
-  leads            Lead[]
-  notes            Note[]
-  payments         Payment[]
-  notificationJobs NotificationJob[]
-  students         Student[]
-  users            User[]
-  enrollments      Enrollment[]
-  attendances      Attendance[]
-  progresses       Progress[]
-  exams            Exam[]
-  tests            Test[]
-  expenses         Expense[]
-  invoices         Invoice[]
-  groupSchedules   GroupSchedule[]
+  id                 String             @id @default(uuid()) @db.Uuid
+  name               String             @unique
+  status             OrganizationStatus
+  created_at         DateTime           @default(now())
+  updated_at         DateTime           @default(now()) @updatedAt
+  email              String
+  phone              String
+  // Notifications (per-organization)
+  telegram_enabled   Boolean            @default(false)
+  telegram_bot_token String?
+  telegram_chat_id   String?
+
+  whatsapp_enabled         Boolean           @default(false)
+  whatsapp_cloud_token     String?
+  whatsapp_phone_number_id String?
+  whatsapp_api_version     String?           @default("v18.0")
+  whatsapp_cloud_base_url  String?           @default("https://graph.facebook.com")
+  whatsapp_target          String?
+  courses                  Course[]
+  groups                   Group[]
+  leads                    Lead[]
+  notes                    Note[]
+  payments                 Payment[]
+  notificationJobs         NotificationJob[]
+  students                 Student[]
+  users                    User[]
+  enrollments              Enrollment[]
+  attendances              Attendance[]
+  progresses               Progress[]
+  exams                    Exam[]
+  tests                    Test[]
+  expenses                 Expense[]
+  invoices                 Invoice[]
+  groupSchedules           GroupSchedule[]
 
   @@index([status])
 }
