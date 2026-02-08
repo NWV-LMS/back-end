@@ -16,13 +16,15 @@ export class LoggingInterceptor implements NestInterceptor {
     const type = context.getType();
     if (type === 'http') {
       const req = context.switchToHttp().getRequest();
+      const res = context.switchToHttp().getResponse();
       this.logger.log(`${req.method} ${req.url}`, 'REQUEST');
 
       return next.handle().pipe(
-        tap((data) => {
+        tap(() => {
           const responseTime = Date.now() - recordTime;
+          const statusCode = res?.statusCode;
           this.logger.log(
-            `${this.stringify(data)} - ${responseTime}ms`,
+            `${statusCode ?? ''} - ${responseTime}ms`,
             'RESPONSE',
           );
         }),
@@ -30,23 +32,5 @@ export class LoggingInterceptor implements NestInterceptor {
     }
 
     return next.handle();
-  }
-
-  private stringify(data: any): string {
-    try {
-      return JSON.stringify(data, (key, value) => {
-        const sensitiveKeys = [
-          'accessToken',
-          'access_token',
-          'refreshToken',
-          'refresh_token',
-          'token',
-          'id',
-        ];
-        return sensitiveKeys.includes(key) ? undefined : value;
-      }).slice(50, 150);
-    } catch (e) {
-      return '[Circular or Unserializable]';
-    }
   }
 }
