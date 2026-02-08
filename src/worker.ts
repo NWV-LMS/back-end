@@ -130,7 +130,8 @@ async function processJob(db: DatabaseService, job: any) {
       select: { telegram_chat_id: true, whatsapp_target: true },
     });
     const telegramTarget = org?.telegram_chat_id ?? process.env.TELEGRAM_CHAT_ID ?? null;
-    const whatsappTarget = org?.whatsapp_target ?? process.env.WHATSAPP_TARGET ?? null;
+    const whatsappTarget =
+      job.payload?.to ?? org?.whatsapp_target ?? process.env.WHATSAPP_TARGET ?? null;
     const lang = (job.payload?.lang ??
       process.env.WHATSAPP_DEFAULT_LANG ??
       'uz') as WhatsAppLanguageCode;
@@ -163,6 +164,52 @@ async function processJob(db: DatabaseService, job: any) {
       );
       return;
     }
+  }
+
+  if (job.type === 'LESSON_REMINDER') {
+    if (job.channel !== NotificationChannel.WHATSAPP) {
+      throw new Error('LESSON_REMINDER supports only WhatsApp for now');
+    }
+
+    const to = job.payload?.to;
+    const studentName = job.payload?.studentName;
+    const courseTitle = job.payload?.courseTitle;
+    const startAtIso = job.payload?.startAt;
+    if (!to || !studentName || !courseTitle || !startAtIso) {
+      throw new Error('Missing lesson reminder payload fields');
+    }
+
+    const lang = (job.payload?.lang ??
+      process.env.WHATSAPP_DEFAULT_LANG ??
+      'uz') as WhatsAppLanguageCode;
+
+    // Template placeholders (provided by you):
+    // {{1}} = student name
+    // {{2}} = course title
+    // {{3}} = start time/date-time
+    const startAt = new Date(startAtIso);
+    const startText = Number.isNaN(startAt.getTime())
+      ? String(startAtIso)
+      : `${startAt.toISOString().slice(0, 10)} ${startAt.toISOString().slice(11, 16)}`;
+
+    const tpl = WhatsAppTemplates.LESSON_REMINDER;
+    const languageCode = tpl.languages[lang] ?? tpl.languages.uz;
+    const components = [
+      {
+        type: 'body',
+        parameters: [
+          { type: 'text', text: String(studentName) },
+          { type: 'text', text: String(courseTitle) },
+          { type: 'text', text: startText },
+        ],
+      },
+    ];
+
+    await sendWhatsappTemplate(
+      { templateName: tpl.name, languageCode, components },
+      String(to),
+    );
+    return;
   }
 
   throw new Error(`Unsupported job type/channel: ${job.type}/${job.channel}`);

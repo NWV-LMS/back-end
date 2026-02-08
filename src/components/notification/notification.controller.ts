@@ -6,6 +6,7 @@ import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { DispatchPaymentRemindersDto } from '../../libs/dto/notification/dispatch-payment-reminders.dto';
+import { DispatchLessonRemindersDto } from '../../libs/dto/notification/dispatch-lesson-reminders.dto';
 import { NotificationService } from './notification.service';
 
 @UseGuards(JwtAuthGuard, OrganizationIdGuard, RolesGuard)
@@ -22,6 +23,18 @@ export class NotificationController {
     return this.notificationService.dispatchPaymentReminders(organizationId, {
       month: dto.month,
       daysAhead: dto.daysAhead ?? 3,
+      lang: dto.lang,
+    });
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Post('dispatch/lesson-reminders')
+  dispatchLessonReminders(
+    @OrganizationId() organizationId: string,
+    @Body() dto: DispatchLessonRemindersDto,
+  ): Promise<{ message: string; queued: number }> {
+    return this.notificationService.dispatchLessonReminders(organizationId, {
+      minutesAhead: dto.minutesAhead ?? 180,
       lang: dto.lang,
     });
   }
