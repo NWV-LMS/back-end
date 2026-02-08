@@ -36,6 +36,7 @@ model Organization {
   tests            Test[]
   expenses         Expense[]
   invoices         Invoice[]
+  groupSchedules   GroupSchedule[]
 
   @@index([status])
 }
@@ -79,23 +80,44 @@ model Course {
 }
 
 model Group {
-  id              String       @id @default(uuid()) @db.Uuid
-  organization_id String       @db.Uuid
-  course_id       String       @db.Uuid
-  teacher_id      String       @db.Uuid
+  id              String          @id @default(uuid()) @db.Uuid
+  organization_id String          @db.Uuid
+  course_id       String          @db.Uuid
+  teacher_id      String          @db.Uuid
   name            String
-  start_date      DateTime     @db.Date
-  end_date        DateTime     @db.Date
-  created_at      DateTime     @default(now())
-  updated_at      DateTime     @default(now()) @updatedAt
+  start_date      DateTime        @db.Date
+  end_date        DateTime        @db.Date
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @default(now()) @updatedAt
   enrollments     Enrollment[]
-  course          Course       @relation(fields: [course_id], references: [id])
-  organization    Organization @relation(fields: [organization_id], references: [id])
-  teacher         User         @relation("GroupTeacher", fields: [teacher_id], references: [id])
+  schedules       GroupSchedule[]
+  course          Course          @relation(fields: [course_id], references: [id])
+  organization    Organization    @relation(fields: [organization_id], references: [id])
+  teacher         User            @relation("GroupTeacher", fields: [teacher_id], references: [id])
 
   @@index([organization_id])
   @@index([course_id])
   @@index([teacher_id])
+}
+
+model GroupSchedule {
+  id               String   @id @default(uuid()) @db.Uuid
+  organization_id  String   @db.Uuid
+  group_id         String   @db.Uuid
+  // ISO-8601 weekday: 1=Mon .. 7=Sun
+  day_of_week      Int
+  // Minutes since 00:00 (e.g. 9:30 -> 570)
+  start_minute     Int
+  duration_minutes Int      @default(120)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @default(now()) @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  group        Group        @relation(fields: [group_id], references: [id])
+
+  @@unique([group_id, day_of_week, start_minute])
+  @@index([organization_id, day_of_week])
+  @@index([group_id])
 }
 
 model Lesson {

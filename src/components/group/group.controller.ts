@@ -7,12 +7,15 @@ import {
   Patch,
   ParseUUIDPipe,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { CreateGroupDto } from '../../libs/dto/group/create-group.dto';
 import { GroupResponseDto } from '../../libs/dto/group/group-response.dto';
 import { UpdateGroupDto } from '../../libs/dto/group/update-group.dto';
+import { SetGroupScheduleDto } from '../../libs/dto/schedule/set-group-schedule.dto';
+import { GroupScheduleResponseDto } from '../../libs/dto/schedule/group-schedule-response.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -68,5 +71,24 @@ export class GroupController {
     @OrganizationId() organizationId: string,
   ): Promise<void> {
     return this.groupService.remove(id, organizationId);
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Get(':id/schedule')
+  getSchedule(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @OrganizationId() organizationId: string,
+  ): Promise<GroupScheduleResponseDto[]> {
+    return this.groupService.getSchedule(id, organizationId);
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Put(':id/schedule')
+  setSchedule(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @OrganizationId() organizationId: string,
+    @Body() dto: SetGroupScheduleDto,
+  ): Promise<GroupScheduleResponseDto[]> {
+    return this.groupService.setSchedule(id, organizationId, dto);
   }
 }

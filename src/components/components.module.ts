@@ -16,6 +16,7 @@ import { FinanceModule } from './finance/finance.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { BillingModule } from './billing/billing.module';
 import { NotificationModule } from './notification/notification.module';
+import { CalendarModule } from './calendar/calendar.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { NotificationModule } from './notification/notification.module';
     DashboardModule,
     BillingModule,
     NotificationModule,
+    CalendarModule,
   ],
   exports: [AuthModule, UserModule],
 })

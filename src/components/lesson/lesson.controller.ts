@@ -16,6 +16,7 @@ import { LessonService } from './lesson.service';
 import { CreateLessonDto } from '../../libs/dto/lesson/create-lesson.dto';
 import { UpdateLessonDto } from '../../libs/dto/lesson/update-lesson.dto';
 import { QueryLessonDto } from '../../libs/dto/lesson/query-lesson.dto';
+import { RescheduleLessonDto } from '../../libs/dto/lesson/reschedule-lesson.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
 import { JwtPayload } from '../../libs/types/auth';
@@ -62,6 +63,16 @@ export class LessonController {
     @Body() updateLessonDto: UpdateLessonDto,
   ) {
     return this.lessonService.update(id, user.organization_id!, updateLessonDto);
+  }
+
+  @Patch(':id/reschedule')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  reschedule(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RescheduleLessonDto,
+  ) {
+    return this.lessonService.reschedule(id, user.organization_id!, dto);
   }
 
   @Delete(':id')

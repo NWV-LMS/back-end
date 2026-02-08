@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { CreateLessonDto } from '../../libs/dto/lesson/create-lesson.dto';
 import { UpdateLessonDto } from '../../libs/dto/lesson/update-lesson.dto';
 import { QueryLessonDto } from '../../libs/dto/lesson/query-lesson.dto';
 import { LessonResponseDto } from '../../libs/dto/lesson/lesson-response.dto';
+import { RescheduleLessonDto } from '../../libs/dto/lesson/reschedule-lesson.dto';
 
 @Injectable()
 export class LessonService {
@@ -115,6 +116,38 @@ export class LessonService {
     });
 
     return { message: 'Lesson deleted successfully' };
+  }
+
+  async reschedule(
+    id: string,
+    organizationId: string,
+    dto: RescheduleLessonDto,
+  ): Promise<LessonResponseDto> {
+    await this.findOne(id, organizationId);
+
+    const start = new Date(dto.start_date);
+    const end = new Date(dto.end_date);
+    if (start.getTime() > end.getTime()) {
+      throw new BadRequestException('start_date must be <= end_date');
+    }
+
+    await this.database.$transaction(async (tx) => {
+      await tx.lesson.update({
+        where: { id },
+        data: {
+          start_date: dto.start_date as any,
+          end_date: dto.end_date as any,
+        },
+      });
+
+      if (dto.resetAttendance) {
+        await tx.attendance.deleteMany({
+          where: { organization_id: organizationId, lesson_id: id },
+        });
+      }
+    });
+
+    return this.findOne(id, organizationId);
   }
 
   private toResponse(lesson: any): LessonResponseDto {
