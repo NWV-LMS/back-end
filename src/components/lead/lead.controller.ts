@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { LeadService } from './lead.service';
 import { CreateLeadDto } from '../../libs/dto/lead/create-lead.dto';
@@ -32,7 +33,7 @@ export class LeadController {
 
   @Post(':id/convert')
   convert(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() dto: ConvertLeadDto,
     @OrganizationId() organizationId: string,
   ): Promise<any> {
@@ -57,7 +58,7 @@ export class LeadController {
 
   @Get(':id')
   findOne(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ): Promise<LeadResponseDto> {
     return this.leadService.findOne(id, organizationId);
@@ -65,7 +66,7 @@ export class LeadController {
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() updateLeadDto: UpdateLeadDto,
     @OrganizationId() organizationId: string,
   ): Promise<LeadResponseDto> {
@@ -74,7 +75,7 @@ export class LeadController {
 
   @Delete(':id')
   remove(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ): Promise<LeadResponseDto> {
     return this.leadService.remove(id, organizationId);

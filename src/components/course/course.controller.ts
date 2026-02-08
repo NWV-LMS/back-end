@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Patch,
+  ParseUUIDPipe,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -44,7 +45,7 @@ export class CourseController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get(':id')
   findOne(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ): Promise<CourseResponseDto> {
     return this.courseService.findOne(id, organizationId);
@@ -53,7 +54,7 @@ export class CourseController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() dto: UpdateCourseDto,
     @OrganizationId() organizationId: string,
   ): Promise<CourseResponseDto> {
@@ -63,7 +64,7 @@ export class CourseController {
   @Roles(UserRole.ADMIN)
   @Delete(':id')
   remove(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ): Promise<void> {
     return this.courseService.remove(id, organizationId);

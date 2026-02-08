@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  ParseUUIDPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -50,7 +51,7 @@ export class StudentController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get(':id')
   findOne(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ): Promise<StudentResponseDto> {
     return this.studentService.findOne(id, organizationId);
@@ -59,7 +60,7 @@ export class StudentController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() dto: UpdateStudentDto,
     @OrganizationId() organizationId: string,
   ): Promise<StudentResponseDto> {
@@ -69,7 +70,7 @@ export class StudentController {
   @Roles(UserRole.ADMIN)
   @Delete(':id')
   remove(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ): Promise<{ message: string }> {
     return this.studentService.remove(id, organizationId);
@@ -78,7 +79,7 @@ export class StudentController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @Post(':id/enroll')
   enroll(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() dto: EnrollStudentDto,
     @OrganizationId() organizationId: string,
   ): Promise<any> {

@@ -1,4 +1,11 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 import { OrganizationStatus, UserRole } from 'generated/prisma/enums';
 
 export class CreateOrganizationDto {
@@ -10,11 +17,15 @@ export class CreateOrganizationDto {
   @IsEmail()
   Org_email: string;
 
+  @IsOptional()
+  @IsEnum(OrganizationStatus)
   Org_status?: OrganizationStatus;
 
+  @IsNotEmpty()
   @IsEmail()
   adminEmail: string;
 
+  @IsNotEmpty()
   @IsString()
   adminName: string;
 
@@ -27,24 +38,7 @@ export class CreateOrganizationDto {
   @MinLength(6)
   password: string;
 
-  @IsString()
+  @IsNotEmpty()
+  @IsEnum(UserRole)
   adminRole: UserRole;
-}
-
-export class CreateExpenseDto {
-  title: string;
-  amount: number;
-  category?: string; // rent, salary, ads
-}
-
-//paymant
-export class CreatePaymentDto {
-  student_id: string;
-  amount: number;
-  method?: string; // cash, card
-}
-
-export class DashboardFilterDto {
-  from?: Date;
-  to?: Date;
 }

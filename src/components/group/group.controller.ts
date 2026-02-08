@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Patch,
+  ParseUUIDPipe,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -44,7 +45,7 @@ export class GroupController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get(':id')
   findOne(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ): Promise<GroupResponseDto> {
     return this.groupService.findOne(id, organizationId);
@@ -53,7 +54,7 @@ export class GroupController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() dto: UpdateGroupDto,
     @OrganizationId() organizationId: string,
   ): Promise<GroupResponseDto> {
@@ -63,7 +64,7 @@ export class GroupController {
   @Roles(UserRole.ADMIN)
   @Delete(':id')
   remove(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ): Promise<void> {
     return this.groupService.remove(id, organizationId);

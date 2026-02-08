@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  ParseUUIDPipe,
   UseGuards,
   Query,
 } from '@nestjs/common';
@@ -45,14 +46,17 @@ export class ProgressController {
   @Get('student/:studentId')
   getStudentProgress(
     @CurrentUser() user: JwtPayload,
-    @Param('studentId') studentId: string,
+    @Param('studentId', new ParseUUIDPipe({ version: '4' })) studentId: string,
   ) {
     return this.progressService.getStudentProgress(studentId, user.organization_id!);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get(':id')
-  findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+  findOne(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ) {
     return this.progressService.findOne(id, user.organization_id!);
   }
 
@@ -60,7 +64,7 @@ export class ProgressController {
   @Patch(':id')
   update(
     @CurrentUser() user: JwtPayload,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() updateProgressDto: UpdateProgressDto,
   ) {
     return this.progressService.update(id, updateProgressDto, user.organization_id!);
@@ -68,7 +72,10 @@ export class ProgressController {
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @Delete(':id')
-  remove(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+  remove(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ) {
     return this.progressService.remove(id, user.organization_id!);
   }
 }

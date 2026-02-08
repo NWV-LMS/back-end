@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Patch, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { CreateOrganizationDto } from '../../libs/dto/organization/create-organization.dto';
 import { UpdateOrganizationDto } from '../../libs/dto/organization/update-organization.dto';
 import { Organ } from '../../libs/dto/organization/organization-response.dto';
@@ -38,7 +48,7 @@ export class PlatformController {
   
   @Patch(':id')
   public async updateOrganization(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() input: UpdateOrganizationDto,
   ): Promise<Organ> {
     console.log('Update organization', id, input);
@@ -54,7 +64,7 @@ export class PlatformController {
 
   @Patch('organizations/:id/status')
   updateOrganizationStatus(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() input: UpdateOrganizationStatusDto,
   ): Promise<PlatformOrganizationDto> {
     return this.organizationService.updateOrganizationStatus(id, input);
