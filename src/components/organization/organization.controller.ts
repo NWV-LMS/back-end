@@ -21,6 +21,8 @@ import {
 import { UserService } from '../user/user.service';
 import { OrganizationService } from './organization.service';
 import { User } from '../../libs/dto/user/user-response.dto';
+import { QueryPlatformUserDto } from '../../libs/dto/user/query-platform-user.dto';
+import { PaginatedUserResponseDto } from '../../libs/dto/user/paginated-user-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -44,6 +46,11 @@ export class PlatformController {
   @Get('all')
   getAllUsers(): Promise<User[]> {
     return this.userService.getAllUsers();
+  }
+
+  @Get('users')
+  listUsers(@Query() query: QueryPlatformUserDto): Promise<PaginatedUserResponseDto> {
+    return this.userService.listUsersForPlatform(query);
   }
   
   @Patch(':id')
