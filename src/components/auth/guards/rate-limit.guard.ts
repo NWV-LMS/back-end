@@ -15,6 +15,7 @@ type Bucket = { count: number; resetAt: number };
 @Injectable()
 export class RateLimitGuard implements CanActivate {
   private readonly buckets = new Map<string, Bucket>();
+  private sweepCounter = 0;
 
   constructor(private readonly reflector: Reflector) {}
 
@@ -36,6 +37,16 @@ export class RateLimitGuard implements CanActivate {
     const key = `${ip}:${keyPrefix}`;
 
     const now = Date.now();
+
+    // Prevent unbounded memory growth in long-running processes.
+    // Cheap periodic sweep; good enough for a single-instance monolith.
+    this.sweepCounter += 1;
+    if (this.sweepCounter % 1000 === 0) {
+      for (const [k, b] of this.buckets.entries()) {
+        if (now >= b.resetAt) this.buckets.delete(k);
+      }
+    }
+
     const bucket = this.buckets.get(key);
 
     if (!bucket || now >= bucket.resetAt) {
@@ -62,4 +73,3 @@ export class RateLimitGuard implements CanActivate {
     return 'unknown';
   }
 }
-
