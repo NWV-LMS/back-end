@@ -4,15 +4,22 @@ import 'dotenv/config';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './libs/interceptor/logging.interceptor';
+import { validateEnvOrThrow } from './libs/env.validation';
 
 async function bootstrap() {
+  // Fail fast on misconfiguration (especially in production).
+  validateEnvOrThrow();
+
   const app = await NestFactory.create(AppModule);
 
   // Security
   app.use(helmet());
+  const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
   app.enableCors({
-    // origin: process.env.ALLOWED_ORIGINS?.split(',') || '*', //keynchalik togrilemiz
-    origin: true,
+    origin: isProd ? allowedOrigins : true,
     credentials: true,
   });
 
