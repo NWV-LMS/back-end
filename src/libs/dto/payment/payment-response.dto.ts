@@ -9,6 +9,9 @@ export interface PaymentResponseDto {
   method: PaymentMethod;
   status: PaymentStatus;
   description: string | null;
+  receipt_number?: string | null;
+  cashier_user_id?: string | null;
+  invoice_id?: string | null;
   paid_at: Date;
   created_at: Date;
 }

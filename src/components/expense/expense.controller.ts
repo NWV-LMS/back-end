@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  ParseUUIDPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -22,9 +23,10 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from 'generated/prisma/enums';
 import { OrganizationId } from '../auth/decorators/organization-id.decorator';
+import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, OrganizationIdGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.MANAGER)
 @Controller('expense')
 export class ExpenseController {
@@ -50,7 +52,7 @@ export class ExpenseController {
   @Get(':id')
   findOne(
     @OrganizationId() organizationId: string,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ): Promise<ExpenseResponseDto> {
     return this.expenseService.findOne(organizationId, id);
   }
@@ -58,7 +60,7 @@ export class ExpenseController {
   @Patch(':id')
   update(
     @OrganizationId() organizationId: string,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() input: UpdateExpenseDto,
   ): Promise<ExpenseResponseDto> {
     return this.expenseService.update(organizationId, id, input);
@@ -67,7 +69,7 @@ export class ExpenseController {
   @Delete(':id')
   remove(
     @OrganizationId() organizationId: string,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ): Promise<void> {
     return this.expenseService.remove(organizationId, id);
   }

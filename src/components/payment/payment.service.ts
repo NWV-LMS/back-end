@@ -20,6 +20,7 @@ export class PaymentService {
   async create(
     organizationId: string,
     input: CreatePaymentDto,
+    cashierUserId: string,
   ): Promise<PaymentResponseDto> {
     const student = await this.database.student.findFirst({
       where: { id: input.student_id, organization_id: organizationId },
@@ -37,6 +38,8 @@ export class PaymentService {
         method: input.method,
         status: input.status ?? PaymentStatus.COMPLETED,
         description: input.description,
+        cashier_user_id: cashierUserId,
+        receipt_number: await this.generateReceiptNumber(organizationId),
       },
       include: { student: { select: { name: true } } },
     });
@@ -148,8 +151,19 @@ export class PaymentService {
       method: payment.method,
       status: payment.status,
       description: payment.description,
+      receipt_number: payment.receipt_number ?? null,
+      cashier_user_id: payment.cashier_user_id ?? null,
+      invoice_id: payment.invoice_id ?? null,
       paid_at: payment.paid_at,
       created_at: payment.created_at,
     };
+  }
+
+  private async generateReceiptNumber(organizationId: string): Promise<string> {
+    // Avoid sequential IDs for now (needs DB sequence/locking). This is unique-ish and safe.
+    // Uniqueness should be enforced by DB constraint later if you want hard guarantees.
+    const ymd = new Date().toISOString().slice(0, 10).replaceAll('-', '');
+    const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+    return `RCPT-${organizationId.slice(0, 4).toUpperCase()}-${ymd}-${rand}`;
   }
 }

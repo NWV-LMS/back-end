@@ -32,6 +32,7 @@ model Organization {
   exams       Exam[]
   tests       Test[]
   expenses    Expense[]
+  invoices    Invoice[]
 
   @@index([status])
 }
@@ -48,6 +49,7 @@ model User {
   phone           String       @unique
   refresh_token   String?
   teachingGroups  Group[]      @relation("GroupTeacher")
+  cashierPayments Payment[]    @relation("PaymentCashier")
   notes           Note[]
   expenses        Expense[]
   organization    Organization @relation(fields: [organization_id], references: [id])
@@ -118,6 +120,7 @@ model Student {
   updated_at      DateTime      @default(now()) @updatedAt
   enrollments     Enrollment[]
   payments        Payment[]
+  invoices        Invoice[]
   organization    Organization  @relation(fields: [organization_id], references: [id])
 
   // Prevent duplicate student phone numbers inside the same organization.
@@ -126,18 +129,21 @@ model Student {
 }
 
 model Enrollment {
-  id              String       @id @default(uuid()) @db.Uuid
-  organization_id String       @db.Uuid
-  student_id      String       @db.Uuid
-  group_id        String       @db.Uuid
-  enrolled_at     DateTime     @default(now())
-  created_at      DateTime     @default(now())
-  updated_at      DateTime     @default(now()) @updatedAt
+  id              String        @id @default(uuid()) @db.Uuid
+  organization_id String        @db.Uuid
+  student_id      String        @db.Uuid
+  group_id        String        @db.Uuid
+  monthly_fee     Decimal       @default(0)
+  billing_active  Boolean       @default(true)
+  enrolled_at     DateTime      @default(now())
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @default(now()) @updatedAt
   attendance      Attendance[]
-  group           Group        @relation(fields: [group_id], references: [id])
-  student         Student      @relation(fields: [student_id], references: [id])
-  organization    Organization @relation(fields: [organization_id], references: [id])
+  group           Group         @relation(fields: [group_id], references: [id])
+  student         Student       @relation(fields: [student_id], references: [id])
+  organization    Organization  @relation(fields: [organization_id], references: [id])
   progress        Progress[]
+  invoiceItems    InvoiceItem[]
 
   // Prevent duplicate enrollments of the same student in the same group.
   @@unique([student_id, group_id])
@@ -242,19 +248,68 @@ model Payment {
   id              String        @id @default(uuid()) @db.Uuid
   organization_id String        @db.Uuid
   student_id      String        @db.Uuid
+  invoice_id      String?       @db.Uuid
   amount          Decimal
   method          PaymentMethod
   status          PaymentStatus @default(COMPLETED)
   description     String?
+  receipt_number  String?
+  cashier_user_id String?       @db.Uuid
   paid_at         DateTime      @default(now())
   created_at      DateTime      @default(now())
   updated_at      DateTime      @default(now()) @updatedAt
   organization    Organization  @relation(fields: [organization_id], references: [id])
   student         Student       @relation(fields: [student_id], references: [id])
+  invoice         Invoice?      @relation(fields: [invoice_id], references: [id])
+  cashier         User?         @relation("PaymentCashier", fields: [cashier_user_id], references: [id])
 
+  @@unique([organization_id, receipt_number])
   @@index([organization_id])
   @@index([organization_id, status])
   @@index([student_id])
+  @@index([invoice_id])
+  @@index([cashier_user_id])
+}
+
+model Invoice {
+  id              String        @id @default(uuid()) @db.Uuid
+  organization_id String        @db.Uuid
+  student_id      String        @db.Uuid
+  // First day of the invoice month (e.g., 2026-02-01).
+  month           DateTime      @db.Date
+  due_date        DateTime      @db.Date
+  status          InvoiceStatus @default(OPEN)
+  amount_due      Decimal
+  amount_paid     Decimal       @default(0)
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @default(now()) @updatedAt
+
+  organization Organization  @relation(fields: [organization_id], references: [id])
+  student      Student       @relation(fields: [student_id], references: [id])
+  payments     Payment[]
+  items        InvoiceItem[]
+
+  @@unique([organization_id, student_id, month])
+  @@index([organization_id])
+  @@index([organization_id, status])
+  @@index([student_id])
+  @@index([month])
+}
+
+model InvoiceItem {
+  id            String   @id @default(uuid()) @db.Uuid
+  invoice_id    String   @db.Uuid
+  enrollment_id String   @db.Uuid
+  amount        Decimal
+  description   String?
+  created_at    DateTime @default(now())
+
+  invoice    Invoice    @relation(fields: [invoice_id], references: [id])
+  enrollment Enrollment @relation(fields: [enrollment_id], references: [id])
+
+  @@unique([invoice_id, enrollment_id])
+  @@index([invoice_id])
+  @@index([enrollment_id])
 }
 
 model Expense {
@@ -327,6 +382,13 @@ enum PaymentStatus {
   COMPLETED
   CANCELLED
   REFUNDED
+}
+
+enum InvoiceStatus {
+  OPEN
+  PAID
+  OVERDUE
+  VOID
 }
 
 enum ExpenseCategory {

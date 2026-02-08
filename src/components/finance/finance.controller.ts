@@ -11,12 +11,13 @@ import {
   FinanceReportDto,
 } from '../../libs/dto/finance/finance-summary.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from 'generated/prisma/enums';
 import { OrganizationId } from '../auth/decorators/organization-id.decorator';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, OrganizationIdGuard, RolesGuard)
 @Roles(UserRole.ADMIN, UserRole.MANAGER)
 @Controller('finance')
 export class FinanceController {
