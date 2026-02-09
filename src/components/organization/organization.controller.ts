@@ -39,7 +39,6 @@ export class PlatformController {
 
   @Post('register')
   public async register(@Body() input: CreateOrganizationDto): Promise<Organ> {
-    console.log('Register organization');
     return await this.organizationService.register(input);
   }
 
@@ -58,7 +57,6 @@ export class PlatformController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() input: UpdateOrganizationDto,
   ): Promise<Organ> {
-    console.log('Update organization', id, input);
     return await this.organizationService.updateOrganization(id, input);
   }
 

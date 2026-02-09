@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import 'dotenv/config';
@@ -9,6 +9,7 @@ import { validateEnvOrThrow } from './libs/env.validation';
 import { PrismaExceptionFilter } from './database/prisma-exception.filter';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
   // Fail fast on misconfiguration (especially in production).
   validateEnvOrThrow();
 
@@ -40,7 +41,7 @@ async function bootstrap() {
     SwaggerModule.setup('api-docs', app, document);
   }
 
-  console.log('Starting server...');
+  logger.log('Starting server...');
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
@@ -51,9 +52,9 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LoggingInterceptor());
   app.enableShutdownHooks();
   await app.listen(process.env.PORT || 3000);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  logger.log(`Application is running on: ${await app.getUrl()}`);
   if (!isProd) {
-    console.log(`Swagger docs: ${await app.getUrl()}/api-docs`);
+    logger.log(`Swagger docs: ${await app.getUrl()}/api-docs`);
   }
 }
 bootstrap();

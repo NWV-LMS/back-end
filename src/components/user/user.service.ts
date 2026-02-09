@@ -27,7 +27,6 @@ export class UserService {
 
   //* Login
   async login(input: LoginDto): Promise<LoginResponseDto> {
-    console.log('User login service');
     const user = await this.database.user.findUnique({
       where: { phone: input.phone },
       include: { organization: { select: { status: true } } },
@@ -36,8 +35,6 @@ export class UserService {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    console.log('User login service2');
-
     // Block org users if the organization is inactive.
     if (
       user.role !== UserRole.SUPER_ADMIN &&
@@ -50,8 +47,6 @@ export class UserService {
     if (!passwordMatch) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    console.log('User login service3');
-  
     const payload: JwtPayload = {
       sub: user.id,
       id: user.id, // Added id
@@ -119,7 +114,6 @@ export class UserService {
       },
     });
 
-    console.log(user, input);
     if (!user) {
       throw new UnauthorizedException();
     }
@@ -139,7 +133,6 @@ export class UserService {
       if (input.new_password !== input.confirm_new_password) {
         throw new BadRequestException('Passwords do not match');
       }
-      console.log('User update', input);
       const hashed = await bcrypt.hash(input.new_password, 10);
       await this.database.user.update({
         where: { id: userId },

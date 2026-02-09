@@ -16,7 +16,6 @@ export class UserController {
   @Post('login')
   @RateLimit({ limit: 10, windowMs: 60_000, keyPrefix: 'auth:login' })
   login(@Body() input: LoginDto): Promise<LoginResponseDto> {
-    console.log('User login');
     return this.userService.login(input);
   }
 
@@ -29,7 +28,6 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   logout(@CurrentUser() user: JwtPayload) {
-    console.log('Logout', user);
     return this.userService.logout(user.sub);
   }
 
@@ -39,7 +37,6 @@ export class UserController {
     @CurrentUser() user: JwtPayload,
     @Body() input: UserUpdateDto,
   ): Promise<User> {
-    console.log('User update', input);
     return this.userService.updateUser(user.sub, input); //user.sub bu userni idsi
   }
 }

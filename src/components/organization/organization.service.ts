@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { OrganizationStatus } from '@prisma/client';
@@ -20,6 +21,7 @@ import { DatabaseService } from '../../database/database.service';
 
 @Injectable()
 export class OrganizationService {
+  private readonly logger = new Logger(OrganizationService.name);
   constructor(private readonly database: DatabaseService) {}
 
   public async register(input: CreateOrganizationDto): Promise<Organ> {
@@ -43,7 +45,6 @@ export class OrganizationService {
 
     try {
       const result = await this.database.$transaction(async (tx) => {
-        console.log('*** Transaction started ***');
         const organization = await tx.organization.create({
           data: {
             name: input.Org_name,
@@ -52,7 +53,6 @@ export class OrganizationService {
             status: OrganizationStatus.ACTIVE,
           },
         });
-        console.log('result', organization);
 
         const admin = await tx.user.create({
           data: {
@@ -67,7 +67,6 @@ export class OrganizationService {
 
         return { organization, admin };
       });
-      console.log('*** Transaction committed ***');
       return {
         organization_id: result.organization.id,
         Org_name: result.organization.name,
@@ -80,8 +79,10 @@ export class OrganizationService {
         adminRole: result.admin.role,
         created_at: result.organization.created_at,
       };
-    } catch (error) {
-      console.error('Registration error:', error.message);
+    } catch (error: any) {
+      this.logger.error(
+        `Registration error: ${error?.message ?? 'unknown error'}`,
+      );
       throw new InternalServerErrorException(Message.CREATE_FAILED);
     }
   }

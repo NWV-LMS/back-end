@@ -1,8 +1,3 @@
-type EnvCheckResult = {
-  ok: boolean;
-  errors: string[];
-};
-
 const isNonEmpty = (v: unknown): v is string =>
   typeof v === 'string' && v.trim().length > 0;
 
