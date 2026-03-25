@@ -21,8 +21,12 @@ export class AuthService {
   async generateTokens(payload: JwtPayload): Promise<JwtTokens> {
     const accessSecret = this.configService.get<string>('JWT_ACCESS_SECRET');
     const refreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET');
-    const accessExpires = this.configService.get<string>('JWT_ACCESS_EXPIRES_IN');
-    const refreshExpires = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN');
+    const accessExpires = this.configService.get<string>(
+      'JWT_ACCESS_EXPIRES_IN',
+    );
+    const refreshExpires = this.configService.get<string>(
+      'JWT_REFRESH_EXPIRES_IN',
+    );
 
     // Startup env validation should ensure these exist; keep runtime guard too.
     if (!accessSecret) throw new Error('JWT_ACCESS_SECRET is not set');
@@ -54,7 +58,8 @@ export class AuthService {
 
   async refresh(dto: RefreshTokenDto) {
     try {
-      const refreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET');
+      const refreshSecret =
+        this.configService.get<string>('JWT_REFRESH_SECRET');
       if (!refreshSecret) throw new Error('JWT_REFRESH_SECRET is not set');
       const decoded = this.jwtService.verify<JwtPayload>(dto.refreshToken, {
         secret: refreshSecret,

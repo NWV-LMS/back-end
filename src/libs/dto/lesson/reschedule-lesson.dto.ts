@@ -12,4 +12,3 @@ export class RescheduleLessonDto {
   @IsBoolean()
   resetAttendance?: boolean = false;
 }
-

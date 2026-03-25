@@ -1,7 +1,6 @@
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import 'dotenv/config';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './libs/interceptor/logging.interceptor';
@@ -9,7 +8,6 @@ import { validateEnvOrThrow } from './libs/env.validation';
 import { PrismaExceptionFilter } from './database/prisma-exception.filter';
 
 async function bootstrap() {
-  const logger = new Logger('Bootstrap');
   // Fail fast on misconfiguration (especially in production).
   validateEnvOrThrow();
 
@@ -19,13 +17,14 @@ async function bootstrap() {
   app.use(helmet());
   const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
   const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
+    ? process.env.ALLOWED_ORIGINS.split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
     : [];
   app.enableCors({
     origin: isProd ? allowedOrigins : true,
     credentials: true,
   });
-
   // Swagger API Documentation
   if (!isProd) {
     const config = new DocumentBuilder()
@@ -41,7 +40,7 @@ async function bootstrap() {
     SwaggerModule.setup('api-docs', app, document);
   }
 
-  logger.log('Starting server...');
+  console.log('Starting server...');
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
@@ -52,9 +51,9 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LoggingInterceptor());
   app.enableShutdownHooks();
   await app.listen(process.env.PORT || 3000);
-  logger.log(`Application is running on: ${await app.getUrl()}`);
+  console.log(`Application is running on: ${await app.getUrl()}`);
   if (!isProd) {
-    logger.log(`Swagger docs: ${await app.getUrl()}/api-docs`);
+    console.log(`Swagger docs: ${await app.getUrl()}/api-docs`);
   }
 }
 bootstrap();

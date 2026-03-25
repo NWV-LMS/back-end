@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateExpenseDto } from '../../libs/dto/expense/create-expense.dto';
 import { UpdateExpenseDto } from '../../libs/dto/expense/update-expense.dto';
 import { QueryExpenseDto } from '../../libs/dto/expense/query-expense.dto';

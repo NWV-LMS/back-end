@@ -64,7 +64,11 @@ export class BillingController {
     @CurrentUser('sub') cashierUserId: string,
     @Body() dto: PayInvoiceDto,
   ): Promise<{ message: string; invoice: InvoiceResponseDto }> {
-    return this.billingService.payInvoice(organizationId, id, cashierUserId, dto);
+    return this.billingService.payInvoice(
+      organizationId,
+      id,
+      cashierUserId,
+      dto,
+    );
   }
 }
-

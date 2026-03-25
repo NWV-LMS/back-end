@@ -77,7 +77,9 @@ describe('PaymentController (e2e)', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body.items.every((p: any) => p.status === 'COMPLETED')).toBe(true);
+      expect(
+        response.body.items.every((p: any) => p.status === 'COMPLETED'),
+      ).toBe(true);
     });
 
     it('should paginate correctly', async () => {
@@ -134,7 +136,9 @@ describe('PaymentController (e2e)', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('items');
-      expect(response.body.items.every((p: any) => p.student_id === testStudentId)).toBe(true);
+      expect(
+        response.body.items.every((p: any) => p.student_id === testStudentId),
+      ).toBe(true);
     });
   });
 

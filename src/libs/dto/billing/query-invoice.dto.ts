@@ -34,4 +34,3 @@ export class QueryInvoiceDto {
   @IsString()
   search?: string;
 }
-

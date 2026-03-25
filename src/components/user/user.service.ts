@@ -229,16 +229,16 @@ export class UserService {
   getAllUsers(): Promise<User[]> {
     return this.database.user
       .findMany({
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        organization_id: true,
-        full_name: true,
-        phone: true,
-        created_at: true,
-        updated_at: true,
-      },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          organization_id: true,
+          full_name: true,
+          phone: true,
+          created_at: true,
+          updated_at: true,
+        },
       })
       .then((users) => users.map((u) => toUserResponse(u as any)));
   }

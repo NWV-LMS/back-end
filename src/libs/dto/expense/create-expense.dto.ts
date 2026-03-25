@@ -3,7 +3,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ExpenseCategory } from '@prisma/client';
 
 export class CreateExpenseDto {
-  @ApiProperty({ enum: ExpenseCategory, description: 'Expense category', example: 'SALARY' })
+  @ApiProperty({
+    enum: ExpenseCategory,
+    description: 'Expense category',
+    example: 'SALARY',
+  })
   @IsEnum(ExpenseCategory)
   category: ExpenseCategory;
 
@@ -12,7 +16,10 @@ export class CreateExpenseDto {
   @Min(0)
   amount: number;
 
-  @ApiProperty({ description: 'Expense description', example: 'Teacher salaries for February' })
+  @ApiProperty({
+    description: 'Expense description',
+    example: 'Teacher salaries for February',
+  })
   @IsString()
   description: string;
 }

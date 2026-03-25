@@ -97,14 +97,18 @@ export class DashboardService {
         where: { ...studentsWhere, status: StudentStatus.INACTIVE },
       }),
       this.database.lead.count({ where: leadsWhere }),
-      this.database.lead.count({ where: { ...leadsWhere, status: LeadStatus.NEW } }),
+      this.database.lead.count({
+        where: { ...leadsWhere, status: LeadStatus.NEW },
+      }),
       this.database.lead.count({
         where: { ...leadsWhere, status: LeadStatus.CONTACTED },
       }),
       this.database.lead.count({
         where: { ...leadsWhere, status: LeadStatus.CONVERTED },
       }),
-      this.database.lead.count({ where: { ...leadsWhere, status: LeadStatus.LOST } }),
+      this.database.lead.count({
+        where: { ...leadsWhere, status: LeadStatus.LOST },
+      }),
       this.database.course.count({ where: coursesWhere }),
       this.database.course.count({
         where: { ...coursesWhere, status: CourseStatus.ACTIVE },
@@ -134,10 +138,14 @@ export class DashboardService {
 
     const attendanceTotal = attendancePresent + attendanceAbsent;
     const attendanceRate =
-      attendanceTotal === 0 ? 0 : Math.round((attendancePresent / attendanceTotal) * 100);
+      attendanceTotal === 0
+        ? 0
+        : Math.round((attendancePresent / attendanceTotal) * 100);
 
     const progressCompletionRate =
-      progressTotal === 0 ? 0 : Math.round((progressCompleted / progressTotal) * 100);
+      progressTotal === 0
+        ? 0
+        : Math.round((progressCompleted / progressTotal) * 100);
 
     const paymentsTotalAmount = paymentsAgg._sum.amount
       ? paymentsAgg._sum.amount.toString()
@@ -249,7 +257,8 @@ export class DashboardService {
     return rows.map((r) => ({
       day: r.day.toISOString().slice(0, 10),
       count: r.count,
-      totalAmount: r.total_amount?.toString?.() ?? String(r.total_amount ?? '0'),
+      totalAmount:
+        r.total_amount?.toString?.() ?? String(r.total_amount ?? '0'),
     }));
   }
 
@@ -284,4 +293,3 @@ export class DashboardService {
     }));
   }
 }
-

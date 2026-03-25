@@ -80,6 +80,9 @@ export class PaymentController {
     @Param('studentId', new ParseUUIDPipe({ version: '4' })) studentId: string,
     @Query() query: QueryPaymentDto,
   ): Promise<PaginatedPaymentResponseDto> {
-    return this.paymentService.findAll(organizationId, { ...query, student_id: studentId });
+    return this.paymentService.findAll(organizationId, {
+      ...query,
+      student_id: studentId,
+    });
   }
 }

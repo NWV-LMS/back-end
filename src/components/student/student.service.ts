@@ -88,7 +88,7 @@ export class StudentService {
       // Always return API-safe DTOs, not raw DB entities.
       student: toStudentResponse(newStudent),
       user: toUserInfo(updatedUser),
-      temporaryPassword,
+      temporaryPassword: temporaryPassword || undefined,
     };
   }
 
@@ -96,7 +96,7 @@ export class StudentService {
     organizationId: string,
     query: QueryStudentDto,
   ): Promise<PaginatedStudentResponseDto> {
-    const { page, limit, search, status } = query;
+    const { page = 1, limit = 10, search, status } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {

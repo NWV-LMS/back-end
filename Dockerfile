@@ -20,6 +20,8 @@ RUN npm ci
 COPY . .
 RUN npx prisma generate
 RUN npm run build
+# Compile seed script
+RUN npx tsc prisma/seed.ts --outDir dist --module commonjs --target ES2021 --skipLibCheck
 
 # -----------------------------------------------------------------------------
 # Stage 2: Runner - Production image with minimal footprint

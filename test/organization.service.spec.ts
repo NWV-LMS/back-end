@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { OrganizationService } from './organization.service';
-import { DatabaseService } from '../../database/database.service';
+import { OrganizationService } from '../src/components/organization/organization.service';
+import { DatabaseService } from '../src/database/database.service';
 
 describe('OrganizationService', () => {
   let service: OrganizationService;

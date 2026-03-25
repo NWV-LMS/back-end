@@ -7,7 +7,9 @@ type GroupWithRelations = Group & {
 };
 
 // DB entity -> API response DTO mapper.
-export const toGroupResponse = (group: GroupWithRelations): GroupResponseDto => ({
+export const toGroupResponse = (
+  group: GroupWithRelations,
+): GroupResponseDto => ({
   id: group.id,
   organization_id: group.organization_id,
   name: group.name,

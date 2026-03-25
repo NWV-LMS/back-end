@@ -28,4 +28,3 @@ export class QueryPlatformUserDto {
   @IsEnum(UserRole)
   role?: UserRole;
 }
-

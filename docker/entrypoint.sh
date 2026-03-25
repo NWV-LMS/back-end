@@ -15,6 +15,10 @@ echo "DATABASE_URL is set: YES"
 echo "=== Running Prisma migrations ==="
 npx prisma migrate deploy
 
+# Run database seed
+echo "=== Running database seed ==="
+node dist/prisma/seed.js
+
 # Start the application
 echo "=== Migrations completed, starting app ==="
 exec npm run start:prod

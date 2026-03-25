@@ -4,10 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import {
-  InvoiceStatus,
-  PaymentStatus,
-} from '@prisma/client';
+import { InvoiceStatus, PaymentStatus } from '@prisma/client';
 import { DatabaseService } from '../../database/database.service';
 import { GenerateInvoicesDto } from '../../libs/dto/billing/generate-invoices.dto';
 import {
@@ -95,7 +92,7 @@ export class BillingService {
       const fee =
         e.monthly_fee && e.monthly_fee.greaterThan(0)
           ? e.monthly_fee
-          : fallback ?? new Prisma.Decimal(0);
+          : (fallback ?? new Prisma.Decimal(0));
 
       if (!byStudent.has(e.student_id)) {
         byStudent.set(e.student_id, {
@@ -128,7 +125,11 @@ export class BillingService {
     await this.database.$transaction(async (tx) => {
       for (const [studentId, data] of byStudent.entries()) {
         const prev = existingByStudent.get(studentId);
-        if (prev && (prev.status === InvoiceStatus.PAID || prev.status === InvoiceStatus.VOID)) {
+        if (
+          prev &&
+          (prev.status === InvoiceStatus.PAID ||
+            prev.status === InvoiceStatus.VOID)
+        ) {
           continue; // don't modify closed invoices
         }
 
@@ -175,9 +176,16 @@ export class BillingService {
           select: { amount_due: true, amount_paid: true, due_date: true },
         });
         const now = new Date();
-        const isPaid = refreshed!.amount_paid.greaterThanOrEqualTo(refreshed!.amount_due);
-        const isOverdue = !isPaid && now.getTime() > refreshed!.due_date.getTime();
-        const nextStatus = isPaid ? InvoiceStatus.PAID : isOverdue ? InvoiceStatus.OVERDUE : InvoiceStatus.OPEN;
+        const isPaid = refreshed!.amount_paid.greaterThanOrEqualTo(
+          refreshed!.amount_due,
+        );
+        const isOverdue =
+          !isPaid && now.getTime() > refreshed!.due_date.getTime();
+        const nextStatus = isPaid
+          ? InvoiceStatus.PAID
+          : isOverdue
+            ? InvoiceStatus.OVERDUE
+            : InvoiceStatus.OPEN;
         await tx.invoice.update({
           where: { id: invoice.id },
           data: { status: nextStatus },
@@ -339,10 +347,13 @@ export class BillingService {
   }
 
   private toInvoiceResponse(invoice: any): InvoiceResponseDto {
-    const amountDue = invoice.amount_due?.toString?.() ?? String(invoice.amount_due ?? '0');
+    const amountDue =
+      invoice.amount_due?.toString?.() ?? String(invoice.amount_due ?? '0');
     const amountPaid =
       invoice.amount_paid?.toString?.() ?? String(invoice.amount_paid ?? '0');
-    const debtDec = new Prisma.Decimal(amountDue).sub(new Prisma.Decimal(amountPaid));
+    const debtDec = new Prisma.Decimal(amountDue).sub(
+      new Prisma.Decimal(amountPaid),
+    );
 
     return {
       id: invoice.id,
@@ -388,4 +399,3 @@ export class BillingService {
     return `RCPT-${organizationId.slice(0, 4).toUpperCase()}-${ymd}-${rand}`;
   }
 }
-

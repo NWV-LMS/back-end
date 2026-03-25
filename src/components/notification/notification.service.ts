@@ -1,9 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import {
-  NotificationChannel,
-  NotificationJobStatus,
-} from '@prisma/client';
+import { NotificationChannel, NotificationJobStatus } from '@prisma/client';
 import { DatabaseService } from '../../database/database.service';
 import { encryptSecret } from '../../libs/crypto/secrets';
 import { NotificationSettingsResponseDto } from '../../libs/dto/notification/notification-settings-response.dto';
@@ -30,7 +27,9 @@ function parseMonth(month?: string): Date {
 export class NotificationService {
   constructor(private readonly database: DatabaseService) {}
 
-  async getSettings(organizationId: string): Promise<NotificationSettingsResponseDto> {
+  async getSettings(
+    organizationId: string,
+  ): Promise<NotificationSettingsResponseDto> {
     const org = await this.database.organization.findUnique({
       where: { id: organizationId },
       select: {
@@ -51,7 +50,9 @@ export class NotificationService {
       telegram: {
         enabled: org.telegram_enabled,
         chatId: org.telegram_chat_id ?? null,
-        tokenSet: !!(org.telegram_bot_token && org.telegram_bot_token.trim().length > 0),
+        tokenSet: !!(
+          org.telegram_bot_token && org.telegram_bot_token.trim().length > 0
+        ),
       },
       whatsapp: {
         enabled: org.whatsapp_enabled,
@@ -59,7 +60,9 @@ export class NotificationService {
         phoneNumberId: org.whatsapp_phone_number_id ?? null,
         apiVersion: org.whatsapp_api_version ?? null,
         cloudBaseUrl: org.whatsapp_cloud_base_url ?? null,
-        tokenSet: !!(org.whatsapp_cloud_token && org.whatsapp_cloud_token.trim().length > 0),
+        tokenSet: !!(
+          org.whatsapp_cloud_token && org.whatsapp_cloud_token.trim().length > 0
+        ),
       },
     };
   }
@@ -87,7 +90,9 @@ export class NotificationService {
     const next = {
       telegram_enabled: dto.telegram_enabled ?? org.telegram_enabled,
       telegram_chat_id:
-        dto.telegram_chat_id === '' ? null : dto.telegram_chat_id ?? org.telegram_chat_id,
+        dto.telegram_chat_id === ''
+          ? null
+          : (dto.telegram_chat_id ?? org.telegram_chat_id),
       telegram_bot_token:
         dto.telegram_bot_token === ''
           ? null
@@ -97,7 +102,9 @@ export class NotificationService {
 
       whatsapp_enabled: dto.whatsapp_enabled ?? org.whatsapp_enabled,
       whatsapp_target:
-        dto.whatsapp_target === '' ? null : dto.whatsapp_target ?? org.whatsapp_target,
+        dto.whatsapp_target === ''
+          ? null
+          : (dto.whatsapp_target ?? org.whatsapp_target),
       whatsapp_cloud_token:
         dto.whatsapp_cloud_token === ''
           ? null
@@ -107,30 +114,38 @@ export class NotificationService {
       whatsapp_phone_number_id:
         dto.whatsapp_phone_number_id === ''
           ? null
-          : dto.whatsapp_phone_number_id ?? org.whatsapp_phone_number_id,
+          : (dto.whatsapp_phone_number_id ?? org.whatsapp_phone_number_id),
       whatsapp_api_version:
         dto.whatsapp_api_version === ''
           ? null
-          : dto.whatsapp_api_version ?? org.whatsapp_api_version,
+          : (dto.whatsapp_api_version ?? org.whatsapp_api_version),
       whatsapp_cloud_base_url:
         dto.whatsapp_cloud_base_url === ''
           ? null
-          : dto.whatsapp_cloud_base_url ?? org.whatsapp_cloud_base_url,
+          : (dto.whatsapp_cloud_base_url ?? org.whatsapp_cloud_base_url),
     };
 
     // Production guardrails: if a channel is enabled, it must be fully configured.
     if (next.telegram_enabled) {
-      const hasToken = !!(next.telegram_bot_token && next.telegram_bot_token.trim().length > 0);
+      const hasToken = !!(
+        next.telegram_bot_token && next.telegram_bot_token.trim().length > 0
+      );
       if (!hasToken) {
-        throw new BadRequestException('telegram_bot_token is required when telegram_enabled=true');
+        throw new BadRequestException(
+          'telegram_bot_token is required when telegram_enabled=true',
+        );
       }
       if (!next.telegram_chat_id) {
-        throw new BadRequestException('telegram_chat_id is required when telegram_enabled=true');
+        throw new BadRequestException(
+          'telegram_chat_id is required when telegram_enabled=true',
+        );
       }
     }
 
     if (next.whatsapp_enabled) {
-      const hasToken = !!(next.whatsapp_cloud_token && next.whatsapp_cloud_token.trim().length > 0);
+      const hasToken = !!(
+        next.whatsapp_cloud_token && next.whatsapp_cloud_token.trim().length > 0
+      );
       if (!hasToken) {
         throw new BadRequestException(
           'whatsapp_cloud_token is required when whatsapp_enabled=true',
@@ -189,7 +204,7 @@ export class NotificationService {
     });
 
     const telegramTarget = org?.telegram_enabled
-      ? org?.telegram_chat_id ?? process.env.TELEGRAM_CHAT_ID ?? null
+      ? (org?.telegram_chat_id ?? process.env.TELEGRAM_CHAT_ID ?? null)
       : null;
     const whatsappEnabled = !!org?.whatsapp_enabled;
 
@@ -242,7 +257,10 @@ export class NotificationService {
       select: { whatsapp_enabled: true },
     });
     if (!org?.whatsapp_enabled) {
-      return { message: 'WhatsApp notifications are disabled for this organization', queued: 0 };
+      return {
+        message: 'WhatsApp notifications are disabled for this organization',
+        queued: 0,
+      };
     }
 
     const minutesAhead = opts.minutesAhead ?? 180;
@@ -262,7 +280,13 @@ export class NotificationService {
         start_date: true,
         end_date: true,
         course: { select: { title: true } },
-        schedules: { select: { day_of_week: true, start_minute: true, duration_minutes: true } },
+        schedules: {
+          select: {
+            day_of_week: true,
+            start_minute: true,
+            duration_minutes: true,
+          },
+        },
       },
     });
 
@@ -277,7 +301,9 @@ export class NotificationService {
         // Walk days in range (cheap for small windows).
         // We evaluate UTC day-of-week; keep it consistent with CalendarService.
         for (
-          let d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+          let d = new Date(
+            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+          );
           d <= to;
           d.setUTCDate(d.getUTCDate() + 1)
         ) {
@@ -313,7 +339,12 @@ export class NotificationService {
 
     const byGroup = new Map<
       string,
-      { student_id: string; name: string; phone: string; course_title: string }[]
+      {
+        student_id: string;
+        name: string;
+        phone: string;
+        course_title: string;
+      }[]
     >();
     for (const e of enrollments) {
       if (!byGroup.has(e.group_id)) byGroup.set(e.group_id, []);

@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 
 // Format: enc:v1:<base64(iv)>:<base64(tag)>:<base64(ciphertext)>
 const PREFIX = 'enc:v1:';
@@ -27,7 +27,10 @@ export function encryptSecret(plain: string): string {
 
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-  const ciphertext = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
+  const ciphertext = Buffer.concat([
+    cipher.update(plain, 'utf8'),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
 
   return (
@@ -40,7 +43,9 @@ export function encryptSecret(plain: string): string {
   );
 }
 
-export function decryptSecret(stored: string | null | undefined): string | null {
+export function decryptSecret(
+  stored: string | null | undefined,
+): string | null {
   if (!stored) return null;
   if (!stored.startsWith(PREFIX)) return stored;
 
@@ -60,10 +65,12 @@ export function decryptSecret(stored: string | null | undefined): string | null 
     const ct = Buffer.from(ctB64, 'base64');
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(tag);
-    const plain = Buffer.concat([decipher.update(ct), decipher.final()]).toString('utf8');
+    const plain = Buffer.concat([
+      decipher.update(ct),
+      decipher.final(),
+    ]).toString('utf8');
     return plain;
   } catch {
     return null;
   }
 }
-

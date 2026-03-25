@@ -8,4 +8,3 @@ export interface TeacherSessionDto {
   start_time: string; // HH:MM
   duration_minutes: number;
 }
-

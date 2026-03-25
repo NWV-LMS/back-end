@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { CreateLessonDto } from '../../libs/dto/lesson/create-lesson.dto';
 import { UpdateLessonDto } from '../../libs/dto/lesson/update-lesson.dto';
@@ -10,7 +14,10 @@ import { RescheduleLessonDto } from '../../libs/dto/lesson/reschedule-lesson.dto
 export class LessonService {
   constructor(private readonly database: DatabaseService) {}
 
-  async create(organizationId: string, dto: CreateLessonDto): Promise<LessonResponseDto> {
+  async create(
+    organizationId: string,
+    dto: CreateLessonDto,
+  ): Promise<LessonResponseDto> {
     const course = await this.database.course.findFirst({
       where: {
         id: dto.course_id,
@@ -36,7 +43,7 @@ export class LessonService {
   }
 
   async findAll(organizationId: string, query: QueryLessonDto) {
-    const { page, limit, course_id, from_date, to_date } = query;
+    const { page = 1, limit = 10, course_id, from_date, to_date } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -76,7 +83,10 @@ export class LessonService {
     };
   }
 
-  async findOne(id: string, organizationId: string): Promise<LessonResponseDto> {
+  async findOne(
+    id: string,
+    organizationId: string,
+  ): Promise<LessonResponseDto> {
     const lesson = await this.database.lesson.findFirst({
       where: {
         id,
@@ -108,7 +118,10 @@ export class LessonService {
     return this.toResponse(updated);
   }
 
-  async remove(id: string, organizationId: string): Promise<{ message: string }> {
+  async remove(
+    id: string,
+    organizationId: string,
+  ): Promise<{ message: string }> {
     await this.findOne(id, organizationId);
 
     await this.database.lesson.delete({

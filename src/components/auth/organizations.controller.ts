@@ -7,7 +7,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-
 import { UserRole } from '@prisma/client';
 import { InviteUserDto } from '../../libs/dto/auth/invite-user.dto';
 import { UserService } from '../user/user.service';

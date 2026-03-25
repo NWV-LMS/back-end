@@ -82,7 +82,9 @@ export class EnrollmentService {
     });
 
     if (existingEnrollment) {
-      throw new BadRequestException('This student is already enrolled in this group');
+      throw new BadRequestException(
+        'This student is already enrolled in this group',
+      );
     }
 
     const enrollment = await this.database.enrollment.create({
@@ -247,13 +249,17 @@ export class EnrollmentService {
       const existingEnrollment = await this.database.enrollment.findFirst({
         where: {
           id: { not: id },
-          student_id: (await this.database.enrollment.findUnique({ where: { id } }))?.student_id,
+          student_id: (
+            await this.database.enrollment.findUnique({ where: { id } })
+          )?.student_id,
           group_id: dto.group_id,
         },
       });
 
       if (existingEnrollment) {
-        throw new BadRequestException('This student is already enrolled in this group');
+        throw new BadRequestException(
+          'This student is already enrolled in this group',
+        );
       }
     }
 

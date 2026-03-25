@@ -16,4 +16,3 @@ export class DispatchLessonRemindersDto {
   @IsString()
   lang?: WhatsAppLanguageCode;
 }
-

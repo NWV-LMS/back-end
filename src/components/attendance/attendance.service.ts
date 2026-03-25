@@ -1,7 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { MarkAttendanceDto } from '../../libs/dto/attendance/mark-attendance.dto';
-import { UpdateAttendanceDto } from '../../libs/dto/attendance/update-attendance.dto';
 import { QueryAttendanceDto } from '../../libs/dto/attendance/query-attendance.dto';
 import { AttendanceResponseDto } from '../../libs/dto/attendance/attendance-response.dto';
 
@@ -9,7 +12,10 @@ import { AttendanceResponseDto } from '../../libs/dto/attendance/attendance-resp
 export class AttendanceService {
   constructor(private readonly database: DatabaseService) {}
 
-  async mark(organizationId: string, dto: MarkAttendanceDto): Promise<AttendanceResponseDto> {
+  async mark(
+    organizationId: string,
+    dto: MarkAttendanceDto,
+  ): Promise<AttendanceResponseDto> {
     // Validate enrollment belongs to organization
     const enrollment = await this.database.enrollment.findFirst({
       where: {
@@ -43,15 +49,15 @@ export class AttendanceService {
     });
 
     if (existing) {
-       // Update existing
-       const updated = await this.database.attendance.update({
-         where: { id: existing.id },
-         data: {
-           status: dto.status,
-           marked_at: new Date(),
-         }
-       });
-       return this.toResponse(updated);
+      // Update existing
+      const updated = await this.database.attendance.update({
+        where: { id: existing.id },
+        data: {
+          status: dto.status,
+          marked_at: new Date(),
+        },
+      });
+      return this.toResponse(updated);
     }
 
     const attendance = await this.database.attendance.create({
@@ -67,7 +73,7 @@ export class AttendanceService {
   }
 
   async findAll(organizationId: string, query: QueryAttendanceDto) {
-    const { page, limit, enrollment_id, lesson_id, group_id, status } = query;
+    const { page = 1, limit = 20, enrollment_id, lesson_id, group_id, status } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -78,9 +84,9 @@ export class AttendanceService {
     if (lesson_id) where.lesson_id = lesson_id;
     if (status) where.status = status;
     if (group_id) {
-        where.enrollment = {
-            group_id: group_id
-        };
+      where.enrollment = {
+        group_id: group_id,
+      };
     }
 
     const [items, total] = await Promise.all([

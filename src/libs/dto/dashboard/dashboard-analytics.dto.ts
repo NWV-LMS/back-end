@@ -8,4 +8,3 @@ export class PaymentsByMethodDto {
   count: number;
   totalAmount: string;
 }
-

@@ -54,4 +54,3 @@ export class DashboardController {
     return this.dashboardService.paymentsByDay(organizationId, query);
   }
 }
-

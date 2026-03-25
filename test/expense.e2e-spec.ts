@@ -1,10 +1,5 @@
 import * as request from 'supertest';
-import {
-  createTestApp,
-  closeTestApp,
-  getApp,
-  getAuthToken,
-} from './setup-e2e';
+import { createTestApp, closeTestApp, getApp, getAuthToken } from './setup-e2e';
 
 describe('ExpenseController (e2e)', () => {
   let authToken: string;
@@ -79,7 +74,9 @@ describe('ExpenseController (e2e)', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body.items.every((e: any) => e.category === 'SALARY')).toBe(true);
+      expect(
+        response.body.items.every((e: any) => e.category === 'SALARY'),
+      ).toBe(true);
     });
 
     it('should filter by date range', async () => {

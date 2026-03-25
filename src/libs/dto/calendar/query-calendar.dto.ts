@@ -10,4 +10,3 @@ export class QueryCalendarDto {
   @IsDateString()
   to?: string;
 }
-

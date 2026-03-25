@@ -1,4 +1,10 @@
-import { IsBoolean, IsOptional, IsString, MinLength, ValidateIf } from 'class-validator';
+import {
+  IsBoolean,
+  IsOptional,
+  IsString,
+  MinLength,
+  ValidateIf,
+} from 'class-validator';
 
 export class UpdateNotificationSettingsDto {
   // Telegram

@@ -43,4 +43,3 @@ export class OrganizationActiveGuard implements CanActivate {
     return true;
   }
 }
-

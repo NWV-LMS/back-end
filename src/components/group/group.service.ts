@@ -268,6 +268,8 @@ export class GroupService {
     bStart: Date,
     bEnd: Date,
   ): boolean {
-    return aStart.getTime() <= bEnd.getTime() && bStart.getTime() <= aEnd.getTime();
+    return (
+      aStart.getTime() <= bEnd.getTime() && bStart.getTime() <= aEnd.getTime()
+    );
   }
 }

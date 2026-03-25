@@ -1,5 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { DatabaseService } from '../src/database/database.service';
 
@@ -44,13 +45,12 @@ export async function getAuthToken(): Promise<string> {
   });
   if (student) testStudentId = student.id;
 
-  // Login to get token (adjust endpoint as needed)
-  const request = await import('supertest');
-  const response = await request.default(app.getHttpServer())
+  // Login to get token
+  const response = await request(app.getHttpServer())
     .post('/user/login')
     .send({ phone: user.phone, password: 'test123' });
 
-  authToken = response.body.access_token;
+  authToken = response.body.accessToken;
   return authToken;
 }
 

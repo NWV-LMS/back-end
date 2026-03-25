@@ -12,6 +12,12 @@ import { OrganizationActiveGuard } from './components/auth/guards/organization-a
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: [
+        `.env.${process.env.NODE_ENV}.local`, // .env.production.local when NODE_ENV=production
+        '.env.local', // fallback to .env.local
+        `.env.${process.env.NODE_ENV}`, // .env.production
+        '.env', // default .env
+      ],
     }),
     ComponentsModule,
     DatabaseModule,

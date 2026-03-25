@@ -70,7 +70,9 @@ export class ProgressService {
         take: limit,
         orderBy: { created_at: 'desc' },
         include: {
-          enrollment: { select: { id: true, student_id: true, group_id: true } },
+          enrollment: {
+            select: { id: true, student_id: true, group_id: true },
+          },
           lesson: { select: { id: true, title: true, course_id: true } },
         },
       }),
@@ -88,7 +90,10 @@ export class ProgressService {
     };
   }
 
-  async findOne(id: string, organizationId: string): Promise<ProgressResponseDto> {
+  async findOne(
+    id: string,
+    organizationId: string,
+  ): Promise<ProgressResponseDto> {
     const progress = await this.database.progress.findFirst({
       where: { id, organization_id: organizationId },
       include: {

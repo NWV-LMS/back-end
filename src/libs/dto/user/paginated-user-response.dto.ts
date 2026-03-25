@@ -11,4 +11,3 @@ export class PaginatedUserResponseDto {
   items: User[];
   meta: PaginationMeta;
 }
-

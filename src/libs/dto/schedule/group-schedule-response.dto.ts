@@ -4,4 +4,3 @@ export interface GroupScheduleResponseDto {
   start_time: string; // HH:MM
   duration_minutes: number;
 }
-

@@ -51,7 +51,15 @@ export class PaymentService {
     organizationId: string,
     query: QueryPaymentDto,
   ): Promise<PaginatedPaymentResponseDto> {
-    const { page = 1, limit = 20, student_id, method, status, from, to } = query;
+    const {
+      page = 1,
+      limit = 20,
+      student_id,
+      method,
+      status,
+      from,
+      to,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: any = { organization_id: organizationId };

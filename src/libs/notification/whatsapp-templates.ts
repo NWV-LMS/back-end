@@ -35,4 +35,3 @@ export const WhatsAppTemplates: Record<
     languages: { kg: 'kg', uz: 'uz', ru: 'ru', en: 'en' },
   },
 };
-

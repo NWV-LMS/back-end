@@ -33,7 +33,10 @@ export class ProgressController {
     @CurrentUser() user: JwtPayload,
     @Body() createProgressDto: CreateProgressDto,
   ) {
-    return this.progressService.create(createProgressDto, user.organization_id!);
+    return this.progressService.create(
+      createProgressDto,
+      user.organization_id!,
+    );
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
@@ -48,7 +51,10 @@ export class ProgressController {
     @CurrentUser() user: JwtPayload,
     @Param('studentId', new ParseUUIDPipe({ version: '4' })) studentId: string,
   ) {
-    return this.progressService.getStudentProgress(studentId, user.organization_id!);
+    return this.progressService.getStudentProgress(
+      studentId,
+      user.organization_id!,
+    );
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
@@ -67,7 +73,11 @@ export class ProgressController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() updateProgressDto: UpdateProgressDto,
   ) {
-    return this.progressService.update(id, updateProgressDto, user.organization_id!);
+    return this.progressService.update(
+      id,
+      updateProgressDto,
+      user.organization_id!,
+    );
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER)

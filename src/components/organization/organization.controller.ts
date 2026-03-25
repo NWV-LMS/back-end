@@ -48,10 +48,12 @@ export class PlatformController {
   }
 
   @Get('users')
-  listUsers(@Query() query: QueryPlatformUserDto): Promise<PaginatedUserResponseDto> {
+  listUsers(
+    @Query() query: QueryPlatformUserDto,
+  ): Promise<PaginatedUserResponseDto> {
     return this.userService.listUsersForPlatform(query);
   }
-  
+
   @Patch(':id')
   public async updateOrganization(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,

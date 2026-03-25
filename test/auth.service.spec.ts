@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { AuthService } from './auth.service';
-import { DatabaseService } from '../../database/database.service';
+import { AuthService } from '../src/components/auth/auth.service';
+import { DatabaseService } from '../src/database/database.service';
 
 describe('AuthService', () => {
   let service: AuthService;

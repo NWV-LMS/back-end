@@ -1,10 +1,5 @@
 import * as request from 'supertest';
-import {
-  createTestApp,
-  closeTestApp,
-  getApp,
-  getAuthToken,
-} from './setup-e2e';
+import { createTestApp, closeTestApp, getApp, getAuthToken } from './setup-e2e';
 
 describe('FinanceController (e2e)', () => {
   let authToken: string;

@@ -119,7 +119,7 @@ export class LeadService {
 
     const lead = await this.database.lead.update({
       where: { id },
-      data: updateLeadDto, // TODO: Contacted ishlatish mumkin 
+      data: updateLeadDto, // TODO: Contacted ishlatish mumkin
     });
     // Convert DB entity to response DTO.
     return toLeadResponse(lead);
@@ -206,5 +206,4 @@ export class LeadService {
       temporaryPassword,
     };
   }
-
 }

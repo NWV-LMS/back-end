@@ -12,4 +12,3 @@ export class DashboardFilterDto {
   @IsDate()
   to?: Date;
 }
-

@@ -1,7 +1,10 @@
 import 'dotenv/config';
 import { NotificationChannel, NotificationJobStatus } from '@prisma/client';
 import { DatabaseService } from './database/database.service';
-import { WhatsAppTemplates, WhatsAppLanguageCode } from './libs/notification/whatsapp-templates';
+import {
+  WhatsAppTemplates,
+  WhatsAppLanguageCode,
+} from './libs/notification/whatsapp-templates';
 import { decryptSecret } from './libs/crypto/secrets';
 
 async function sleep(ms: number) {
@@ -118,9 +121,15 @@ type OrgNotificationConfig = {
   };
 };
 
-const orgConfigCache = new Map<string, { expiresAt: number; cfg: OrgNotificationConfig }>();
+const orgConfigCache = new Map<
+  string,
+  { expiresAt: number; cfg: OrgNotificationConfig }
+>();
 
-async function getOrgConfig(db: DatabaseService, organizationId: string): Promise<OrgNotificationConfig> {
+async function getOrgConfig(
+  db: DatabaseService,
+  organizationId: string,
+): Promise<OrgNotificationConfig> {
   const cached = orgConfigCache.get(organizationId);
   const now = Date.now();
   if (cached && cached.expiresAt > now) return cached.cfg;
@@ -142,10 +151,10 @@ async function getOrgConfig(db: DatabaseService, organizationId: string): Promis
 
   const telegramToken = org?.telegram_bot_token
     ? decryptSecret(org.telegram_bot_token)
-    : process.env.TELEGRAM_BOT_TOKEN ?? null;
+    : (process.env.TELEGRAM_BOT_TOKEN ?? null);
   const whatsappToken = org?.whatsapp_cloud_token
     ? decryptSecret(org.whatsapp_cloud_token)
-    : process.env.WHATSAPP_CLOUD_TOKEN ?? null;
+    : (process.env.WHATSAPP_CLOUD_TOKEN ?? null);
 
   const cfg: OrgNotificationConfig = {
     telegram: {
@@ -156,8 +165,14 @@ async function getOrgConfig(db: DatabaseService, organizationId: string): Promis
     whatsapp: {
       enabled: !!org?.whatsapp_enabled,
       cloudToken: whatsappToken ?? null,
-      phoneNumberId: org?.whatsapp_phone_number_id ?? process.env.WHATSAPP_PHONE_NUMBER_ID ?? null,
-      apiVersion: org?.whatsapp_api_version ?? process.env.WHATSAPP_API_VERSION ?? 'v18.0',
+      phoneNumberId:
+        org?.whatsapp_phone_number_id ??
+        process.env.WHATSAPP_PHONE_NUMBER_ID ??
+        null,
+      apiVersion:
+        org?.whatsapp_api_version ??
+        process.env.WHATSAPP_API_VERSION ??
+        'v18.0',
       cloudBaseUrl:
         org?.whatsapp_cloud_base_url ??
         process.env.WHATSAPP_CLOUD_BASE_URL ??
@@ -171,11 +186,14 @@ async function getOrgConfig(db: DatabaseService, organizationId: string): Promis
   return cfg;
 }
 
-function requireWhatsAppConfig(orgCfg: OrgNotificationConfig): WhatsAppCloudConfig {
+function requireWhatsAppConfig(
+  orgCfg: OrgNotificationConfig,
+): WhatsAppCloudConfig {
   const token = orgCfg.whatsapp.cloudToken;
   const phoneNumberId = orgCfg.whatsapp.phoneNumberId;
   if (!token) throw new Error('CONFIG: WhatsApp token is not configured');
-  if (!phoneNumberId) throw new Error('CONFIG: WhatsApp phone_number_id is not configured');
+  if (!phoneNumberId)
+    throw new Error('CONFIG: WhatsApp phone_number_id is not configured');
   return {
     token,
     phoneNumberId,
@@ -184,7 +202,10 @@ function requireWhatsAppConfig(orgCfg: OrgNotificationConfig): WhatsAppCloudConf
   };
 }
 
-function requireTelegramConfig(orgCfg: OrgNotificationConfig): { token: string; chatId: string } {
+function requireTelegramConfig(orgCfg: OrgNotificationConfig): {
+  token: string;
+  chatId: string;
+} {
   const token = orgCfg.telegram.botToken;
   const chatId = orgCfg.telegram.chatId;
   if (!token) throw new Error('CONFIG: Telegram bot token is not configured');
@@ -213,7 +234,10 @@ async function processJob(db: DatabaseService, job: any) {
     const msg = `Payment reminder\nStudent: ${invoice.student.name} (${invoice.student.phone})\nMonth: ${month}\nDue: ${due}\nDebt: ${debt.toString()}`;
 
     const whatsappTarget =
-      job.payload?.to ?? invoice.student.phone ?? orgCfg.whatsapp.target ?? null;
+      job.payload?.to ??
+      invoice.student.phone ??
+      orgCfg.whatsapp.target ??
+      null;
     const lang = (job.payload?.lang ??
       process.env.WHATSAPP_DEFAULT_LANG ??
       'uz') as WhatsAppLanguageCode;
@@ -226,7 +250,8 @@ async function processJob(db: DatabaseService, job: any) {
     }
     if (job.channel === NotificationChannel.WHATSAPP) {
       if (!orgCfg.whatsapp.enabled) return; // org disabled after job was queued
-      if (!whatsappTarget) throw new Error('CONFIG: No WhatsApp recipient is configured');
+      if (!whatsappTarget)
+        throw new Error('CONFIG: No WhatsApp recipient is configured');
       const waCfg = requireWhatsAppConfig(orgCfg);
       const tpl = WhatsAppTemplates.PAYMENT_REMINDER;
       const languageCode = tpl.languages[lang] ?? tpl.languages.uz;
@@ -343,7 +368,9 @@ async function run() {
       if (locked.count !== 1) continue;
 
       try {
-        const job = await db.notificationJob.findUnique({ where: { id: j.id } });
+        const job = await db.notificationJob.findUnique({
+          where: { id: j.id },
+        });
         await processJob(db, job);
         await db.notificationJob.update({
           where: { id: j.id },
@@ -356,12 +383,11 @@ async function run() {
         await db.notificationJob.update({
           where: { id: j.id },
           data: {
-            status:
-              msg.startsWith('CONFIG:')
+            status: msg.startsWith('CONFIG:')
+              ? NotificationJobStatus.FAILED
+              : attempts >= 5
                 ? NotificationJobStatus.FAILED
-                : attempts >= 5
-                  ? NotificationJobStatus.FAILED
-                  : NotificationJobStatus.PENDING,
+                : NotificationJobStatus.PENDING,
             next_run_at: new Date(Date.now() + backoffMs),
             last_error: msg,
           },

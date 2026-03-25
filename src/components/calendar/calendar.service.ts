@@ -58,7 +58,11 @@ export class CalendarService {
         start_date: true,
         end_date: true,
         schedules: {
-          select: { day_of_week: true, start_minute: true, duration_minutes: true },
+          select: {
+            day_of_week: true,
+            start_minute: true,
+            duration_minutes: true,
+          },
         },
       },
     });
@@ -67,7 +71,13 @@ export class CalendarService {
 
     // Generate occurrences per day in [from..to].
     // This stays lightweight for a 7-31 day window.
-    for (let d = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate())); d <= to; d = addDaysUtc(d, 1)) {
+    for (
+      let d = new Date(
+        Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()),
+      );
+      d <= to;
+      d = addDaysUtc(d, 1)
+    ) {
       const dow = isoWeekday(d);
 
       for (const g of groups) {
@@ -99,4 +109,3 @@ export class CalendarService {
     return sessions;
   }
 }
-

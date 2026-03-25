@@ -18,4 +18,3 @@ export class PayInvoiceDto {
   @IsEnum(PaymentStatus)
   status?: PaymentStatus;
 }
-

@@ -32,7 +32,10 @@ export class LessonController {
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  create(@CurrentUser() user: JwtPayload, @Body() createLessonDto: CreateLessonDto) {
+  create(
+    @CurrentUser() user: JwtPayload,
+    @Body() createLessonDto: CreateLessonDto,
+  ) {
     return this.lessonService.create(user.organization_id!, createLessonDto);
   }
 
@@ -51,7 +54,10 @@ export class LessonController {
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT)
-  findOne(@CurrentUser() user: JwtPayload, @Param('id', ParseUUIDPipe) id: string) {
+  findOne(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.lessonService.findOne(id, user.organization_id!);
   }
 
@@ -62,7 +68,11 @@ export class LessonController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateLessonDto: UpdateLessonDto,
   ) {
-    return this.lessonService.update(id, user.organization_id!, updateLessonDto);
+    return this.lessonService.update(
+      id,
+      user.organization_id!,
+      updateLessonDto,
+    );
   }
 
   @Patch(':id/reschedule')
@@ -77,7 +87,10 @@ export class LessonController {
 
   @Delete(':id')
   @Roles(UserRole.ADMIN)
-  remove(@CurrentUser() user: JwtPayload, @Param('id', ParseUUIDPipe) id: string) {
+  remove(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.lessonService.remove(id, user.organization_id!);
   }
 }

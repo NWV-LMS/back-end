@@ -9,10 +9,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
-@Catch(
-  Prisma.PrismaClientKnownRequestError,
-  Prisma.PrismaClientValidationError,
-)
+@Catch(Prisma.PrismaClientKnownRequestError, Prisma.PrismaClientValidationError)
 export class PrismaExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, _host: ArgumentsHost) {
     // Known request errors (e.g., unique constraint, record not found).
@@ -36,4 +33,3 @@ export class PrismaExceptionFilter implements ExceptionFilter {
     throw new InternalServerErrorException('Database error');
   }
 }
-

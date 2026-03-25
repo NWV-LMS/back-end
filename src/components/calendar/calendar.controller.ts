@@ -1,4 +1,11 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { OrganizationId } from '../auth/decorators/organization-id.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -21,7 +28,10 @@ export class CalendarController {
     @Param('teacherId', new ParseUUIDPipe({ version: '4' })) teacherId: string,
     @Query() query: QueryCalendarDto,
   ): Promise<TeacherSessionDto[]> {
-    return this.calendarService.teacherCalendar(organizationId, teacherId, query);
+    return this.calendarService.teacherCalendar(
+      organizationId,
+      teacherId,
+      query,
+    );
   }
 }
-

@@ -41,4 +41,3 @@ export class SetGroupScheduleDto {
   @Type(() => GroupScheduleItemDto)
   items: GroupScheduleItemDto[];
 }
-

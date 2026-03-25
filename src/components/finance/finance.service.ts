@@ -133,7 +133,9 @@ export class FinanceService {
 
   private getDateRange(query: FinanceQueryDto): { from: Date; to: Date } {
     const now = new Date();
-    const from = query.from ? new Date(query.from) : new Date(now.getFullYear(), now.getMonth(), 1);
+    const from = query.from
+      ? new Date(query.from)
+      : new Date(now.getFullYear(), now.getMonth(), 1);
     const to = query.to ? new Date(query.to) : now;
     return { from, to };
   }

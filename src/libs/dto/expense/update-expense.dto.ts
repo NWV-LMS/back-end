@@ -3,7 +3,10 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ExpenseCategory } from '@prisma/client';
 
 export class UpdateExpenseDto {
-  @ApiPropertyOptional({ enum: ExpenseCategory, description: 'Expense category' })
+  @ApiPropertyOptional({
+    enum: ExpenseCategory,
+    description: 'Expense category',
+  })
   @IsOptional()
   @IsEnum(ExpenseCategory)
   category?: ExpenseCategory;

@@ -6,4 +6,3 @@ export class GenerateInvoicesDto {
   @IsString()
   month: string;
 }
-

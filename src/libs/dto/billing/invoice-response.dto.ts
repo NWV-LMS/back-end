@@ -36,4 +36,3 @@ export interface PaginatedInvoiceResponseDto {
     pages: number;
   };
 }
-

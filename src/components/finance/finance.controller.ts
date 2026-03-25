@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { FinanceService } from './finance.service';
 import { FinanceQueryDto } from '../../libs/dto/finance/finance-query.dto';
 import {

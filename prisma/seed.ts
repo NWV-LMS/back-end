@@ -17,14 +17,17 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   const email = process.env.SUPER_ADMIN_EMAIL;
   const password = process.env.SUPER_ADMIN_PASSWORD;
-  const orgName =
-    process.env.SUPER_ADMIN_ORG_NAME || 'Education Center Platform';
-  const orgEmail = process.env.SUPER_ADMIN_ORG_EMAIL || email;
-  const orgPhone = process.env.SUPER_ADMIN_ORG_PHONE || email;
+
 
   if (!email || !password) {
     throw new Error('SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD is missing');
   }
+
+
+  const orgName =
+    process.env.SUPER_ADMIN_ORG_NAME || 'Education Center Platform';
+  const orgEmail = process.env.SUPER_ADMIN_ORG_EMAIL || email;
+  const orgPhone = process.env.SUPER_ADMIN_ORG_PHONE || email;
 
   const existing = await prisma.user.findFirst({
     where: { email },

@@ -3,7 +3,11 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PaymentMethod, PaymentStatus } from '@prisma/client';
 
 export class UpdatePaymentDto {
-  @ApiPropertyOptional({ description: 'Payment amount', example: 500000, minimum: 0 })
+  @ApiPropertyOptional({
+    description: 'Payment amount',
+    example: 500000,
+    minimum: 0,
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)
