@@ -17,6 +17,7 @@ import { DatabaseService } from '../../database/database.service';
 import { AuthService } from '../auth/auth.service';
 import { QueryPlatformUserDto } from '../../libs/dto/user/query-platform-user.dto';
 import { PaginatedUserResponseDto } from '../../libs/dto/user/paginated-user-response.dto';
+import { QueryOrganizationUserDto } from '../../libs/dto/user/query-organization-user.dto';
 
 @Injectable()
 export class UserService {
@@ -251,6 +252,57 @@ export class UserService {
 
     const where: any = {};
     if (organization_id) where.organization_id = organization_id;
+    if (role) where.role = role;
+    if (search) {
+      where.OR = [
+        { full_name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.database.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          organization_id: true,
+          full_name: true,
+          phone: true,
+          created_at: true,
+          updated_at: true,
+        },
+      }),
+      this.database.user.count({ where }),
+    ]);
+
+    return {
+      items: items.map((u) => toUserResponse(u as any)),
+      meta: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async listUsersForOrganization(
+    organizationId: string,
+    query: QueryOrganizationUserDto,
+  ): Promise<PaginatedUserResponseDto> {
+    const { page = 1, limit = 20, search, role } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      organization_id: organizationId,
+    };
+    
     if (role) where.role = role;
     if (search) {
       where.OR = [

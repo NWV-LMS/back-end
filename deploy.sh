@@ -12,9 +12,9 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}=== Starting Deployment ===${NC}"
 
 # 1. Update source code from GitHub
-echo -e "${BLUE}1. Pulling latest changes from develop...${NC}"
-git checkout develop
-git pull origin develop
+echo -e "${BLUE}1. Pulling latest changes from master...${NC}"
+git checkout master
+git pull origin master
 
 # 2. Rebuild and restart Docker containers
 # --build: forces rebuild of images
