@@ -26,7 +26,13 @@ RUN npx tsc prisma/seed.ts --outDir dist --module commonjs --target ES2021 --ski
 # -----------------------------------------------------------------------------
 # Stage 2: Runner - Production image with minimal footprint
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS runner
+FROM node:20-bullseye AS runner
+
+# Install OpenSSL 1.1 for Prisma engine compatibility
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl \
+    libssl1.1 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

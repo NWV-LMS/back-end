@@ -1,4 +1,4 @@
-import { Organization } from 'generated/prisma/client';
+import { Organization } from 'generated/prisma';
 import { PlatformOrganizationDto } from '../dto/organization/platform-organization.dto';
 
 type OrganizationWithCount = Organization & {

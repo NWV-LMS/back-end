@@ -1,18 +1,9 @@
-import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
-import { Pool } from 'pg';
 import { PrismaClient, UserRole, OrganizationStatus } from '@prisma/client'
 dotenv.config();
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  throw new Error('DATABASE_URL environment variable is not set');
-}
-
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 async function main() {
   const email = process.env.SUPER_ADMIN_EMAIL;

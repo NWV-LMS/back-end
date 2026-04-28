@@ -1,4 +1,4 @@
-import { Lead } from 'generated/prisma/client';
+import { Lead } from 'generated/prisma';
 import { LeadResponseDto } from '../dto/lead/lead-response.dto';
 
 // DB entity -> API response DTO mapper.

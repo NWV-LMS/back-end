@@ -1,14 +1,17 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
 }
 
 generator client_custom {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  provider      = "prisma-client-js"
+  output        = "../generated/prisma"
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Organization {
@@ -65,6 +68,7 @@ model User {
   cashierPayments Payment[]    @relation("PaymentCashier")
   notes           Note[]
   expenses        Expense[]
+  teacherProfile  TeacherProfile?
   organization    Organization @relation(fields: [organization_id], references: [id])
 
   @@unique([organization_id, email])
@@ -466,4 +470,26 @@ enum ExpenseCategory {
   SUPPLIES
   MARKETING
   OTHER
+}
+
+model TeacherProfile {
+  id             String         @id @default(uuid()) @db.Uuid
+  user_id        String         @unique @db.Uuid
+  subjects       String[]
+  hourly_rate    Decimal?       @db.Decimal(12, 2)
+  qualifications String?
+  bio            String?
+  status         TeacherStatus  @default(ACTIVE)
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @default(now()) @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+enum TeacherStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
 }

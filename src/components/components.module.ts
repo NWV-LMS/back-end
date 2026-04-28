@@ -17,6 +17,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { BillingModule } from './billing/billing.module';
 import { NotificationModule } from './notification/notification.module';
 import { CalendarModule } from './calendar/calendar.module';
+import { TeacherModule } from './teacher/teacher.module';
 
 @Module({
   imports: [
@@ -38,7 +39,8 @@ import { CalendarModule } from './calendar/calendar.module';
     BillingModule,
     NotificationModule,
     CalendarModule,
+    TeacherModule,
   ],
-  exports: [AuthModule, UserModule],
+  exports: [AuthModule, UserModule, TeacherModule],
 })
 export class ComponentsModule {}

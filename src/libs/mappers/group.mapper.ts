@@ -1,4 +1,4 @@
-import { Group } from 'generated/prisma/client';
+import { Group } from 'generated/prisma';
 import { GroupResponseDto } from '../dto/group/group-response.dto';
 
 type GroupWithRelations = Group & {
