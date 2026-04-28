@@ -61,3 +61,4 @@ docs/
 
 /generated/prisma
 .vercel
+.env*.local
