@@ -1,4 +1,4 @@
-import { Student } from 'generated/prisma/client';
+import { Student } from 'generated/prisma';
 import { StudentResponseDto } from '../dto/student/student-response.dto';
 
 // DB entity -> API response DTO mapper.

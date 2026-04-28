@@ -10,3 +10,7 @@ export {
   PaymentStatus,
   ExpenseCategory,
 } from '@prisma/client';
+
+// Custom enums (these are defined in code, not Prisma)
+export { TeacherSubject } from './teacher-subjects.enum';
+export { TeacherStatus } from './teacher-subjects.enum';

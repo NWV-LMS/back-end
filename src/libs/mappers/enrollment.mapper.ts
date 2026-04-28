@@ -1,4 +1,4 @@
-import { Enrollment } from 'generated/prisma/client';
+import { Enrollment } from '@prisma/client/default';
 import { EnrollmentResponseDto } from '../dto/enrollment/enrollment-response.dto';
 
 type EnrollmentWithRelations = Enrollment & {

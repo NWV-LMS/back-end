@@ -1,0 +1,21 @@
+export enum TeacherStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  ON_LEAVE = 'ON_LEAVE',
+}
+
+export enum TeacherSubject {
+  ENGLISH = 'ENGLISH',
+  IT = 'IT',
+  MATH = 'MATH',
+  PHYSICS = 'PHYSICS',
+  HISTORY = 'HISTORY',
+  CHEMISTRY = 'CHEMISTRY',
+  UZBEK_LANGUAGE = 'UZBEK_LANGUAGE',
+  RUSSIAN_LANGUAGE = 'RUSSIAN_LANGUAGE',
+  ART = 'ART',
+  MUSIC = 'MUSIC',
+  SPORT = 'SPORT',
+  DRAMA = 'DRAMA',
+  DANCE = 'DANCE',
+}

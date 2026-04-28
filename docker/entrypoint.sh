@@ -11,6 +11,9 @@ if [ -z "$DATABASE_URL" ]; then
 fi
 echo "DATABASE_URL is set: YES"
 
+# Set LD_LIBRARY_PATH for Prisma engine
+export LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH
+
 # Run database migrations
 echo "=== Running Prisma migrations ==="
 npx prisma migrate deploy
