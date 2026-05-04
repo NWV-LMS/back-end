@@ -4,6 +4,8 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Get,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -29,5 +31,17 @@ export class OrganizationsController {
     @OrganizationId() organizationId: string,
   ) {
     return this.userService.inviteUser(input, organizationId);
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Get('users')
+  listUsers(
+    @Query() query: any, // using any temporarily to avoid import path issues if not needed, or we can just pass it
+    @OrganizationId() organizationId: string,
+  ) {
+    return this.userService.listUsersForPlatform({
+      ...query,
+      organization_id: organizationId,
+    });
   }
 }

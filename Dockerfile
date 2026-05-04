@@ -5,7 +5,10 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Builder - Install dependencies and build the application
 # -----------------------------------------------------------------------------
-FROM node:20-alpine AS builder
+# Must use the same base as the runner so Prisma's "native" engine target
+# matches the runtime glibc/OpenSSL (debian). Alpine builder produced
+# linux-musl engines incompatible with the debian runner.
+FROM node:20-bullseye AS builder
 
 WORKDIR /app
 
