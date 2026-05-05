@@ -11,6 +11,7 @@ import {
 
 import { UserRole } from '@prisma/client';
 import { InviteUserDto } from '../../libs/dto/auth/invite-user.dto';
+import { QueryPlatformUserDto } from '../../libs/dto/user/query-platform-user.dto';
 import { UserService } from '../user/user.service';
 import { Roles } from './decorators/roles.decorator';
 import { OrganizationId } from './decorators/organization-id.decorator';
@@ -36,7 +37,7 @@ export class OrganizationsController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @Get('users')
   listUsers(
-    @Query() query: any, // using any temporarily to avoid import path issues if not needed, or we can just pass it
+    @Query() query: QueryPlatformUserDto,
     @OrganizationId() organizationId: string,
   ) {
     return this.userService.listUsersForPlatform({
