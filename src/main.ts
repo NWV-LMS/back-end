@@ -16,13 +16,8 @@ async function bootstrap() {
   // Security
   app.use(helmet());
   const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
-  const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',')
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : [];
   app.enableCors({
-    origin: isProd ? allowedOrigins : true,
+    origin: true,
     credentials: true,
   });
   // Swagger API Documentation
