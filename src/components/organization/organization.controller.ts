@@ -27,6 +27,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { OrganizationId } from '../auth/decorators/organization-id.decorator';
+import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPER_ADMIN)
@@ -75,5 +77,25 @@ export class PlatformController {
     @Body() input: UpdateOrganizationStatusDto,
   ): Promise<PlatformOrganizationDto> {
     return this.organizationService.updateOrganizationStatus(id, input);
+  }
+}
+@UseGuards(JwtAuthGuard, RolesGuard, OrganizationIdGuard)
+@Controller('organizations/settings')
+export class OrganizationController {
+  constructor(private readonly organizationService: OrganizationService) {}
+
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Get()
+  getSettings(@OrganizationId() organizationId: string) {
+    return this.organizationService.getOrganization(organizationId);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Patch()
+  updateSettings(
+    @OrganizationId() organizationId: string,
+    @Body() dto: UpdateOrganizationDto,
+  ) {
+    return this.organizationService.updateOrganization(organizationId, dto);
   }
 }

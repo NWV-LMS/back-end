@@ -106,7 +106,14 @@ export class OrganizationService {
         email: input.email,
         phone: input.phone,
         status: input.status,
+        telegram_enabled: input.telegram_enabled,
+        telegram_bot_token: input.telegram_bot_token,
         telegram_chat_id: input.telegram_chat_id,
+        whatsapp_enabled: input.whatsapp_enabled,
+        whatsapp_cloud_token: input.whatsapp_cloud_token,
+        whatsapp_phone_number_id: input.whatsapp_phone_number_id,
+        whatsapp_api_version: input.whatsapp_api_version,
+        whatsapp_cloud_base_url: input.whatsapp_cloud_base_url,
         whatsapp_target: input.whatsapp_target,
       },
       select: {
@@ -125,6 +132,18 @@ export class OrganizationService {
       Org_status: updated.status,
       created_at: updated.created_at,
     } as Organ;
+  }
+
+  async getOrganization(id: string) {
+    const org = await this.database.organization.findUnique({
+      where: { id },
+    });
+
+    if (!org) {
+      throw new BadRequestException('Organization not found');
+    }
+
+    return org;
   }
 
   async listOrganizations(

@@ -8,4 +8,6 @@ export class LeadResponseDto {
   phone: string;
   source: string;
   status: LeadStatus;
+  created_at: string;
+  updated_at: string;
 }

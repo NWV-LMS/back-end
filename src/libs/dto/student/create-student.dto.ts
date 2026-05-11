@@ -2,7 +2,6 @@ import {
   IsEnum,
   IsNotEmpty,
   IsOptional,
-  IsPhoneNumber,
   IsString,
   MinLength,
 } from 'class-validator';
@@ -13,13 +12,13 @@ export class CreateStudentDto {
   @IsNotEmpty()
   name: string;
 
-  @IsPhoneNumber()
+  @IsString()
   @IsNotEmpty()
   phone: string;
 
   @IsString()
-  @IsNotEmpty()
-  address: string;
+  @IsOptional()
+  address?: string;
 
   @IsString()
   @IsOptional()

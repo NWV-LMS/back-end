@@ -69,6 +69,7 @@ model User {
   notes           Note[]
   expenses        Expense[]
   teacherProfile  TeacherProfile?
+  studentProfile  Student?
   organization    Organization    @relation(fields: [organization_id], references: [id])
 
   @@unique([organization_id, email])
@@ -152,8 +153,11 @@ model Student {
   name            String
   parent          String?
   phone           String
-  address         String
+  address         String?
   status          StudentStatus
+
+  // Optional link to a User account (set via /students/:id/invite)
+  user_id         String?       @unique @db.Uuid
 
   // Qoshimcha maydonlar (CRM uchun)
   birth_date      DateTime?     @db.Date
@@ -172,6 +176,7 @@ model Student {
   payments        Payment[]
   invoices        Invoice[]
   organization    Organization  @relation(fields: [organization_id], references: [id])
+  user            User?         @relation(fields: [user_id], references: [id], onDelete: SetNull)
 
   // Prevent duplicate student phone numbers inside the same organization.
   @@unique([organization_id, phone])

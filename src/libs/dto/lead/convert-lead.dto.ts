@@ -1,9 +1,9 @@
 import { IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class ConvertLeadDto {
-  @IsNotEmpty({ message: 'Address is required for student' })
+  @IsOptional()
   @IsString()
-  address: string;
+  address?: string;
 
   @IsOptional()
   @IsString()

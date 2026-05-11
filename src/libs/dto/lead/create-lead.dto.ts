@@ -16,8 +16,8 @@ export class CreateLeadDto {
 
   @IsNotEmpty({ message: 'Phone is required' })
   @IsString()
-  @Matches(/^\+996\d{9}$/, {
-    message: 'Phone must be in format +996XXXXXXXXX',
+  @Matches(/^\+?\d{9,15}$/, {
+    message: 'Phone must be 9-15 digits, optional + prefix',
   })
   phone: string;
 

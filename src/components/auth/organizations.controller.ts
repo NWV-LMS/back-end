@@ -34,7 +34,7 @@ export class OrganizationsController {
     return this.userService.inviteUser(input, organizationId);
   }
 
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER)
   @Get('users')
   listUsers(
     @Query() query: QueryPlatformUserDto,

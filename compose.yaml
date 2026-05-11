@@ -17,6 +17,7 @@ services:
         max-file: "3"
 
   api:
+    image: abduvalileo/crm-lms-api:latest
     build:
       context: .
       dockerfile: Dockerfile

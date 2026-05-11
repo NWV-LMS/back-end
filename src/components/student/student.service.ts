@@ -11,10 +11,9 @@ import { QueryStudentDto } from '../../libs/dto/student/query-student.dto';
 import { StudentResponseDto } from '../../libs/dto/student/student-response.dto';
 import { CreateStudentResponseDto } from '../../libs/dto/student/create-student-response.dto';
 import { PaginatedStudentResponseDto } from '../../libs/dto/student/paginated-student-response.dto';
-import { StudentStatus, UserRole } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import { Prisma, StudentStatus } from '@prisma/client';
+import { EnrollmentResponseDto } from '../../libs/dto/enrollment/enrollment-response.dto';
 import { toStudentResponse } from '../../libs/mappers/student.mapper';
-import { toUserInfo } from '../../libs/mappers/user.mapper';
 import { toEnrollmentResponse } from '../../libs/mappers/enrollment.mapper';
 
 @Injectable()
@@ -25,12 +24,6 @@ export class StudentService {
     organizationId: string,
     dto: CreateStudentDto,
   ): Promise<CreateStudentResponseDto> {
-    // 1. Check if user exists globally by phone
-    let user = await this.database.user.findFirst({
-      where: { phone: dto.phone },
-    });
-
-    // 2. Check if student exists in this organization
     const existingStudent = await this.database.student.findFirst({
       where: {
         phone: dto.phone,
@@ -44,51 +37,20 @@ export class StudentService {
       );
     }
 
-    let temporaryPassword = null;
+    const studentData: Prisma.StudentUncheckedCreateInput = {
+      organization_id: organizationId,
+      name: dto.name,
+      phone: dto.phone,
+      address: dto.address ?? null,
+      parent: dto.parent,
+      status: dto.status || StudentStatus.ACTIVE,
+    };
 
-    // 3. Create everything in transaction
-    const [newStudent, updatedUser] = await this.database.$transaction(
-      async (tx) => {
-        // Create user if not exists
-        if (!user) {
-          temporaryPassword =
-            dto.password || Math.random().toString(36).slice(-8);
-          const uniqueEmail = `${dto.phone.replace('+', '')}@system.local`;
-
-          user = await tx.user.create({
-            data: {
-              organization_id: organizationId,
-              full_name: dto.name,
-              phone: dto.phone,
-              email: uniqueEmail, // Pseudo email
-              password: await bcrypt.hash(temporaryPassword, 10),
-              role: UserRole.STUDENT,
-            },
-          });
-        }
-
-        // Create student
-        const student = await tx.student.create({
-          data: {
-            organization_id: organizationId,
-            name: dto.name,
-            phone: dto.phone,
-            address: dto.address,
-            parent: dto.parent,
-            status: dto.status || StudentStatus.ACTIVE,
-          },
-        });
-
-        return [student, user];
-      },
-    );
+    const student = await this.database.student.create({ data: studentData });
 
     return {
       message: 'Student created successfully',
-      // Always return API-safe DTOs, not raw DB entities.
-      student: toStudentResponse(newStudent),
-      user: toUserInfo(updatedUser),
-      temporaryPassword: temporaryPassword || undefined,
+      student: toStudentResponse(student),
     };
   }
 
@@ -99,7 +61,7 @@ export class StudentService {
     const { page = 1, limit = 10, search, status } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {
+    const where: Prisma.StudentWhereInput = {
       organization_id: organizationId,
     };
 
@@ -188,7 +150,7 @@ export class StudentService {
     studentId: string,
     dto: EnrollStudentDto,
     organizationId: string,
-  ): Promise<any> {
+  ): Promise<EnrollmentResponseDto> {
     await this.findOne(studentId, organizationId);
 
     const group = await this.database.group.findFirst({
@@ -224,12 +186,66 @@ export class StudentService {
       include: {
         group: {
           select: {
+            id: true,
             name: true,
           },
         },
       },
     });
     // Convert DB entity to response DTO.
-    return toEnrollmentResponse(enrollment as any);
+    return toEnrollmentResponse(enrollment);
   }
+
+  async bulkCreate(
+    organizationId: string,
+    students: CreateStudentDto[],
+  ): Promise<{ created: number; skipped: number; failed: RowError[] }> {
+    const CHUNK_SIZE = 100;
+    let created = 0;
+    let skipped = 0;
+    const failed: RowError[] = [];
+
+    for (let i = 0; i < students.length; i += CHUNK_SIZE) {
+      const chunk = students.slice(i, i + CHUNK_SIZE);
+
+      await this.database.$transaction(async (tx) => {
+        for (const dto of chunk) {
+          try {
+            const existingStudent = await tx.student.findFirst({
+              where: { phone: dto.phone, organization_id: organizationId },
+            });
+
+            if (existingStudent) {
+              skipped++;
+              continue;
+            }
+
+            await tx.student.create({
+              data: {
+                organization_id: organizationId,
+                name: dto.name,
+                phone: dto.phone,
+                address: dto.address ?? null,
+                parent: dto.parent,
+                status: dto.status || StudentStatus.ACTIVE,
+              },
+            });
+
+            created++;
+          } catch (err: unknown) {
+            const message =
+              err instanceof Error ? err.message : 'Unknown error';
+            failed.push({ row: dto.phone, reason: message });
+          }
+        }
+      });
+    }
+
+    return { created, skipped, failed };
+  }
+}
+
+interface RowError {
+  row: string;
+  reason: string;
 }

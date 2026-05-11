@@ -1,18 +1,11 @@
-import { StudentStatus, UserRole } from '@prisma/client';
-
-class UserInfo {
-  id: string;
-  full_name: string;
-  phone: string;
-  role: UserRole;
-}
+import { StudentStatus } from '@prisma/client';
 
 class StudentInfo {
   id: string;
   organization_id: string;
   name: string;
   phone: string;
-  address: string;
+  address: string | null;
   parent?: string;
   status: StudentStatus;
 }
@@ -20,6 +13,4 @@ class StudentInfo {
 export class CreateStudentResponseDto {
   message: string;
   student: StudentInfo;
-  user: UserInfo;
-  temporaryPassword?: string;
 }
