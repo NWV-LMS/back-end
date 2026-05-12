@@ -51,6 +51,7 @@ export class OrganizationService {
             email: input.Org_email,
             phone: input.phone,
             status: OrganizationStatus.ACTIVE,
+            logo_url: input.logo_url ?? null,
           },
         });
 
@@ -78,6 +79,7 @@ export class OrganizationService {
         phone: result.admin.phone,
         adminRole: result.admin.role,
         created_at: result.organization.created_at,
+        logo_url: result.organization.logo_url ?? undefined,
       };
     } catch (error: any) {
       this.logger.error(
@@ -115,6 +117,7 @@ export class OrganizationService {
         whatsapp_api_version: input.whatsapp_api_version,
         whatsapp_cloud_base_url: input.whatsapp_cloud_base_url,
         whatsapp_target: input.whatsapp_target,
+        logo_url: input.logo_url,
       },
       select: {
         id: true,

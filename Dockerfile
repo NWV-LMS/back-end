@@ -67,6 +67,8 @@ RUN chmod +x ./entrypoint.sh
 # Set environment variables
 ENV NODE_ENV=production
 
+RUN mkdir -p /app/uploads/logos
+
 # Expose application port
 EXPOSE 3000
 

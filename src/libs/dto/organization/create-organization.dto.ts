@@ -41,4 +41,8 @@ export class CreateOrganizationDto {
   @IsNotEmpty()
   @IsEnum(UserRole)
   adminRole: UserRole;
+
+  @IsOptional()
+  @IsString()
+  logo_url?: string;
 }

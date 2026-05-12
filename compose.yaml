@@ -29,6 +29,8 @@ services:
     environment:
       # DATABASE_URL is loaded from .env.production.local
       - NODE_ENV=production
+    volumes:
+      - uploads-data:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -78,3 +80,4 @@ services:
 
 volumes:
   db-data:
+  uploads-data:

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -7,8 +8,16 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage, MulterFile } from 'multer';
+import { extname, join } from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { Request } from 'express';
 import { CreateOrganizationDto } from '../../libs/dto/organization/create-organization.dto';
 import { UpdateOrganizationDto } from '../../libs/dto/organization/update-organization.dto';
 import { Organ } from '../../libs/dto/organization/organization-response.dto';
@@ -83,6 +92,48 @@ export class PlatformController {
 @Controller('organizations/settings')
 export class OrganizationController {
   constructor(private readonly organizationService: OrganizationService) {}
+
+  @Roles(UserRole.ADMIN)
+  @Post('logo')
+  @UseInterceptors(
+    FileInterceptor('logo', {
+      storage: diskStorage({
+        destination: join(process.cwd(), 'uploads', 'logos'),
+        filename: (_req, file: MulterFile, cb) => {
+          cb(null, `${uuidv4()}${extname(file.originalname)}`);
+        },
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (
+        _req: unknown,
+        file: MulterFile,
+        cb: (err: Error | null, accept: boolean) => void,
+      ) => {
+        if (!file.mimetype.match(/^image\/(jpeg|jpg|png|webp|gif)$/)) {
+          return cb(
+            new BadRequestException('Only image files are allowed (jpeg, jpg, png, webp, gif)'),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  async uploadLogo(
+    @UploadedFile() file: MulterFile,
+    @OrganizationId() organizationId: string,
+    @Req() req: Request,
+  ): Promise<{ logo_url: string }> {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const logoUrl = `${baseUrl}/uploads/logos/${file.filename}`;
+    await this.organizationService.updateOrganization(organizationId, {
+      logo_url: logoUrl,
+    });
+    return { logo_url: logoUrl };
+  }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @Get()

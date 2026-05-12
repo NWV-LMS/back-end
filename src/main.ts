@@ -1,6 +1,8 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { join } from 'path';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './libs/interceptor/logging.interceptor';
@@ -11,7 +13,9 @@ async function bootstrap() {
   // Fail fast on misconfiguration (especially in production).
   validateEnvOrThrow();
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
 
   // Security
   app.use(helmet());

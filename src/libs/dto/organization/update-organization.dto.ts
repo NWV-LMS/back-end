@@ -54,4 +54,8 @@ export class UpdateOrganizationDto {
   @IsOptional()
   @IsString()
   whatsapp_target?: string;
+
+  @IsOptional()
+  @IsString()
+  logo_url?: string;
 }

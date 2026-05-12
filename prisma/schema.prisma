@@ -33,6 +33,7 @@ model Organization {
   whatsapp_api_version     String?           @default("v18.0")
   whatsapp_cloud_base_url  String?           @default("https://graph.facebook.com")
   whatsapp_target          String?
+  logo_url                 String?
   courses                  Course[]
   groups                   Group[]
   leads                    Lead[]
