@@ -44,6 +44,21 @@ export class StudentController {
     return this.studentService.create(organizationId, dto);
   }
   // bu erda nega body emas query da kelyabti ?  biz pagelar berganimiz uchun
+@Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Get('statistics')
+  getStatistics(@OrganizationId() organizationId: string) {
+    return this.studentService.getStatistics(organizationId);
+  }
+
+  @Roles(UserRole.SUPER_ADMIN)
+  @Get('deleted')
+  findDeleted(
+    @Query() query: QueryStudentDto,
+    @OrganizationId() organizationId: string,
+  ): Promise<PaginatedStudentResponseDto> {
+    return this.studentService.findDeleted(organizationId, query);
+  }
+
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get()
   findAll(
@@ -53,13 +68,22 @@ export class StudentController {
     return this.studentService.findAll(organizationId, query);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+@Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get(':id')
   findOne(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ): Promise<StudentResponseDto> {
     return this.studentService.findOne(id, organizationId);
+  }
+
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Get(':id/detail')
+  getDetail(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @OrganizationId() organizationId: string,
+  ) {
+    return this.studentService.getStudentDetail(id, organizationId);
   }
 
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER)

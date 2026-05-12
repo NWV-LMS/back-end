@@ -107,14 +107,24 @@ export class TeacherService {
       };
     }
 
-    // Filter by status
-    if (status && Object.values(TeacherStatus).includes(status as TeacherStatus)) {
-      const teacherStatus = status as TeacherStatus;
-      if (where.teacherProfile && typeof where.teacherProfile === 'object') {
-        (where.teacherProfile as Prisma.TeacherProfileNullableRelationFilter['is'])!.status = teacherStatus;
-      } else {
-        where.teacherProfile = { status: teacherStatus };
-      }
+    // Filter by status — DELETED is always excluded from normal listing
+    const teacherStatus =
+      status && Object.values(TeacherStatus).includes(status as TeacherStatus)
+        ? (status as TeacherStatus)
+        : undefined;
+
+    if (teacherStatus === TeacherStatus.DELETED) {
+      throw new BadRequestException(
+        'Use /teachers/deleted endpoint to view deleted teachers',
+      );
+    }
+
+    const statusFilter = teacherStatus ?? { not: TeacherStatus.DELETED };
+
+    if (where.teacherProfile && typeof where.teacherProfile === 'object') {
+      (where.teacherProfile as Prisma.TeacherProfileNullableRelationFilter['is'])!.status = statusFilter;
+    } else {
+      where.teacherProfile = { status: statusFilter };
     }
 
     const [teachers, total] = await Promise.all([
@@ -152,6 +162,7 @@ export class TeacherService {
         id,
         organization_id: organizationId,
         role: 'TEACHER',
+        teacherProfile: { status: { not: TeacherStatus.DELETED } },
       },
       include: {
         teacherProfile: true,
@@ -229,7 +240,7 @@ export class TeacherService {
   }
 
   /**
-   * Delete teacher (soft delete - just change status)
+   * Delete teacher (soft delete)
    */
   async remove(id: string, organizationId: string) {
     const teacher = await this.prisma.user.findFirst({
@@ -237,6 +248,7 @@ export class TeacherService {
         id,
         organization_id: organizationId,
         role: 'TEACHER',
+        teacherProfile: { status: { not: TeacherStatus.DELETED } },
       },
     });
 
@@ -244,13 +256,12 @@ export class TeacherService {
       throw new NotFoundException('Teacher not found');
     }
 
-    // Soft delete - just change status to INACTIVE
     await this.prisma.teacherProfile.update({
       where: { user_id: id },
-      data: { status: 'INACTIVE' },
+      data: { status: TeacherStatus.DELETED, deleted_at: new Date() },
     });
 
-    return { message: 'Teacher deactivated successfully' };
+    return { message: 'Teacher deleted successfully' };
   }
 
   /**
@@ -262,6 +273,7 @@ export class TeacherService {
         id,
         organization_id: organizationId,
         role: 'TEACHER',
+        teacherProfile: { status: { not: TeacherStatus.DELETED } },
       },
     });
 
@@ -302,6 +314,7 @@ export class TeacherService {
         id,
         organization_id: organizationId,
         role: 'TEACHER',
+        teacherProfile: { status: { not: TeacherStatus.DELETED } },
       },
     });
 
@@ -405,12 +418,13 @@ export class TeacherService {
    * Get teachers statistics
    */
   async getStatistics(organizationId: string) {
-    const [total, active, inactive, bySubject] = await Promise.all([
-      // Total teachers
+    const [total, active, inactive, deleted, bySubject] = await Promise.all([
+      // Total teachers (excluding deleted)
       this.prisma.user.count({
         where: {
           organization_id: organizationId,
           role: 'TEACHER',
+          teacherProfile: { status: { not: TeacherStatus.DELETED } },
         },
       }),
       // Active teachers
@@ -418,7 +432,7 @@ export class TeacherService {
         where: {
           organization_id: organizationId,
           role: 'TEACHER',
-          teacherProfile: { status: 'ACTIVE' },
+          teacherProfile: { status: TeacherStatus.ACTIVE },
         },
       }),
       // Inactive teachers
@@ -426,12 +440,21 @@ export class TeacherService {
         where: {
           organization_id: organizationId,
           role: 'TEACHER',
-          teacherProfile: { status: 'INACTIVE' },
+          teacherProfile: { status: TeacherStatus.INACTIVE },
         },
       }),
-      // Teachers by subject
+      // Deleted teachers
+      this.prisma.user.count({
+        where: {
+          organization_id: organizationId,
+          role: 'TEACHER',
+          teacherProfile: { status: TeacherStatus.DELETED },
+        },
+      }),
+      // Teachers by subject (excluding deleted)
       this.prisma.teacherProfile.findMany({
         where: {
+          status: { not: TeacherStatus.DELETED },
           user: {
             organization_id: organizationId,
             role: 'TEACHER',
@@ -453,6 +476,7 @@ export class TeacherService {
       total,
       active,
       inactive,
+      deleted,
       by_subject: Object.entries(subjectCounts).map(([subject, count]) => ({
         subject,
         count,
@@ -460,10 +484,55 @@ export class TeacherService {
     };
   }
 
+  async findDeleted(
+    organizationId: string,
+    page: number,
+    limit: number,
+    search?: string,
+  ) {
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.UserWhereInput = {
+      organization_id: organizationId,
+      role: 'TEACHER',
+      teacherProfile: { status: TeacherStatus.DELETED },
+    };
+
+    if (search) {
+      where.OR = [
+        { full_name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [teachers, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        include: { teacherProfile: true },
+        orderBy: { teacherProfile: { deleted_at: 'desc' } },
+        skip,
+        take: limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      teachers: teachers.map((t) =>
+        this.formatTeacherResponse(t, t.teacherProfile),
+      ),
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   /**
    * Update teacher status
    */
-  async updateStatus(id: string, organizationId: string, status: 'ACTIVE' | 'INACTIVE') {
+  async updateStatus(id: string, organizationId: string, status: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE') {
     const teacher = await this.prisma.user.findFirst({
       where: {
         id,
@@ -493,6 +562,7 @@ export class TeacherService {
         id,
         organization_id: organizationId,
         role: 'TEACHER',
+        teacherProfile: { status: { not: TeacherStatus.DELETED } },
       },
     });
 
@@ -549,6 +619,7 @@ export class TeacherService {
       qualifications: profile?.qualifications || null,
       bio: profile?.bio || null,
       status: profile?.status || 'INACTIVE',
+      deleted_at: profile?.deleted_at ?? null,
       created_at: user.created_at,
       updated_at: user.updated_at,
     };

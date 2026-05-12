@@ -7,5 +7,6 @@ export class StudentResponseDto {
   address: string | null;
   parent?: string;
   status: StudentStatus;
+  deleted_at: Date | null;
   organization_id: string;
 }

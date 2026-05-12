@@ -49,6 +49,7 @@ model Organization {
   expenses                 Expense[]
   invoices                 Invoice[]
   groupSchedules           GroupSchedule[]
+  journalEntries           JournalEntry[]
 
   @@index([status])
 }
@@ -64,12 +65,13 @@ model User {
   updated_at      DateTime        @default(now()) @updatedAt
   phone           String          @unique
   refresh_token   String?
-  teachingGroups  Group[]         @relation("GroupTeacher")
-  cashierPayments Payment[]       @relation("PaymentCashier")
-  notes           Note[]
-  expenses        Expense[]
-  teacherProfile  TeacherProfile?
-  studentProfile  Student?
+  teachingGroups           Group[]         @relation("GroupTeacher")
+  cashierPayments          Payment[]       @relation("PaymentCashier")
+  notes                    Note[]
+  expenses                 Expense[]
+  teacherProfile           TeacherProfile?
+  studentProfile           Student?
+  journalEntriesAsTeacher  JournalEntry[]  @relation("JournalTeacher")
   organization    Organization    @relation(fields: [organization_id], references: [id])
 
   @@unique([organization_id, email])
@@ -105,6 +107,7 @@ model Group {
   updated_at      DateTime        @default(now()) @updatedAt
   enrollments     Enrollment[]
   schedules       GroupSchedule[]
+  journalEntries  JournalEntry[]
   course          Course          @relation(fields: [course_id], references: [id])
   organization    Organization    @relation(fields: [organization_id], references: [id])
   teacher         User            @relation("GroupTeacher", fields: [teacher_id], references: [id])
@@ -157,7 +160,7 @@ model Student {
   status          StudentStatus
 
   // Optional link to a User account (set via /students/:id/invite)
-  user_id         String?       @unique @db.Uuid
+  user_id String? @unique @db.Uuid
 
   // Qoshimcha maydonlar (CRM uchun)
   birth_date      DateTime?     @db.Date
@@ -170,11 +173,13 @@ model Student {
   school_or_work  String?
   internal_notes  String?       @db.Text
   level           StudentLevel?
+  deleted_at      DateTime?
   created_at      DateTime      @default(now())
   updated_at      DateTime      @default(now()) @updatedAt
   enrollments     Enrollment[]
   payments        Payment[]
   invoices        Invoice[]
+  journalEntries  JournalEntry[]
   organization    Organization  @relation(fields: [organization_id], references: [id])
   user            User?         @relation(fields: [user_id], references: [id], onDelete: SetNull)
 
@@ -427,6 +432,7 @@ enum UserRole {
 enum StudentStatus {
   ACTIVE
   INACTIVE
+  DELETED
 }
 
 enum LeadStatus {
@@ -497,6 +503,7 @@ model TeacherProfile {
   qualifications String?
   bio            String?
   status         TeacherStatus @default(ACTIVE)
+  deleted_at     DateTime?
   created_at     DateTime      @default(now())
   updated_at     DateTime      @default(now()) @updatedAt
 
@@ -509,12 +516,44 @@ enum TeacherStatus {
   ACTIVE
   INACTIVE
   ON_LEAVE
+  DELETED
 }
 
 enum Gender {
   MALE
   FEMALE
   OTHER
+}
+
+model JournalEntry {
+  id              String        @id @default(uuid()) @db.Uuid
+  organization_id String        @db.Uuid
+  group_id        String        @db.Uuid
+  student_id      String        @db.Uuid
+  teacher_id      String        @db.Uuid
+  date            DateTime      @db.Date
+  status          JournalStatus
+  score           Int?
+  notes           String?
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @default(now()) @updatedAt
+
+  organization Organization @relation(fields: [organization_id], references: [id])
+  group        Group        @relation(fields: [group_id], references: [id])
+  student      Student      @relation(fields: [student_id], references: [id])
+  teacher      User         @relation("JournalTeacher", fields: [teacher_id], references: [id])
+
+  @@unique([group_id, student_id, date])
+  @@index([organization_id])
+  @@index([group_id])
+  @@index([teacher_id])
+  @@index([student_id, date])
+}
+
+enum JournalStatus {
+  PRESENT
+  ABSENT
+  LATE
 }
 
 enum StudentLevel {

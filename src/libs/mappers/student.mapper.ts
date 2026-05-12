@@ -9,5 +9,6 @@ export const toStudentResponse = (student: Student): StudentResponseDto => ({
   address: student.address,
   parent: student.parent ?? undefined,
   status: student.status,
+  deleted_at: student.deleted_at,
   organization_id: student.organization_id,
 });

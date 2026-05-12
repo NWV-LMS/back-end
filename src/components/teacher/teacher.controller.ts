@@ -25,8 +25,8 @@ import { IsIn, IsNotEmpty } from 'class-validator';
 
 class UpdateStatusDto {
   @IsNotEmpty()
-  @IsIn(['ACTIVE', 'INACTIVE'])
-  status: 'ACTIVE' | 'INACTIVE';
+  @IsIn(['ACTIVE', 'INACTIVE', 'ON_LEAVE'])
+  status: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
 }
 
 @ApiTags('Teachers')
@@ -77,6 +77,23 @@ export class TeacherController {
   @ApiOperation({ summary: 'Get teachers statistics' })
   getStatistics(@OrganizationId() organizationId: string) {
     return this.teacherService.getStatistics(organizationId);
+  }
+
+  @Roles(UserRole.SUPER_ADMIN)
+  @Get('deleted')
+  @ApiOperation({ summary: 'Get soft-deleted teachers (SUPER_ADMIN only)' })
+  findDeleted(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+    @Query('search') search: string,
+    @OrganizationId() organizationId: string,
+  ) {
+    return this.teacherService.findDeleted(
+      organizationId,
+      parseInt(page),
+      parseInt(limit),
+      search,
+    );
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER)

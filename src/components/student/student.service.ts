@@ -61,13 +61,16 @@ export class StudentService {
     const { page = 1, limit = 10, search, status } = query;
     const skip = (page - 1) * limit;
 
+    if (status === StudentStatus.DELETED) {
+      throw new BadRequestException(
+        'Use /student/deleted endpoint to view deleted students',
+      );
+    }
+
     const where: Prisma.StudentWhereInput = {
       organization_id: organizationId,
+      status: status ?? { not: StudentStatus.DELETED },
     };
-
-    if (status) {
-      where.status = status;
-    }
 
     if (search) {
       where.OR = [
@@ -106,6 +109,7 @@ export class StudentService {
       where: {
         id,
         organization_id: organizationId,
+        status: { not: StudentStatus.DELETED },
       },
     });
 
@@ -139,8 +143,12 @@ export class StudentService {
   ): Promise<{ message: string }> {
     await this.findOne(id, organizationId);
 
-    await this.database.student.delete({
+    await this.database.student.update({
       where: { id },
+      data: {
+        status: StudentStatus.DELETED,
+        deleted_at: new Date(),
+      },
     });
 
     return { message: 'Student deleted successfully' };
@@ -242,6 +250,148 @@ export class StudentService {
     }
 
     return { created, skipped, failed };
+  }
+
+  async getStatistics(organizationId: string) {
+    const [total, active, inactive, deleted, enrollmentCount] =
+      await Promise.all([
+        this.database.student.count({
+          where: {
+            organization_id: organizationId,
+            status: { not: StudentStatus.DELETED },
+          },
+        }),
+        this.database.student.count({
+          where: {
+            organization_id: organizationId,
+            status: StudentStatus.ACTIVE,
+          },
+        }),
+        this.database.student.count({
+          where: {
+            organization_id: organizationId,
+            status: StudentStatus.INACTIVE,
+          },
+        }),
+        this.database.student.count({
+          where: {
+            organization_id: organizationId,
+            status: StudentStatus.DELETED,
+          },
+        }),
+        this.database.enrollment.count({
+          where: { organization_id: organizationId },
+        }),
+      ]);
+
+    return {
+      total,
+      active,
+      inactive,
+      deleted,
+      enrollmentCount,
+    };
+  }
+
+  async findDeleted(
+    organizationId: string,
+    query: QueryStudentDto,
+  ): Promise<PaginatedStudentResponseDto> {
+    const { page = 1, limit = 10, search } = query;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.StudentWhereInput = {
+      organization_id: organizationId,
+      status: StudentStatus.DELETED,
+    };
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.database.student.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { deleted_at: 'desc' },
+      }),
+      this.database.student.count({ where }),
+    ]);
+
+    return {
+      items: items.map(toStudentResponse),
+      meta: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getStudentDetail(id: string, organizationId: string) {
+    const student = await this.database.student.findFirst({
+      where: {
+        id,
+        organization_id: organizationId,
+        status: { not: StudentStatus.DELETED },
+      },
+      include: {
+        enrollments: {
+          include: {
+            group: {
+              include: {
+                course: {
+                  select: {
+                    id: true,
+                    title: true,
+                  },
+                },
+                teacher: {
+                  select: {
+                    id: true,
+                    full_name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!student) {
+      throw new NotFoundException('Student not found');
+    }
+
+    return {
+      ...toStudentResponse(student),
+      enrollments: student.enrollments.map((enrollment) => ({
+        id: enrollment.id,
+        group_id: enrollment.group_id,
+        enrolled_at: enrollment.enrolled_at,
+        group: {
+          id: enrollment.group.id,
+          name: enrollment.group.name,
+          course: enrollment.group.course
+            ? {
+                id: enrollment.group.course.id,
+                title: enrollment.group.course.title,
+              }
+            : null,
+          teacher: enrollment.group.teacher
+            ? {
+                id: enrollment.group.teacher.id,
+                full_name: enrollment.group.teacher.full_name,
+              }
+            : null,
+        },
+      })),
+    };
   }
 }
 
