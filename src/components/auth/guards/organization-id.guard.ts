@@ -16,6 +16,14 @@ export class OrganizationIdGuard implements CanActivate {
       throw new UnauthorizedException('User not authenticated');
     }
 
+    if (user.role === 'SUPER_ADMIN') {
+      const headerId = request.headers['x-organization-id'];
+      if (headerId) {
+        request.organizationId = headerId;
+        return true;
+      }
+    }
+
     if (!user.organization_id) {
       throw new UnauthorizedException(
         'Organization ID is required but not found in token',

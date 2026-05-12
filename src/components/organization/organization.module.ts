@@ -1,11 +1,11 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { PlatformController } from './organization.controller';
+import { PlatformController, OrganizationController } from './organization.controller';
 import { UserModule } from '../user/user.module';
 import { OrganizationService } from './organization.service';
 
 @Module({
   imports: [forwardRef(() => UserModule)],
-  controllers: [PlatformController],
+  controllers: [PlatformController, OrganizationController],
   providers: [OrganizationService],
   exports: [OrganizationService],
 })

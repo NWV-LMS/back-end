@@ -7,17 +7,14 @@ import { DatabaseService } from '../../database/database.service';
 import { CreateLeadDto } from '../../libs/dto/lead/create-lead.dto';
 import { UpdateLeadDto } from '../../libs/dto/lead/update-lead.dto';
 import { LeadResponseDto } from '../../libs/dto/lead/lead-response.dto';
-import { LeadStatus } from '@prisma/client';
-import { UserRole, StudentStatus } from '@prisma/client';
+import { LeadStatus, Prisma, StudentStatus } from '@prisma/client';
 import { QueryLeadDto } from '../../libs/dto/lead/query-lead.dto';
 import { ConvertLeadDto } from '../../libs/dto/lead/convert-lead.dto';
 import { toLeadResponse } from '../../libs/mappers/lead.mapper';
 
-import * as bcrypt from 'bcrypt';
-
 @Injectable()
 export class LeadService {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(private readonly database: DatabaseService) { }
 
   async create(
     createLeadDto: CreateLeadDto,
@@ -57,7 +54,7 @@ export class LeadService {
     const { page = 1, limit = 20, search, status, source } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {
+    const where: Prisma.LeadWhereInput = {
       organization_id: organizationId,
     };
 
@@ -88,11 +85,12 @@ export class LeadService {
 
     return {
       // Map DB entities to DTOs to keep API contract stable.
-      data: data.map(toLeadResponse),
+      items: data.map(toLeadResponse),
       meta: {
         total,
         page,
-        lastPage: Math.ceil(total / limit),
+        limit,
+        pages: Math.ceil(total / limit),
       },
     };
   }
@@ -142,29 +140,6 @@ export class LeadService {
       throw new BadRequestException('Lead is already converted');
     }
 
-    let user = await this.database.user.findUnique({
-      where: { phone: lead.phone },
-    });
-
-    let temporaryPassword;
-
-    if (!user) {
-      const password = dto.password ?? '123456';
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      user = await this.database.user.create({
-        data: {
-          organization_id: organizationId,
-          full_name: lead.full_name,
-          email: `${lead.phone}@system.local`,
-          phone: lead.phone,
-          password: hashedPassword,
-          role: UserRole.STUDENT,
-        },
-      });
-      temporaryPassword = password;
-    }
-
     const existingStudent = await this.database.student.findFirst({
       where: {
         phone: lead.phone,
@@ -187,7 +162,7 @@ export class LeadService {
         data: {
           organization_id: organizationId,
           name: lead.full_name,
-          address: dto.address,
+          address: dto.address ?? null,
           phone: lead.phone,
           parent: dto.parent,
           status: StudentStatus.ACTIVE,
@@ -198,12 +173,6 @@ export class LeadService {
     return {
       message: 'Lead converted successfully',
       student: newStudent,
-      user: {
-        id: user.id,
-        phone: user.phone,
-        role: user.role,
-      },
-      temporaryPassword,
     };
   }
 }

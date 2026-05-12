@@ -18,6 +18,7 @@ import { BillingModule } from './billing/billing.module';
 import { NotificationModule } from './notification/notification.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { TeacherModule } from './teacher/teacher.module';
+import { JournalModule } from './journal/journal.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { TeacherModule } from './teacher/teacher.module';
     NotificationModule,
     CalendarModule,
     TeacherModule,
+    JournalModule,
   ],
   exports: [AuthModule, UserModule, TeacherModule],
 })

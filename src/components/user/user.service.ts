@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { OrganizationStatus, UserRole } from '@prisma/client';
+import { OrganizationStatus, Prisma, UserRole } from '@prisma/client';
 import { UserUpdateDto } from '../../libs/dto/auth/userUpdate.dto';
 import { InviteUserDto } from '../../libs/dto/auth/invite-user.dto';
 import { LoginDto, LoginResponseDto } from '../../libs/dto/auth/login.dto';
@@ -250,7 +250,7 @@ export class UserService {
     const { page = 1, limit = 20, search, organization_id, role } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
     if (organization_id) where.organization_id = organization_id;
     if (role) where.role = role;
     if (search) {

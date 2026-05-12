@@ -28,7 +28,7 @@ import { GroupService } from './group.service';
 export class GroupController {
   constructor(private readonly groupService: GroupService) {}
 
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER)
   @Post()
   create(
     @Body() dto: CreateGroupDto,
@@ -37,7 +37,7 @@ export class GroupController {
     return this.groupService.create(dto, organizationId);
   }
 
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER, UserRole.STUDENT)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER, UserRole.STUDENT)
   @Get()
   findAll(
     @OrganizationId() organizationId: string,
@@ -45,7 +45,7 @@ export class GroupController {
     return this.groupService.findAll(organizationId);
   }
 
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get(':id')
   findOne(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,

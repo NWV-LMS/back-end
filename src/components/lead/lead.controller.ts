@@ -26,7 +26,7 @@ import { Query } from '@nestjs/common';
 import { ConvertLeadDto } from '../../libs/dto/lead/convert-lead.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard, OrganizationIdGuard)
-@Roles(UserRole.ADMIN, UserRole.MANAGER)
+@Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
 @Controller('lead')
 export class LeadController {
   constructor(private readonly leadService: LeadService) {}

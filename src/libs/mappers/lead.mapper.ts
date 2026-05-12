@@ -10,4 +10,6 @@ export const toLeadResponse = (lead: Lead): LeadResponseDto => ({
   phone: lead.phone,
   source: lead.source,
   status: lead.status,
+  created_at: lead.created_at.toISOString(),
+  updated_at: lead.updated_at.toISOString(),
 });

@@ -25,7 +25,7 @@ import { CourseService } from './course.service';
 export class CourseController {
   constructor(private readonly courseService: CourseService) {}
 
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER)
   @Post()
   create(
     @Body() dto: CreateCourseDto,
@@ -34,7 +34,7 @@ export class CourseController {
     return this.courseService.create(dto, organizationId);
   }
 
-  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER, UserRole.STUDENT)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER, UserRole.STUDENT)
   @Get()
   findAll(
     @OrganizationId() organizationId: string,
