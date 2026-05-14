@@ -11,7 +11,7 @@ export class AppController {
   }
 
   @Get('health')
-  healthCheck() {
+  healthCheck(): Promise<import('./libs/config').HealthCheckResponse> {
     return this.appService.healthCheck();
   }
 }

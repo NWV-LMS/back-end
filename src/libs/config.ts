@@ -3,6 +3,7 @@ export interface HealthCheckResponse {
   timestamp: string;
   uptime: number;
   environment: string;
+  db: 'up' | 'down';
 }
 
 export interface ApiInfoResponse {
