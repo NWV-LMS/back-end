@@ -4,9 +4,9 @@ services:
     container_name: crm-lms-nginx
     ports:
       - "80:80"
-      # - "443:443" # Uncomment if setting up SSL
+      # - "443:443" # Uncomment when SSL is configured
     volumes:
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
     depends_on:
       - api
     restart: always
@@ -22,13 +22,16 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: crm-lms-api_prod
-    ports:
-      - "3001:3001"
+    expose:
+      - "3001"
     env_file:
       - .env.production.local
     environment:
-      # DATABASE_URL is loaded from .env.production.local
       - NODE_ENV=production
+      # Override DATABASE_URL to use the local db container
+      - DATABASE_URL=postgresql://leo:${POSTGRES_PASSWORD:-changeme}@db:5432/crm_prod
+      # Set RUN_SEED=true ONLY on first deploy to seed initial data
+      - RUN_SEED=${RUN_SEED:-false}
     volumes:
       - uploads-data:/app/uploads
     depends_on:
@@ -39,33 +42,41 @@ services:
       resources:
         limits:
           memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     logging: *logging
 
-  worker:
-    build: .
-    command: ["node", "dist/src/worker.js"]
-    container_name: crm-lms-worker
-    env_file:
-      - .env.production.local
-    environment:
-      - DATABASE_URL=postgresql://leo:prod1@db:5432/crm_prod
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-    logging: *logging
+  # Worker is disabled for MVP. Enable when Telegram/WhatsApp notifications are needed.
+  # worker:
+  #   image: abduvalileo/crm-lms-api:latest
+  #   command: ["node", "dist/src/worker.js"]
+  #   container_name: crm-lms-worker
+  #   env_file:
+  #     - .env.production.local
+  #   environment:
+  #     - NODE_ENV=production
+  #     - DATABASE_URL=postgresql://leo:${POSTGRES_PASSWORD:-changeme}@db:5432/crm_prod
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   restart: always
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512M
+  #   logging: *logging
 
   db:
-    image: postgres:13
+    image: postgres:16-alpine
     container_name: crm-lms-db_prod
     environment:
       POSTGRES_DB: crm_prod
       POSTGRES_USER: leo
-      POSTGRES_PASSWORD: prod1
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -75,8 +86,9 @@ services:
       retries: 5
     restart: always
     logging: *logging
-    ports:
-      - "5432:5432" # Exposed for local debugging, remove for prod isolation
+    # Port exposed only on loopback for debugging; remove for full isolation.
+    # ports:
+    #   - "127.0.0.1:5432:5432"
 
 volumes:
   db-data:

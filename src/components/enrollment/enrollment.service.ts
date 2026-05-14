@@ -13,6 +13,7 @@ import {
   DeleteEnrollmentResponseDto,
 } from '../../libs/dto/enrollment/enrollment-response.dto';
 import { PaginatedEnrollmentResponseDto } from '../../libs/dto/enrollment/paginated-enrollment-response.dto';
+import { Prisma } from '@prisma/client';
 import { toEnrollmentResponse } from '../../libs/mappers/enrollment.mapper';
 
 const ENROLLMENT_INCLUDE = {
@@ -76,6 +77,7 @@ export class EnrollmentService {
 
     const existingEnrollment = await this.database.enrollment.findFirst({
       where: {
+        organization_id: organizationId,
         student_id: dto.student_id,
         group_id: dto.group_id,
       },
@@ -110,10 +112,10 @@ export class EnrollmentService {
     const { page, limit, student_id, group_id } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-    const groupWhere: any = {
+    const groupWhere: Prisma.GroupWhereInput = {
       organization_id: organizationId,
     };
+    const where: Prisma.EnrollmentWhereInput = {};
 
     if (group_id) {
       groupWhere.id = group_id;
@@ -248,6 +250,7 @@ export class EnrollmentService {
 
       const existingEnrollment = await this.database.enrollment.findFirst({
         where: {
+          organization_id: organizationId,
           id: { not: id },
           student_id: (
             await this.database.enrollment.findUnique({ where: { id } })

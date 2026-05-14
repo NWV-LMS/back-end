@@ -8,7 +8,7 @@
 # Must use the same base as the runner so Prisma's "native" engine target
 # matches the runtime glibc/OpenSSL (debian). Alpine builder produced
 # linux-musl engines incompatible with the debian runner.
-FROM node:20-bullseye AS builder
+FROM --platform=linux/amd64 node:20-bullseye AS builder
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ RUN npx tsc prisma/seed.ts --outDir dist --module commonjs --target ES2021 --ski
 # -----------------------------------------------------------------------------
 # Stage 2: Runner - Production image with minimal footprint
 # -----------------------------------------------------------------------------
-FROM node:20-bullseye AS runner
+FROM --platform=linux/amd64 node:20-bullseye AS runner
 
 # Install OpenSSL 1.1 for Prisma engine compatibility
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -70,7 +70,7 @@ ENV NODE_ENV=production
 RUN mkdir -p /app/uploads/logos
 
 # Expose application port
-EXPOSE 3000
+EXPOSE 3001
 
 # Start application via entrypoint script
 CMD ["./entrypoint.sh"]

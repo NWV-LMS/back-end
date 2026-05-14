@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -41,6 +42,14 @@ export class StudentInviteService {
     const existingUser = await this.database.user.findUnique({
       where: { phone: student.phone },
     });
+
+    // Prevent cross-tenant user linking: if a user with this phone exists
+    // but belongs to a different organization, reject the request.
+    if (existingUser && existingUser.organization_id !== organizationId) {
+      throw new ForbiddenException(
+        'A user account with this phone number belongs to another organization',
+      );
+    }
 
     const password = dto.password ?? Math.random().toString(36).slice(-10);
     const isNewUser = !existingUser;

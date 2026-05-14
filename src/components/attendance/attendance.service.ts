@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { Attendance, Prisma } from '@prisma/client';
 import { DatabaseService } from '../../database/database.service';
 import { MarkAttendanceDto } from '../../libs/dto/attendance/mark-attendance.dto';
 import { QueryAttendanceDto } from '../../libs/dto/attendance/query-attendance.dto';
@@ -40,9 +41,10 @@ export class AttendanceService {
       throw new NotFoundException('Lesson not found');
     }
 
-    // Check if attendance already marked
+    // Check if attendance already marked (defensive org filter)
     const existing = await this.database.attendance.findFirst({
       where: {
+        organization_id: organizationId,
         enrollment_id: dto.enrollment_id,
         lesson_id: dto.lesson_id,
       },
@@ -76,7 +78,7 @@ export class AttendanceService {
     const { page = 1, limit = 20, enrollment_id, lesson_id, group_id, status } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {
+    const where: Prisma.AttendanceWhereInput = {
       organization_id: organizationId,
     };
 
@@ -110,7 +112,7 @@ export class AttendanceService {
     };
   }
 
-  private toResponse(attendance: any): AttendanceResponseDto {
+  private toResponse(attendance: Attendance): AttendanceResponseDto {
     return {
       id: attendance.id,
       enrollment_id: attendance.enrollment_id,

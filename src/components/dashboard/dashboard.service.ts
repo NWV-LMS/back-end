@@ -34,19 +34,19 @@ export class DashboardService {
   ): Promise<DashboardSummaryDto> {
     const { from, to } = dateRangeOrUndefined(query);
 
-    const studentsWhere: any = { organization_id: organizationId };
-    const leadsWhere: any = { organization_id: organizationId };
-    const coursesWhere: any = { organization_id: organizationId };
-    const groupsWhere: any = { organization_id: organizationId };
-    const enrollmentsWhere: any = { organization_id: organizationId };
-    const paymentsWhere: any = { organization_id: organizationId };
-    const attendanceWhere: any = { organization_id: organizationId };
-    const progressWhere: any = { organization_id: organizationId };
+    const studentsWhere: Prisma.StudentWhereInput = { organization_id: organizationId };
+    const leadsWhere: Prisma.LeadWhereInput = { organization_id: organizationId };
+    const coursesWhere: Prisma.CourseWhereInput = { organization_id: organizationId };
+    const groupsWhere: Prisma.GroupWhereInput = { organization_id: organizationId };
+    const enrollmentsWhere: Prisma.EnrollmentWhereInput = { organization_id: organizationId };
+    const paymentsWhere: Prisma.PaymentWhereInput = { organization_id: organizationId };
+    const attendanceWhere: Prisma.AttendanceWhereInput = { organization_id: organizationId };
+    const progressWhere: Prisma.ProgressWhereInput = { organization_id: organizationId };
 
     // Time filters where relevant.
     if (from || to) {
       // Most models have created_at.
-      const createdAt: any = {};
+      const createdAt: { gte?: Date; lte?: Date } = {};
       if (from) createdAt.gte = from;
       if (to) createdAt.lte = to;
 
@@ -57,12 +57,12 @@ export class DashboardService {
       progressWhere.created_at = createdAt;
 
       // These models have their own timestamps.
-      const paidAt: any = {};
+      const paidAt: { gte?: Date; lte?: Date } = {};
       if (from) paidAt.gte = from;
       if (to) paidAt.lte = to;
       paymentsWhere.paid_at = paidAt;
 
-      const markedAt: any = {};
+      const markedAt: { gte?: Date; lte?: Date } = {};
       if (from) markedAt.gte = from;
       if (to) markedAt.lte = to;
       attendanceWhere.marked_at = markedAt;
@@ -184,9 +184,9 @@ export class DashboardService {
     query: QueryDashboardDto,
   ): Promise<StatusCountDto[]> {
     const { from, to } = dateRangeOrUndefined(query);
-    const where: any = { organization_id: organizationId };
+    const where: Prisma.LeadWhereInput = { organization_id: organizationId };
     if (from || to) {
-      const createdAt: any = {};
+      const createdAt: { gte?: Date; lte?: Date } = {};
       if (from) createdAt.gte = from;
       if (to) createdAt.lte = to;
       where.created_at = createdAt;
@@ -207,9 +207,9 @@ export class DashboardService {
     query: QueryDashboardDto,
   ): Promise<PaymentsByMethodDto[]> {
     const { from, to } = dateRangeOrUndefined(query);
-    const where: any = { organization_id: organizationId };
+    const where: Prisma.PaymentWhereInput = { organization_id: organizationId };
     if (from || to) {
-      const paidAt: any = {};
+      const paidAt: { gte?: Date; lte?: Date } = {};
       if (from) paidAt.gte = from;
       if (to) paidAt.lte = to;
       where.paid_at = paidAt;
@@ -240,7 +240,7 @@ export class DashboardService {
 
     // Use raw SQL for date bucketing (Prisma groupBy can't do date_trunc).
     const rows = await this.database.$queryRaw<
-      { day: Date; count: number; total_amount: any }[]
+      { day: Date; count: number; total_amount: Prisma.Decimal | string }[]
     >(Prisma.sql`
       SELECT
         date_trunc('day', paid_at) AS day,

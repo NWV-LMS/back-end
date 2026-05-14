@@ -15,8 +15,9 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage, MulterFile } from 'multer';
+import { randomUUID } from 'crypto';
 import { extname, join } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { tmpdir } from 'os';
 import { Request } from 'express';
 import { CreateOrganizationDto } from '../../libs/dto/organization/create-organization.dto';
 import { UpdateOrganizationDto } from '../../libs/dto/organization/update-organization.dto';
@@ -38,6 +39,10 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { OrganizationId } from '../auth/decorators/organization-id.decorator';
 import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
+
+const uploadRoot = process.env.VERCEL
+  ? join(tmpdir(), 'uploads')
+  : join(process.cwd(), 'uploads');
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPER_ADMIN)
@@ -98,9 +103,9 @@ export class OrganizationController {
   @UseInterceptors(
     FileInterceptor('logo', {
       storage: diskStorage({
-        destination: join(process.cwd(), 'uploads', 'logos'),
+        destination: join(uploadRoot, 'logos'),
         filename: (_req, file: MulterFile, cb) => {
-          cb(null, `${uuidv4()}${extname(file.originalname)}`);
+          cb(null, `${randomUUID()}${extname(file.originalname)}`);
         },
       }),
       limits: { fileSize: 5 * 1024 * 1024 },

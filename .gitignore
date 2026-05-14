@@ -62,3 +62,6 @@ docs/
 /generated/prisma
 .vercel
 .env*.local
+
+# Uploaded files (logos, etc.) — persisted via Docker volume in prod
+/uploads

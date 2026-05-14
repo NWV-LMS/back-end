@@ -3,11 +3,6 @@ generator client {
   binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
 }
 
-generator client_custom {
-  provider      = "prisma-client-js"
-  output        = "../generated/prisma"
-  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
-}
 
 datasource db {
   provider = "postgresql"
@@ -51,6 +46,8 @@ model Organization {
   invoices                 Invoice[]
   groupSchedules           GroupSchedule[]
   journalEntries           JournalEntry[]
+  lessons                  Lesson[]
+  invoiceItems             InvoiceItem[]
 
   @@index([status])
 }
@@ -111,7 +108,7 @@ model Group {
   journalEntries  JournalEntry[]
   course          Course          @relation(fields: [course_id], references: [id])
   organization    Organization    @relation(fields: [organization_id], references: [id])
-  teacher         User            @relation("GroupTeacher", fields: [teacher_id], references: [id])
+  teacher         User            @relation("GroupTeacher", fields: [teacher_id], references: [id], onDelete: Restrict)
 
   @@index([organization_id])
   @@index([course_id])
@@ -131,7 +128,7 @@ model GroupSchedule {
   updated_at       DateTime @default(now()) @updatedAt
 
   organization Organization @relation(fields: [organization_id], references: [id])
-  group        Group        @relation(fields: [group_id], references: [id])
+  group        Group        @relation(fields: [group_id], references: [id], onDelete: Cascade)
 
   @@unique([group_id, day_of_week, start_minute])
   @@index([organization_id, day_of_week])
@@ -139,16 +136,21 @@ model GroupSchedule {
 }
 
 model Lesson {
-  id         String       @id @default(uuid()) @db.Uuid
-  course_id  String       @db.Uuid
-  title      String
-  desc       String?
-  start_date DateTime     @db.Date
-  end_date   DateTime     @db.Date
-  attendance Attendance[]
-  exams      Exam[]
-  course     Course       @relation(fields: [course_id], references: [id])
-  progress   Progress[]
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String?      @db.Uuid
+  course_id       String       @db.Uuid
+  title           String
+  desc            String?
+  start_date      DateTime     @db.Date
+  end_date        DateTime     @db.Date
+  attendance      Attendance[]
+  exams           Exam[]
+  course          Course       @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  organization    Organization? @relation(fields: [organization_id], references: [id])
+  progress        Progress[]
+
+  @@index([organization_id])
+  @@index([course_id])
 }
 
 model Student {
@@ -187,6 +189,7 @@ model Student {
   // Prevent duplicate student phone numbers inside the same organization.
   @@unique([organization_id, phone])
   @@index([organization_id, status])
+  @@index([organization_id, deleted_at])
 }
 
 model Enrollment {
@@ -194,14 +197,14 @@ model Enrollment {
   organization_id String        @db.Uuid
   student_id      String        @db.Uuid
   group_id        String        @db.Uuid
-  monthly_fee     Decimal       @default(0)
+  monthly_fee     Decimal       @default(0) @db.Decimal(12, 2)
   billing_active  Boolean       @default(true)
   enrolled_at     DateTime      @default(now())
   created_at      DateTime      @default(now())
   updated_at      DateTime      @default(now()) @updatedAt
   attendance      Attendance[]
-  group           Group         @relation(fields: [group_id], references: [id])
-  student         Student       @relation(fields: [student_id], references: [id])
+  group           Group         @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  student         Student       @relation(fields: [student_id], references: [id], onDelete: Cascade)
   organization    Organization  @relation(fields: [organization_id], references: [id])
   progress        Progress[]
   invoiceItems    InvoiceItem[]
@@ -222,8 +225,8 @@ model Attendance {
   marked_at       DateTime         @default(now())
   created_at      DateTime         @default(now())
   updated_at      DateTime         @default(now()) @updatedAt
-  enrollment      Enrollment       @relation(fields: [enrollment_id], references: [id])
-  lesson          Lesson           @relation(fields: [lesson_id], references: [id])
+  enrollment      Enrollment       @relation(fields: [enrollment_id], references: [id], onDelete: Cascade)
+  lesson          Lesson           @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
   organization    Organization     @relation(fields: [organization_id], references: [id])
 
   // Prevent duplicate attendance rows for the same lesson/enrollment.
@@ -241,8 +244,8 @@ model Progress {
   title           String
   created_at      DateTime     @default(now())
   updated_at      DateTime     @default(now()) @updatedAt
-  enrollment      Enrollment   @relation(fields: [enrollment_id], references: [id])
-  lesson          Lesson       @relation(fields: [lesson_id], references: [id])
+  enrollment      Enrollment   @relation(fields: [enrollment_id], references: [id], onDelete: Cascade)
+  lesson          Lesson       @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
   organization    Organization @relation(fields: [organization_id], references: [id])
 
   @@index([organization_id])
@@ -258,9 +261,12 @@ model Exam {
   desc            String?
   created_at      DateTime     @default(now())
   updated_at      DateTime     @default(now()) @updatedAt
-  lesson          Lesson       @relation(fields: [lesson_id], references: [id])
+  lesson          Lesson       @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
   tests           Test[]
   organization    Organization @relation(fields: [organization_id], references: [id])
+
+  @@index([organization_id])
+  @@index([lesson_id])
 }
 
 model Test {
@@ -271,8 +277,11 @@ model Test {
   scores          Int
   created_at      DateTime     @default(now())
   updated_at      DateTime     @default(now()) @updatedAt
-  exam            Exam         @relation(fields: [exam_id], references: [id])
+  exam            Exam         @relation(fields: [exam_id], references: [id], onDelete: Cascade)
   organization    Organization @relation(fields: [organization_id], references: [id])
+
+  @@index([organization_id])
+  @@index([exam_id])
 }
 
 model Lead {
@@ -297,12 +306,15 @@ model Note {
   id              String       @id @default(uuid()) @db.Uuid
   organization_id String       @db.Uuid
   lead_id         String       @db.Uuid
-  user_id         String       @db.Uuid
+  user_id         String?      @db.Uuid
   content         String
   created_at      DateTime     @default(now())
-  lead            Lead         @relation(fields: [lead_id], references: [id])
+  updated_at      DateTime     @default(now()) @updatedAt
+  lead            Lead         @relation(fields: [lead_id], references: [id], onDelete: Cascade)
   organization    Organization @relation(fields: [organization_id], references: [id])
-  user            User         @relation(fields: [user_id], references: [id])
+  user            User?        @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([organization_id, lead_id])
 }
 
 model Payment {
@@ -310,7 +322,7 @@ model Payment {
   organization_id String        @db.Uuid
   student_id      String        @db.Uuid
   invoice_id      String?       @db.Uuid
-  amount          Decimal
+  amount          Decimal       @db.Decimal(12, 2)
   method          PaymentMethod
   status          PaymentStatus @default(COMPLETED)
   description     String?
@@ -320,9 +332,9 @@ model Payment {
   created_at      DateTime      @default(now())
   updated_at      DateTime      @default(now()) @updatedAt
   organization    Organization  @relation(fields: [organization_id], references: [id])
-  student         Student       @relation(fields: [student_id], references: [id])
-  invoice         Invoice?      @relation(fields: [invoice_id], references: [id])
-  cashier         User?         @relation("PaymentCashier", fields: [cashier_user_id], references: [id])
+  student         Student       @relation(fields: [student_id], references: [id], onDelete: Restrict)
+  invoice         Invoice?      @relation(fields: [invoice_id], references: [id], onDelete: SetNull)
+  cashier         User?         @relation("PaymentCashier", fields: [cashier_user_id], references: [id], onDelete: SetNull)
 
   @@unique([organization_id, receipt_number])
   @@index([organization_id])
@@ -340,13 +352,13 @@ model Invoice {
   month           DateTime      @db.Date
   due_date        DateTime      @db.Date
   status          InvoiceStatus @default(OPEN)
-  amount_due      Decimal
-  amount_paid     Decimal       @default(0)
+  amount_due      Decimal       @db.Decimal(12, 2)
+  amount_paid     Decimal       @default(0) @db.Decimal(12, 2)
   created_at      DateTime      @default(now())
   updated_at      DateTime      @default(now()) @updatedAt
 
   organization Organization  @relation(fields: [organization_id], references: [id])
-  student      Student       @relation(fields: [student_id], references: [id])
+  student      Student       @relation(fields: [student_id], references: [id], onDelete: Restrict)
   payments     Payment[]
   items        InvoiceItem[]
 
@@ -358,17 +370,21 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id            String   @id @default(uuid()) @db.Uuid
-  invoice_id    String   @db.Uuid
-  enrollment_id String   @db.Uuid
-  amount        Decimal
-  description   String?
-  created_at    DateTime @default(now())
+  id              String   @id @default(uuid()) @db.Uuid
+  organization_id String?  @db.Uuid
+  invoice_id      String   @db.Uuid
+  enrollment_id   String   @db.Uuid
+  amount          Decimal  @db.Decimal(12, 2)
+  description     String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @default(now()) @updatedAt
 
-  invoice    Invoice    @relation(fields: [invoice_id], references: [id])
-  enrollment Enrollment @relation(fields: [enrollment_id], references: [id])
+  organization Organization? @relation(fields: [organization_id], references: [id])
+  invoice      Invoice        @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  enrollment   Enrollment     @relation(fields: [enrollment_id], references: [id], onDelete: Restrict)
 
   @@unique([invoice_id, enrollment_id])
+  @@index([organization_id])
   @@index([invoice_id])
   @@index([enrollment_id])
 }
@@ -377,24 +393,31 @@ model Expense {
   id              String          @id @default(uuid()) @db.Uuid
   organization_id String          @db.Uuid
   category        ExpenseCategory
-  amount          Decimal
+  amount          Decimal         @db.Decimal(12, 2)
   description     String
   paid_at         DateTime        @default(now())
   created_by      String          @db.Uuid
   created_at      DateTime        @default(now())
   updated_at      DateTime        @default(now()) @updatedAt
   organization    Organization    @relation(fields: [organization_id], references: [id])
-  creator         User            @relation(fields: [created_by], references: [id])
+  creator         User            @relation(fields: [created_by], references: [id], onDelete: Restrict)
 
   @@index([organization_id])
   @@index([organization_id, category])
 }
 
 model Archive {
-  id         String   @id @default(uuid()) @db.Uuid
-  status     UserRole
-  change     Json?
-  created_at DateTime @default(now())
+  id              String        @id @default(uuid()) @db.Uuid
+  organization_id String?       @db.Uuid
+  user_id         String?       @db.Uuid
+  entity_type     String
+  entity_id       String?       @db.Uuid
+  action          ArchiveAction
+  change          Json?
+  created_at      DateTime      @default(now())
+
+  @@index([organization_id])
+  @@index([entity_type, entity_id])
 }
 
 model NotificationJob {
@@ -496,6 +519,14 @@ enum ExpenseCategory {
   OTHER
 }
 
+enum ArchiveAction {
+  CREATED
+  UPDATED
+  DELETED
+  STATUS_CHANGED
+  ROLE_CHANGED
+}
+
 model TeacherProfile {
   id             String        @id @default(uuid()) @db.Uuid
   user_id        String        @unique @db.Uuid
@@ -511,6 +542,7 @@ model TeacherProfile {
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([status])
+  @@index([deleted_at])
 }
 
 enum TeacherStatus {
@@ -540,9 +572,9 @@ model JournalEntry {
   updated_at      DateTime      @default(now()) @updatedAt
 
   organization Organization @relation(fields: [organization_id], references: [id])
-  group        Group        @relation(fields: [group_id], references: [id])
-  student      Student      @relation(fields: [student_id], references: [id])
-  teacher      User         @relation("JournalTeacher", fields: [teacher_id], references: [id])
+  group        Group        @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  student      Student      @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  teacher      User         @relation("JournalTeacher", fields: [teacher_id], references: [id], onDelete: Restrict)
 
   @@unique([group_id, student_id, date])
   @@index([organization_id])

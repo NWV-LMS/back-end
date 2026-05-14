@@ -17,11 +17,30 @@ async function bootstrap() {
 
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
 
-  // Security
-  app.use(helmet());
   const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
+
+  // Security
+  app.use(
+    helmet({
+      contentSecurityPolicy: isProd ? undefined : false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      hsts: isProd
+        ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+        : false,
+    }),
+  );
+
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: true,
+    origin: isProd
+      ? allowedOrigins.length > 0
+        ? allowedOrigins
+        : false
+      : true,
     credentials: true,
   });
   // Swagger API Documentation
@@ -49,7 +68,7 @@ async function bootstrap() {
   );
   app.useGlobalInterceptors(new LoggingInterceptor());
   app.enableShutdownHooks();
-  await app.listen(process.env.PORT || 3000, '0.0.0.0');
+  await app.listen(process.env.PORT || 3001, '0.0.0.0');
   console.log(`Application is running on: ${await app.getUrl()}`);
   if (!isProd) {
     console.log(`Swagger docs: ${await app.getUrl()}/api-docs`);
