@@ -16,6 +16,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
+  app.setGlobalPrefix('api');
 
   const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
 
