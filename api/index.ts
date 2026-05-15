@@ -10,8 +10,9 @@ let cachedServer: any;
 async function bootstrap() {
   if (!cachedServer) {
     const app = await NestFactory.create(AppModule);
-    
+
     // Apply same middleware/pipes as in main.ts
+    app.setGlobalPrefix('api');
     app.use(helmet());
     app.enableCors({
       origin: true,
