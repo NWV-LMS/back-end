@@ -71,7 +71,7 @@ services:
   #   logging: *logging
 
   db:
-    image: postgres:16-alpine
+    image: postgres:13-alpine
     container_name: crm-lms-db_prod
     environment:
       POSTGRES_DB: crm_prod
