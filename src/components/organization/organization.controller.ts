@@ -132,8 +132,19 @@ export class OrganizationController {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const logoUrl = `${baseUrl}/uploads/logos/${file.filename}`;
+
+    // For Vercel serverless: use data URL or external storage
+    let logoUrl: string;
+    if (process.env.VERCEL) {
+      // Encode file as data URL for serverless (files don't persist on /tmp)
+      const base64 = file.buffer.toString('base64');
+      logoUrl = `data:${file.mimetype};base64,${base64}`;
+    } else {
+      // Local development: save to disk
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      logoUrl = `${baseUrl}/uploads/logos/${file.filename}`;
+    }
+
     await this.organizationService.updateOrganization(organizationId, {
       logo_url: logoUrl,
     });
