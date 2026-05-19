@@ -59,6 +59,7 @@ export class TeacherService {
           user_id: user.id,
           subjects: dto.subjects,
           hourly_rate: dto.hourly_rate,
+          salary_type: dto.salary_type ?? 'MONTHLY',
           qualifications: dto.qualifications,
           bio: dto.bio,
         },
@@ -211,6 +212,7 @@ export class TeacherService {
     const profileData: Prisma.TeacherProfileUpdateInput = {};
     if (dto.subjects) profileData.subjects = dto.subjects;
     if (dto.hourly_rate !== undefined) profileData.hourly_rate = dto.hourly_rate;
+    if (dto.salary_type !== undefined) profileData.salary_type = dto.salary_type;
     if (dto.qualifications !== undefined) profileData.qualifications = dto.qualifications;
     if (dto.bio !== undefined) profileData.bio = dto.bio;
     if (dto.status) profileData.status = dto.status;
@@ -616,6 +618,7 @@ export class TeacherService {
       organization_id: user.organization_id,
       subjects: profile?.subjects || [],
       hourly_rate: profile?.hourly_rate ? Number(profile.hourly_rate) : null,
+      salary_type: profile?.salary_type ?? 'MONTHLY',
       qualifications: profile?.qualifications || null,
       bio: profile?.bio || null,
       status: profile?.status || 'INACTIVE',

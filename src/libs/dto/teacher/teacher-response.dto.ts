@@ -9,6 +9,7 @@ export class TeacherResponseDto {
   organization_id: string;
   subjects: TeacherSubject[];
   hourly_rate: number | null;
+  salary_type: string;
   qualifications: string | null;
   bio: string | null;
   status: string;

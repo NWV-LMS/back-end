@@ -532,6 +532,7 @@ model TeacherProfile {
   user_id        String        @unique @db.Uuid
   subjects       String[]
   hourly_rate    Decimal?      @db.Decimal(12, 2)
+  salary_type    SalaryType    @default(MONTHLY)
   qualifications String?
   bio            String?
   status         TeacherStatus @default(ACTIVE)
@@ -550,6 +551,11 @@ enum TeacherStatus {
   INACTIVE
   ON_LEAVE
   DELETED
+}
+
+enum SalaryType {
+  MONTHLY
+  DAILY
 }
 
 enum Gender {

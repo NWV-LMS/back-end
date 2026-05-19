@@ -9,6 +9,7 @@ import {
   IsArray,
 } from 'class-validator';
 import { TeacherSubject } from '../../enums/teacher-subjects.enum';
+import { SalaryType } from '@prisma/client';
 
 export class CreateTeacherDto {
   @IsEmail()
@@ -37,6 +38,10 @@ export class CreateTeacherDto {
   @IsOptional()
   @IsNumber()
   hourly_rate?: number;
+
+  @IsOptional()
+  @IsEnum(SalaryType)
+  salary_type?: SalaryType;
 
   @IsOptional()
   @IsString()
