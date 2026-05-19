@@ -8,17 +8,12 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
-  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage, MulterFile } from 'multer';
-import { randomUUID } from 'crypto';
-import { extname, join } from 'path';
-import { tmpdir } from 'os';
-import { Request } from 'express';
+import { MulterFile } from 'multer';
 import { CreateOrganizationDto } from '../../libs/dto/organization/create-organization.dto';
 import { UpdateOrganizationDto } from '../../libs/dto/organization/update-organization.dto';
 import { Organ } from '../../libs/dto/organization/organization-response.dto';
@@ -39,10 +34,6 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { OrganizationId } from '../auth/decorators/organization-id.decorator';
 import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
-
-const uploadRoot = process.env.VERCEL
-  ? join(tmpdir(), 'uploads')
-  : join(process.cwd(), 'uploads');
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPER_ADMIN)
@@ -102,12 +93,6 @@ export class OrganizationController {
   @Post('logo')
   @UseInterceptors(
     FileInterceptor('logo', {
-      storage: diskStorage({
-        destination: join(uploadRoot, 'logos'),
-        filename: (_req, file: MulterFile, cb) => {
-          cb(null, `${randomUUID()}${extname(file.originalname)}`);
-        },
-      }),
       limits: { fileSize: 5 * 1024 * 1024 },
       fileFilter: (
         _req: unknown,
@@ -127,23 +112,14 @@ export class OrganizationController {
   async uploadLogo(
     @UploadedFile() file: MulterFile,
     @OrganizationId() organizationId: string,
-    @Req() req: Request,
   ): Promise<{ logo_url: string }> {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
 
-    // For Vercel serverless: use data URL or external storage
-    let logoUrl: string;
-    if (process.env.VERCEL) {
-      // Encode file as data URL for serverless (files don't persist on /tmp)
-      const base64 = file.buffer.toString('base64');
-      logoUrl = `data:${file.mimetype};base64,${base64}`;
-    } else {
-      // Local development: save to disk
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-      logoUrl = `${baseUrl}/uploads/logos/${file.filename}`;
-    }
+    // Data URL works on both serverless (no persistent disk) and local
+    const base64 = file.buffer.toString('base64');
+    const logoUrl = `data:${file.mimetype};base64,${base64}`;
 
     await this.organizationService.updateOrganization(organizationId, {
       logo_url: logoUrl,
