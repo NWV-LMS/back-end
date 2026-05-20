@@ -30,6 +30,7 @@ model Organization {
   whatsapp_target          String?
   logo_url                 String?
   courses                  Course[]
+  subjects                 Subject[]
   groups                   Group[]
   leads                    Lead[]
   notes                    Note[]
@@ -91,6 +92,17 @@ model Course {
 
   @@index([organization_id])
   @@index([organization_id, status])
+}
+
+model Subject {
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  name            String
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+  organization    Organization @relation(fields: [organization_id], references: [id])
+
+  @@unique([organization_id, name])
 }
 
 model Group {
