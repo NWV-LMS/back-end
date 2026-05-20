@@ -7,6 +7,8 @@ import {
   IsString,
   MinLength,
   IsArray,
+  Min,
+  Max,
 } from 'class-validator';
 import { TeacherSubject } from '../../enums/teacher-subjects.enum';
 import { SalaryType } from '@prisma/client';
@@ -50,4 +52,14 @@ export class CreateTeacherDto {
   @IsOptional()
   @IsString()
   bio?: string;
+
+  @IsOptional()
+  @IsNumber()
+  fixed_salary?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  percent_rate?: number;
 }

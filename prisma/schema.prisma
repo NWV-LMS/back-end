@@ -49,6 +49,7 @@ model Organization {
   journalEntries           JournalEntry[]
   lessons                  Lesson[]
   invoiceItems             InvoiceItem[]
+  teacherSalaries          TeacherSalary[]
 
   @@index([status])
 }
@@ -413,6 +414,7 @@ model Expense {
   updated_at      DateTime        @default(now()) @updatedAt
   organization    Organization    @relation(fields: [organization_id], references: [id])
   creator         User            @relation(fields: [created_by], references: [id], onDelete: Restrict)
+  teacherSalary   TeacherSalary?
 
   @@index([organization_id])
   @@index([organization_id, category])
@@ -544,7 +546,9 @@ model TeacherProfile {
   user_id        String        @unique @db.Uuid
   subjects       String[]
   hourly_rate    Decimal?      @db.Decimal(12, 2)
-  salary_type    SalaryType    @default(MONTHLY)
+  fixed_salary   Decimal?      @db.Decimal(12, 2)
+  percent_rate   Decimal?      @db.Decimal(5, 2)
+  salary_type    SalaryType    @default(FIXED)
   qualifications String?
   bio            String?
   status         TeacherStatus @default(ACTIVE)
@@ -552,10 +556,34 @@ model TeacherProfile {
   created_at     DateTime      @default(now())
   updated_at     DateTime      @default(now()) @updatedAt
 
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  salaryRecords  TeacherSalary[]
 
   @@index([status])
   @@index([deleted_at])
+}
+
+model TeacherSalary {
+  id              String           @id @default(uuid()) @db.Uuid
+  organization_id String           @db.Uuid
+  teacher_id      String           @db.Uuid
+  period          String           // YYYY-MM
+  salary_type     SalaryType
+  amount          Decimal          @db.Decimal(12, 2)
+  breakdown       Json
+  status          SalaryStatus     @default(PENDING)
+  paid_at         DateTime?
+  expense_id      String?          @unique @db.Uuid
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @default(now()) @updatedAt
+
+  organization    Organization     @relation(fields: [organization_id], references: [id])
+  teacher         TeacherProfile   @relation(fields: [teacher_id], references: [user_id], onDelete: Cascade)
+  expense         Expense?         @relation(fields: [expense_id], references: [id], onDelete: SetNull)
+
+  @@unique([teacher_id, period])
+  @@index([organization_id])
+  @@index([teacher_id])
 }
 
 enum TeacherStatus {
@@ -568,6 +596,14 @@ enum TeacherStatus {
 enum SalaryType {
   MONTHLY
   DAILY
+  HOURLY
+  FIXED
+  GROUP_PERCENT
+}
+
+enum SalaryStatus {
+  PENDING
+  PAID
 }
 
 enum Gender {

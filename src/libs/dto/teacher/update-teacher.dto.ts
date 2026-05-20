@@ -5,6 +5,8 @@ import {
   IsString,
   IsArray,
   IsIn,
+  Min,
+  Max,
 } from 'class-validator';
 import { TeacherSubject } from '../../enums/teacher-subjects.enum';
 import { SalaryType } from '@prisma/client';
@@ -42,4 +44,14 @@ export class UpdateTeacherDto {
   @IsOptional()
   @IsIn(['ACTIVE', 'INACTIVE', 'ON_LEAVE'])
   status?: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
+
+  @IsOptional()
+  @IsNumber()
+  fixed_salary?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  percent_rate?: number;
 }

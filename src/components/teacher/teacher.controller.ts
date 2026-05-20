@@ -11,8 +11,10 @@ import {
   HttpStatus,
   UseGuards,
   ParseUUIDPipe,
+  Request,
 } from '@nestjs/common';
 import { TeacherService } from './teacher.service';
+import { TeacherSalaryService } from './teacher-salary.service';
 import { CreateTeacherDto, UpdateTeacherDto } from '../../libs/dto/teacher';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -33,7 +35,10 @@ class UpdateStatusDto {
 @UseGuards(JwtAuthGuard, RolesGuard, OrganizationIdGuard)
 @Controller('teachers')
 export class TeacherController {
-  constructor(private readonly teacherService: TeacherService) {}
+  constructor(
+    private readonly teacherService: TeacherService,
+    private readonly teacherSalaryService: TeacherSalaryService,
+  ) {}
 
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER)
   @Post()
@@ -177,5 +182,43 @@ export class TeacherController {
     @OrganizationId() organizationId: string,
   ) {
     return this.teacherService.getPerformance(id, organizationId);
+  }
+
+  // ── Salary endpoints ────────────────────────────────────────────
+
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Get(':id/salary')
+  @ApiOperation({ summary: 'Preview salary for a teacher for a given month' })
+  getSalary(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @OrganizationId() organizationId: string,
+    @Query('month') month?: string,
+  ) {
+    const period = month ?? new Date().toISOString().slice(0, 7);
+    return this.teacherSalaryService.calculate(id, organizationId, period);
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Get(':id/salary/history')
+  @ApiOperation({ summary: 'Get salary payment history for a teacher' })
+  getSalaryHistory(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @OrganizationId() organizationId: string,
+  ) {
+    return this.teacherSalaryService.getHistory(id, organizationId);
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Post(':id/salary/pay')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Mark salary as paid for a given month' })
+  paySalary(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @OrganizationId() organizationId: string,
+    @Body() body: { month?: string },
+    @Request() req: { user: { id: string } },
+  ) {
+    const period = body.month ?? new Date().toISOString().slice(0, 7);
+    return this.teacherSalaryService.markPaid(id, organizationId, period, req.user.id);
   }
 }
