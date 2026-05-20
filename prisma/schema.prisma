@@ -114,6 +114,8 @@ model Group {
   name            String
   start_date      DateTime        @db.Date
   end_date        DateTime        @db.Date
+  start_time      String?
+  end_time        String?
   created_at      DateTime        @default(now())
   updated_at      DateTime        @default(now()) @updatedAt
   enrollments     Enrollment[]

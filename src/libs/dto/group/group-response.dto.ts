@@ -6,6 +6,8 @@ export class GroupResponseDto {
   teacher_id: string;
   start_date: Date;
   end_date: Date;
+  start_time: string | null;
+  end_time: string | null;
   created_at: Date;
 
   // Relations (optional in response depending on query, but good to type)

@@ -44,6 +44,8 @@ export class GroupService {
         name: dto.name,
         start_date: new Date(dto.start_date),
         end_date: new Date(dto.end_date),
+        start_time: dto.start_time ?? null,
+        end_time: dto.end_time ?? null,
       },
       include: {
         course: { select: { id: true, title: true } },

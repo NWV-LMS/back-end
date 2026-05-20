@@ -17,6 +17,8 @@ export const toGroupResponse = (
   teacher_id: group.teacher_id,
   start_date: group.start_date,
   end_date: group.end_date,
+  start_time: group.start_time ?? null,
+  end_time: group.end_time ?? null,
   created_at: group.created_at,
   course: group.course,
   teacher: group.teacher,
