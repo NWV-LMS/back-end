@@ -10,7 +10,6 @@ import {
   Min,
   Max,
 } from 'class-validator';
-import { TeacherSubject } from '../../enums/teacher-subjects.enum';
 import { SalaryType } from '@prisma/client';
 
 export class CreateTeacherDto {
@@ -34,8 +33,8 @@ export class CreateTeacherDto {
   organization_id: string;
 
   @IsArray()
-  @IsEnum(TeacherSubject, { each: true })
-  subjects: TeacherSubject[];
+  @IsString({ each: true })
+  subjects: string[];
 
   @IsOptional()
   @IsNumber()

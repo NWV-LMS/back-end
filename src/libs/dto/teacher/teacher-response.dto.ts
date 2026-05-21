@@ -1,5 +1,3 @@
-import { TeacherSubject } from '../../enums/teacher-subjects.enum';
-
 export class TeacherResponseDto {
   id: string;
   email: string;
@@ -7,7 +5,7 @@ export class TeacherResponseDto {
   phone: string;
   role: string;
   organization_id: string;
-  subjects: TeacherSubject[];
+  subjects: string[];
   hourly_rate: number | null;
   salary_type: string;
   qualifications: string | null;
