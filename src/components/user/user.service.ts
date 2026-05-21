@@ -55,8 +55,7 @@ export class UserService {
       email: user.email,
       phone: user.phone,
       name: user.full_name,
-      organization_id:
-        user.role === UserRole.SUPER_ADMIN ? null : user.organization_id,
+      organization_id: user.organization_id,
     };
 
     const tokens = await this.authService.generateTokens(payload);
