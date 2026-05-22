@@ -94,6 +94,8 @@ export class EnrollmentService {
         organization_id: organizationId,
         student_id: dto.student_id,
         group_id: dto.group_id,
+        monthly_fee: dto.monthly_fee ?? 0,
+        discount_amount: dto.discount_amount ?? 0,
       },
       include: ENROLLMENT_INCLUDE,
     });

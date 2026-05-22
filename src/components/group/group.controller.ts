@@ -37,7 +37,13 @@ export class GroupController {
     return this.groupService.create(dto, organizationId);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER, UserRole.STUDENT)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.TEACHER,
+    UserRole.STUDENT,
+  )
   @Get()
   findAll(
     @OrganizationId() organizationId: string,
@@ -45,7 +51,12 @@ export class GroupController {
     return this.groupService.findAll(organizationId);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.TEACHER,
+  )
   @Get(':id')
   findOne(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,

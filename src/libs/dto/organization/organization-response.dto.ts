@@ -1,6 +1,13 @@
 import { OrganizationStatus, UserRole } from '@prisma/client';
 
-import { IsDate, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsDate,
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class Organ {
   @IsString()

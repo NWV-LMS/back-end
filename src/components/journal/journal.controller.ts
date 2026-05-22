@@ -36,7 +36,12 @@ export class JournalController {
     @OrganizationId() organizationId: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<JournalEntryResponseDto[]> {
-    return this.journalService.upsertEntries(organizationId, user.sub, user.role, dto);
+    return this.journalService.upsertEntries(
+      organizationId,
+      user.sub,
+      user.role,
+      dto,
+    );
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
@@ -46,7 +51,12 @@ export class JournalController {
     @OrganizationId() organizationId: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<JournalListResponseDto> {
-    return this.journalService.findAll(organizationId, user.sub, user.role, query);
+    return this.journalService.findAll(
+      organizationId,
+      user.sub,
+      user.role,
+      query,
+    );
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
@@ -57,7 +67,13 @@ export class JournalController {
     @OrganizationId() organizationId: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<JournalListResponseDto> {
-    return this.journalService.findByGroup(organizationId, user.sub, user.role, groupId, query);
+    return this.journalService.findByGroup(
+      organizationId,
+      user.sub,
+      user.role,
+      groupId,
+      query,
+    );
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER)

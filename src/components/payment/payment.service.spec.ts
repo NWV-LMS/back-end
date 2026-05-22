@@ -64,7 +64,11 @@ describe('PaymentService', () => {
       (db.student.findFirst as jest.Mock).mockResolvedValue(null);
 
       await expect(
-        service.create(ORG, { student_id: STUDENT_ID, amount: 1000, method: 'CASH' }, CASHIER_ID),
+        service.create(
+          ORG,
+          { student_id: STUDENT_ID, amount: 1000, method: 'CASH' },
+          CASHIER_ID,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -100,7 +104,12 @@ describe('PaymentService', () => {
 
       await service.create(
         ORG,
-        { student_id: STUDENT_ID, amount: 500, method: 'CARD', status: PaymentStatus.PENDING },
+        {
+          student_id: STUDENT_ID,
+          amount: 500,
+          method: 'CARD',
+          status: PaymentStatus.PENDING,
+        },
         CASHIER_ID,
       );
 
@@ -115,7 +124,11 @@ describe('PaymentService', () => {
       (db.student.findFirst as jest.Mock).mockResolvedValue(null);
 
       await expect(
-        service.create('other-org', { student_id: STUDENT_ID, amount: 1000, method: 'CASH' }, CASHIER_ID),
+        service.create(
+          'other-org',
+          { student_id: STUDENT_ID, amount: 1000, method: 'CASH' },
+          CASHIER_ID,
+        ),
       ).rejects.toThrow('Student not found in this organization');
 
       expect(db.student.findFirst).toHaveBeenCalledWith(
@@ -177,7 +190,9 @@ describe('PaymentService', () => {
   describe('findOne', () => {
     it('throws NotFoundException when payment not found', async () => {
       (db.payment.findFirst as jest.Mock).mockResolvedValue(null);
-      await expect(service.findOne(ORG, PAYMENT_ID)).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(ORG, PAYMENT_ID)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('returns payment dto when found', async () => {
@@ -193,9 +208,9 @@ describe('PaymentService', () => {
   describe('update', () => {
     it('throws NotFoundException when payment not found', async () => {
       (db.payment.findFirst as jest.Mock).mockResolvedValue(null);
-      await expect(service.update(ORG, PAYMENT_ID, { amount: 9000 })).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.update(ORG, PAYMENT_ID, { amount: 9000 }),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('updates payment fields', async () => {
@@ -214,7 +229,10 @@ describe('PaymentService', () => {
       expect(db.payment.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: PAYMENT_ID },
-          data: expect.objectContaining({ amount: 9000, description: 'updated' }),
+          data: expect.objectContaining({
+            amount: 9000,
+            description: 'updated',
+          }),
         }),
       );
       expect(result.amount).toBe(9000);
@@ -226,7 +244,9 @@ describe('PaymentService', () => {
   describe('remove', () => {
     it('throws NotFoundException when payment not found', async () => {
       (db.payment.findFirst as jest.Mock).mockResolvedValue(null);
-      await expect(service.remove(ORG, PAYMENT_ID)).rejects.toThrow(NotFoundException);
+      await expect(service.remove(ORG, PAYMENT_ID)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('deletes payment when found', async () => {
@@ -235,7 +255,9 @@ describe('PaymentService', () => {
 
       await service.remove(ORG, PAYMENT_ID);
 
-      expect(db.payment.delete).toHaveBeenCalledWith({ where: { id: PAYMENT_ID } });
+      expect(db.payment.delete).toHaveBeenCalledWith({
+        where: { id: PAYMENT_ID },
+      });
     });
   });
 });

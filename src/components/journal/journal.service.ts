@@ -31,7 +31,9 @@ export class JournalService {
     }
 
     if (userRole === UserRole.TEACHER && group.teacher_id !== userId) {
-      throw new ForbiddenException('You can only add journal entries for your own groups');
+      throw new ForbiddenException(
+        'You can only add journal entries for your own groups',
+      );
     }
 
     const teacherId = userRole === UserRole.TEACHER ? userId : group.teacher_id;
@@ -76,7 +78,17 @@ export class JournalService {
     userRole: UserRole,
     query: QueryJournalDto,
   ): Promise<JournalListResponseDto> {
-    const { page = 1, limit = 50, group_id, teacher_id, student_id, date, date_from, date_to, status } = query;
+    const {
+      page = 1,
+      limit = 50,
+      group_id,
+      teacher_id,
+      student_id,
+      date,
+      date_from,
+      date_to,
+      status,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = { organization_id: organizationId };
@@ -138,7 +150,9 @@ export class JournalService {
     }
 
     if (userRole === UserRole.TEACHER && group.teacher_id !== userId) {
-      throw new ForbiddenException('You can only view journal for your own groups');
+      throw new ForbiddenException(
+        'You can only view journal for your own groups',
+      );
     }
 
     return this.findAll(organizationId, userId, userRole, {
@@ -153,7 +167,11 @@ export class JournalService {
     query: QueryJournalDto,
   ): Promise<JournalListResponseDto> {
     const teacher = await this.prisma.user.findFirst({
-      where: { id: teacherId, organization_id: organizationId, role: UserRole.TEACHER },
+      where: {
+        id: teacherId,
+        organization_id: organizationId,
+        role: UserRole.TEACHER,
+      },
     });
 
     if (!teacher) {
@@ -166,22 +184,20 @@ export class JournalService {
     });
   }
 
-  private toResponse(
-    entry: {
-      id: string;
-      organization_id: string;
-      group_id: string;
-      student_id: string;
-      teacher_id: string;
-      date: Date;
-      status: import('@prisma/client').JournalStatus;
-      score: number | null;
-      notes: string | null;
-      created_at: Date;
-      updated_at: Date;
-      student?: { name: string } | null;
-    },
-  ): JournalEntryResponseDto {
+  private toResponse(entry: {
+    id: string;
+    organization_id: string;
+    group_id: string;
+    student_id: string;
+    teacher_id: string;
+    date: Date;
+    status: import('@prisma/client').JournalStatus;
+    score: number | null;
+    notes: string | null;
+    created_at: Date;
+    updated_at: Date;
+    student?: { name: string } | null;
+  }): JournalEntryResponseDto {
     return {
       id: entry.id,
       organization_id: entry.organization_id,

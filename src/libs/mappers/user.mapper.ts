@@ -1,4 +1,4 @@
-import { User as PrismaUser } from 'generated/prisma';
+import { User as PrismaUser } from '@prisma/client';
 import { User as UserDto } from '../dto/user/user-response.dto';
 
 // DB entity -> API response DTO mapper.

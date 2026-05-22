@@ -34,13 +34,24 @@ export class SubjectController {
     return this.subjectService.create(dto, orgId);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER, UserRole.STUDENT)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.TEACHER,
+    UserRole.STUDENT,
+  )
   @Get()
   findAll(@OrganizationId() orgId: string): Promise<SubjectResponseDto[]> {
     return this.subjectService.findAll(orgId);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.TEACHER,
+  )
   @Get(':id')
   findOne(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { SalaryType, SalaryStatus, ExpenseCategory } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -17,10 +21,15 @@ export class TeacherSalaryService {
     const endDate = new Date(year, month, 1); // exclusive
 
     const teacher = await this.db.user.findFirst({
-      where: { id: teacherId, organization_id: organizationId, role: 'TEACHER' },
+      where: {
+        id: teacherId,
+        organization_id: organizationId,
+        role: 'TEACHER',
+      },
       include: { teacherProfile: true },
     });
-    if (!teacher || !teacher.teacherProfile) throw new NotFoundException('Teacher not found');
+    if (!teacher || !teacher.teacherProfile)
+      throw new NotFoundException('Teacher not found');
 
     const profile = teacher.teacherProfile;
     const salaryType = profile.salary_type;

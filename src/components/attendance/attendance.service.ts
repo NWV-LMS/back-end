@@ -75,7 +75,14 @@ export class AttendanceService {
   }
 
   async findAll(organizationId: string, query: QueryAttendanceDto) {
-    const { page = 1, limit = 20, enrollment_id, lesson_id, group_id, status } = query;
+    const {
+      page = 1,
+      limit = 20,
+      enrollment_id,
+      lesson_id,
+      group_id,
+      status,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.AttendanceWhereInput = {

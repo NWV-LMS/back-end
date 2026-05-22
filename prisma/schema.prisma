@@ -213,6 +213,7 @@ model Enrollment {
   student_id      String        @db.Uuid
   group_id        String        @db.Uuid
   monthly_fee     Decimal       @default(0) @db.Decimal(12, 2)
+  discount_amount Decimal       @default(0) @db.Decimal(12, 2)
   billing_active  Boolean       @default(true)
   enrolled_at     DateTime      @default(now())
   created_at      DateTime      @default(now())

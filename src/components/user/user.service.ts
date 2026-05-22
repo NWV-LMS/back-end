@@ -301,7 +301,7 @@ export class UserService {
     const where: any = {
       organization_id: organizationId,
     };
-    
+
     if (role) where.role = role;
     if (search) {
       where.OR = [

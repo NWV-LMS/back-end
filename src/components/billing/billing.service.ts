@@ -57,6 +57,7 @@ export class BillingService {
         student_id: true,
         group_id: true,
         monthly_fee: true,
+        discount_amount: true,
         group: {
           select: {
             name: true,
@@ -89,10 +90,14 @@ export class BillingService {
 
     for (const e of enrollments) {
       const fallback = this.tryParseDecimal(e.group.course.price);
-      const fee =
+      const baseFee =
         e.monthly_fee && e.monthly_fee.greaterThan(0)
           ? e.monthly_fee
           : (fallback ?? new Prisma.Decimal(0));
+      const discount = e.discount_amount ?? new Prisma.Decimal(0);
+      // Net fee after discount, never negative.
+      const netFee = baseFee.minus(discount);
+      const fee = netFee.greaterThan(0) ? netFee : new Prisma.Decimal(0);
 
       if (!byStudent.has(e.student_id)) {
         byStudent.set(e.student_id, {

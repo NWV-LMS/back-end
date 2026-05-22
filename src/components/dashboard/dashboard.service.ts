@@ -34,14 +34,30 @@ export class DashboardService {
   ): Promise<DashboardSummaryDto> {
     const { from, to } = dateRangeOrUndefined(query);
 
-    const studentsWhere: Prisma.StudentWhereInput = { organization_id: organizationId };
-    const leadsWhere: Prisma.LeadWhereInput = { organization_id: organizationId };
-    const coursesWhere: Prisma.CourseWhereInput = { organization_id: organizationId };
-    const groupsWhere: Prisma.GroupWhereInput = { organization_id: organizationId };
-    const enrollmentsWhere: Prisma.EnrollmentWhereInput = { organization_id: organizationId };
-    const paymentsWhere: Prisma.PaymentWhereInput = { organization_id: organizationId };
-    const attendanceWhere: Prisma.AttendanceWhereInput = { organization_id: organizationId };
-    const progressWhere: Prisma.ProgressWhereInput = { organization_id: organizationId };
+    const studentsWhere: Prisma.StudentWhereInput = {
+      organization_id: organizationId,
+    };
+    const leadsWhere: Prisma.LeadWhereInput = {
+      organization_id: organizationId,
+    };
+    const coursesWhere: Prisma.CourseWhereInput = {
+      organization_id: organizationId,
+    };
+    const groupsWhere: Prisma.GroupWhereInput = {
+      organization_id: organizationId,
+    };
+    const enrollmentsWhere: Prisma.EnrollmentWhereInput = {
+      organization_id: organizationId,
+    };
+    const paymentsWhere: Prisma.PaymentWhereInput = {
+      organization_id: organizationId,
+    };
+    const attendanceWhere: Prisma.AttendanceWhereInput = {
+      organization_id: organizationId,
+    };
+    const progressWhere: Prisma.ProgressWhereInput = {
+      organization_id: organizationId,
+    };
 
     // Time filters where relevant.
     if (from || to) {

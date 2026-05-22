@@ -349,6 +349,7 @@ export class StudentService {
                   select: {
                     id: true,
                     title: true,
+                    price: true,
                   },
                 },
                 teacher: {
@@ -368,12 +369,47 @@ export class StudentService {
       throw new NotFoundException('Student not found');
     }
 
+    // Compute expected monthly fee = sum of (monthly_fee || course.price) - discount, clamped at 0.
+    let expectedMonthlyFee = new Prisma.Decimal(0);
+    for (const enrollment of student.enrollments) {
+      if (!enrollment.billing_active) continue;
+      const fallback = parseDecimalOrZero(enrollment.group.course?.price);
+      const base =
+        enrollment.monthly_fee && enrollment.monthly_fee.greaterThan(0)
+          ? enrollment.monthly_fee
+          : fallback;
+      const discount = enrollment.discount_amount ?? new Prisma.Decimal(0);
+      const net = base.minus(discount);
+      expectedMonthlyFee = expectedMonthlyFee.add(
+        net.greaterThan(0) ? net : new Prisma.Decimal(0),
+      );
+    }
+
+    // Sum payments in the current calendar month.
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const paymentsAgg = await this.database.payment.aggregate({
+      where: {
+        organization_id: organizationId,
+        student_id: id,
+        paid_at: { gte: monthStart, lt: nextMonthStart },
+      },
+      _sum: { amount: true },
+    });
+    const paidCurrentMonth = paymentsAgg._sum.amount ?? new Prisma.Decimal(0);
+
     return {
       ...toStudentResponse(student),
+      expected_monthly_fee: expectedMonthlyFee.toString(),
+      paid_current_month: paidCurrentMonth.toString(),
       enrollments: student.enrollments.map((enrollment) => ({
         id: enrollment.id,
         group_id: enrollment.group_id,
         enrolled_at: enrollment.enrolled_at,
+        monthly_fee: enrollment.monthly_fee.toString(),
+        discount_amount: enrollment.discount_amount.toString(),
+        billing_active: enrollment.billing_active,
         group: {
           id: enrollment.group.id,
           name: enrollment.group.name,
@@ -381,6 +417,7 @@ export class StudentService {
             ? {
                 id: enrollment.group.course.id,
                 title: enrollment.group.course.title,
+                price: enrollment.group.course.price,
               }
             : null,
           teacher: enrollment.group.teacher
@@ -392,6 +429,15 @@ export class StudentService {
         },
       })),
     };
+  }
+}
+
+function parseDecimalOrZero(value: string | null | undefined): Prisma.Decimal {
+  if (!value) return new Prisma.Decimal(0);
+  try {
+    return new Prisma.Decimal(value);
+  } catch {
+    return new Prisma.Decimal(0);
   }
 }
 

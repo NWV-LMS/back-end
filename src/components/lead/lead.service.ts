@@ -14,7 +14,7 @@ import { toLeadResponse } from '../../libs/mappers/lead.mapper';
 
 @Injectable()
 export class LeadService {
-  constructor(private readonly database: DatabaseService) { }
+  constructor(private readonly database: DatabaseService) {}
 
   async create(
     createLeadDto: CreateLeadDto,

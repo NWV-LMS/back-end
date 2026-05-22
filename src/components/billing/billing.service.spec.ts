@@ -11,7 +11,11 @@ const INVOICE_ID = 'invoice-001';
 const CASHIER_ID = 'user-cashier';
 
 // Fake enrollment — billing_active, has monthly_fee
-const enrollment = (studentId: string, monthlyFee: string | null, coursePrice: string) => ({
+const enrollment = (
+  studentId: string,
+  monthlyFee: string | null,
+  coursePrice: string,
+) => ({
   id: `enroll-${studentId}`,
   student_id: studentId,
   group_id: 'group-1',
@@ -23,7 +27,12 @@ const enrollment = (studentId: string, monthlyFee: string | null, coursePrice: s
   student: { name: 'Test Student', phone: '+996700000001' },
 });
 
-const fakeInvoice = (studentId: string, status: InvoiceStatus, amountDue = '5000', amountPaid = '0') => ({
+const fakeInvoice = (
+  studentId: string,
+  status: InvoiceStatus,
+  amountDue = '5000',
+  amountPaid = '0',
+) => ({
   id: INVOICE_ID,
   organization_id: ORG,
   student_id: studentId,
@@ -79,15 +88,15 @@ describe('BillingService', () => {
 
   describe('generateInvoices', () => {
     it('throws BadRequestException for invalid month format', async () => {
-      await expect(service.generateInvoices(ORG, { month: '05-2026' })).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.generateInvoices(ORG, { month: '2026/05' })).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.generateInvoices(ORG, { month: 'invalid' })).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.generateInvoices(ORG, { month: '05-2026' }),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.generateInvoices(ORG, { month: '2026/05' }),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.generateInvoices(ORG, { month: 'invalid' }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('accepts valid YYYY-MM month format', async () => {
@@ -135,7 +144,12 @@ describe('BillingService', () => {
       ]);
       (db.invoice.findMany as jest.Mock).mockResolvedValue([]);
 
-      const capturedUpsert = { id: INVOICE_ID, amount_paid: new Prisma.Decimal('0'), amount_due: new Prisma.Decimal('1500'), due_date: new Date() };
+      const capturedUpsert = {
+        id: INVOICE_ID,
+        amount_paid: new Prisma.Decimal('0'),
+        amount_due: new Prisma.Decimal('1500'),
+        due_date: new Date(),
+      };
       (db.invoice.upsert as jest.Mock).mockResolvedValue(capturedUpsert);
       (db.invoice.findUnique as jest.Mock).mockResolvedValue(capturedUpsert);
       (db.invoice.update as jest.Mock).mockResolvedValue({});
@@ -159,7 +173,12 @@ describe('BillingService', () => {
       ]);
       (db.invoice.findMany as jest.Mock).mockResolvedValue([]);
 
-      const capturedUpsert = { id: INVOICE_ID, amount_paid: new Prisma.Decimal('0'), amount_due: new Prisma.Decimal('4500'), due_date: new Date() };
+      const capturedUpsert = {
+        id: INVOICE_ID,
+        amount_paid: new Prisma.Decimal('0'),
+        amount_due: new Prisma.Decimal('4500'),
+        due_date: new Date(),
+      };
       (db.invoice.upsert as jest.Mock).mockResolvedValue(capturedUpsert);
       (db.invoice.findUnique as jest.Mock).mockResolvedValue(capturedUpsert);
       (db.invoice.update as jest.Mock).mockResolvedValue({});
@@ -214,7 +233,12 @@ describe('BillingService', () => {
         { id: INVOICE_ID, student_id: STUDENT_A, status: InvoiceStatus.OPEN },
       ]);
 
-      const capturedUpsert = { id: INVOICE_ID, amount_paid: new Prisma.Decimal('0'), amount_due: new Prisma.Decimal('5000'), due_date: new Date() };
+      const capturedUpsert = {
+        id: INVOICE_ID,
+        amount_paid: new Prisma.Decimal('0'),
+        amount_due: new Prisma.Decimal('5000'),
+        due_date: new Date(),
+      };
       (db.invoice.upsert as jest.Mock).mockResolvedValue(capturedUpsert);
       (db.invoice.findUnique as jest.Mock).mockResolvedValue(capturedUpsert);
       (db.invoice.update as jest.Mock).mockResolvedValue({});
@@ -232,11 +256,15 @@ describe('BillingService', () => {
   describe('getInvoice', () => {
     it('throws NotFoundException when invoice not found', async () => {
       (db.invoice.findFirst as jest.Mock).mockResolvedValue(null);
-      await expect(service.getInvoice(ORG, INVOICE_ID)).rejects.toThrow(NotFoundException);
+      await expect(service.getInvoice(ORG, INVOICE_ID)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('returns invoice dto when found', async () => {
-      (db.invoice.findFirst as jest.Mock).mockResolvedValue(fakeInvoice(STUDENT_A, InvoiceStatus.OPEN));
+      (db.invoice.findFirst as jest.Mock).mockResolvedValue(
+        fakeInvoice(STUDENT_A, InvoiceStatus.OPEN),
+      );
       const result = await service.getInvoice(ORG, INVOICE_ID);
       expect(result.id).toBe(INVOICE_ID);
       expect(result.status).toBe(InvoiceStatus.OPEN);
@@ -250,7 +278,10 @@ describe('BillingService', () => {
     it('throws NotFoundException when invoice not found', async () => {
       (db.invoice.findFirst as jest.Mock).mockResolvedValue(null);
       await expect(
-        service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, { amount: 5000, method: 'CASH' }),
+        service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {
+          amount: 5000,
+          method: 'CASH',
+        }),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -265,7 +296,10 @@ describe('BillingService', () => {
       });
 
       await expect(
-        service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, { amount: 5000, method: 'CASH' }),
+        service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {
+          amount: 5000,
+          method: 'CASH',
+        }),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -280,12 +314,20 @@ describe('BillingService', () => {
           due_date: new Date(Date.now() + 86400000), // future
         })
         // second call inside getInvoice refresh at end of payInvoice
-        .mockResolvedValueOnce(fakeInvoice(STUDENT_A, InvoiceStatus.PAID, '5000', '5000'));
+        .mockResolvedValueOnce(
+          fakeInvoice(STUDENT_A, InvoiceStatus.PAID, '5000', '5000'),
+        );
 
-      (db.payment.create as jest.Mock).mockResolvedValue({ id: 'pay-x', amount: new Prisma.Decimal('5000') });
+      (db.payment.create as jest.Mock).mockResolvedValue({
+        id: 'pay-x',
+        amount: new Prisma.Decimal('5000'),
+      });
       (db.invoice.update as jest.Mock).mockResolvedValue({});
 
-      await service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, { amount: 5000, method: 'CASH' });
+      await service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {
+        amount: 5000,
+        method: 'CASH',
+      });
 
       expect(db.invoice.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -305,12 +347,20 @@ describe('BillingService', () => {
           status: InvoiceStatus.OPEN,
           due_date: futureDate,
         })
-        .mockResolvedValueOnce(fakeInvoice(STUDENT_A, InvoiceStatus.OPEN, '5000', '2000'));
+        .mockResolvedValueOnce(
+          fakeInvoice(STUDENT_A, InvoiceStatus.OPEN, '5000', '2000'),
+        );
 
-      (db.payment.create as jest.Mock).mockResolvedValue({ id: 'pay-x', amount: new Prisma.Decimal('2000') });
+      (db.payment.create as jest.Mock).mockResolvedValue({
+        id: 'pay-x',
+        amount: new Prisma.Decimal('2000'),
+      });
       (db.invoice.update as jest.Mock).mockResolvedValue({});
 
-      await service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, { amount: 2000, method: 'CASH' });
+      await service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {
+        amount: 2000,
+        method: 'CASH',
+      });
 
       expect(db.invoice.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -330,12 +380,20 @@ describe('BillingService', () => {
           status: InvoiceStatus.OVERDUE,
           due_date: pastDate,
         })
-        .mockResolvedValueOnce(fakeInvoice(STUDENT_A, InvoiceStatus.OVERDUE, '5000', '1000'));
+        .mockResolvedValueOnce(
+          fakeInvoice(STUDENT_A, InvoiceStatus.OVERDUE, '5000', '1000'),
+        );
 
-      (db.payment.create as jest.Mock).mockResolvedValue({ id: 'pay-x', amount: new Prisma.Decimal('1000') });
+      (db.payment.create as jest.Mock).mockResolvedValue({
+        id: 'pay-x',
+        amount: new Prisma.Decimal('1000'),
+      });
       (db.invoice.update as jest.Mock).mockResolvedValue({});
 
-      await service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, { amount: 1000, method: 'CASH' });
+      await service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {
+        amount: 1000,
+        method: 'CASH',
+      });
 
       expect(db.invoice.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -355,9 +413,14 @@ describe('BillingService', () => {
           status: InvoiceStatus.OPEN,
           due_date: futureDate,
         })
-        .mockResolvedValueOnce(fakeInvoice(STUDENT_A, InvoiceStatus.PAID, '5000', '5000'));
+        .mockResolvedValueOnce(
+          fakeInvoice(STUDENT_A, InvoiceStatus.PAID, '5000', '5000'),
+        );
 
-      (db.payment.create as jest.Mock).mockResolvedValue({ id: 'pay-x', amount: new Prisma.Decimal('5000') });
+      (db.payment.create as jest.Mock).mockResolvedValue({
+        id: 'pay-x',
+        amount: new Prisma.Decimal('5000'),
+      });
       (db.invoice.update as jest.Mock).mockResolvedValue({});
 
       await service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {

@@ -24,6 +24,8 @@ export const toEnrollmentResponse = (
   student_id: enrollment.student_id,
   group_id: enrollment.group_id,
   enrolled_at: enrollment.enrolled_at,
+  monthly_fee: enrollment.monthly_fee.toString(),
+  discount_amount: enrollment.discount_amount.toString(),
   student: enrollment.student,
   group: enrollment.group,
 });

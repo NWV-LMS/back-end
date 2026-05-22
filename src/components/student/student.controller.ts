@@ -44,7 +44,12 @@ export class StudentController {
     return this.studentService.create(organizationId, dto);
   }
   // bu erda nega body emas query da kelyabti ?  biz pagelar berganimiz uchun
-@Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.TEACHER,
+  )
   @Get('statistics')
   getStatistics(@OrganizationId() organizationId: string) {
     return this.studentService.getStatistics(organizationId);
@@ -59,7 +64,12 @@ export class StudentController {
     return this.studentService.findDeleted(organizationId, query);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.TEACHER,
+  )
   @Get()
   findAll(
     @Query() query: QueryStudentDto,
@@ -68,7 +78,12 @@ export class StudentController {
     return this.studentService.findAll(organizationId, query);
   }
 
-@Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.TEACHER,
+  )
   @Get(':id')
   findOne(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -77,7 +92,12 @@ export class StudentController {
     return this.studentService.findOne(id, organizationId);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.TEACHER,
+  )
   @Get(':id/detail')
   getDetail(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -120,7 +140,11 @@ export class StudentController {
   bulkCreate(
     @Body() dto: { students: CreateStudentDto[] },
     @OrganizationId() organizationId: string,
-  ): Promise<{ created: number; skipped: number; failed: { row: string; reason: string }[] }> {
+  ): Promise<{
+    created: number;
+    skipped: number;
+    failed: { row: string; reason: string }[];
+  }> {
     return this.studentService.bulkCreate(organizationId, dto.students);
   }
 

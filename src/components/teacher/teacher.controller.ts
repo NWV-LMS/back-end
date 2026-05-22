@@ -13,7 +13,9 @@ import {
   ParseUUIDPipe,
   Request,
 } from '@nestjs/common';
-import { TeacherService } from './teacher.service';
+import { TeacherQueryService } from './teacher-query.service';
+import { TeacherMutationService } from './teacher-mutation.service';
+import { TeacherBulkService } from './teacher-bulk.service';
 import { TeacherSalaryService } from './teacher-salary.service';
 import { CreateTeacherDto, UpdateTeacherDto } from '../../libs/dto/teacher';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
@@ -36,7 +38,9 @@ class UpdateStatusDto {
 @Controller('teachers')
 export class TeacherController {
   constructor(
-    private readonly teacherService: TeacherService,
+    private readonly query: TeacherQueryService,
+    private readonly mutation: TeacherMutationService,
+    private readonly bulk: TeacherBulkService,
     private readonly teacherSalaryService: TeacherSalaryService,
   ) {}
 
@@ -48,17 +52,45 @@ export class TeacherController {
     @Body() dto: CreateTeacherDto,
     @OrganizationId() organizationId: string,
   ) {
-    return this.teacherService.create({ ...dto, organization_id: organizationId });
+    return this.mutation.create({ ...dto, organization_id: organizationId });
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.TEACHER,
+  )
   @Get()
-  @ApiOperation({ summary: 'Get all teachers with pagination, search and optional subject filter' })
-  @ApiQuery({ name: 'page', required: false, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Items per page (default: 10)' })
-  @ApiQuery({ name: 'search', required: false, description: 'Search by name or email' })
-  @ApiQuery({ name: 'subject', required: false, description: 'Filter by subject (e.g., ENGLISH, IT)' })
-  @ApiQuery({ name: 'status', required: false, description: 'Filter by status (ACTIVE, INACTIVE)' })
+  @ApiOperation({
+    summary:
+      'Get all teachers with pagination, search and optional subject filter',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Items per page (default: 10)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Search by name or email',
+  })
+  @ApiQuery({
+    name: 'subject',
+    required: false,
+    description: 'Filter by subject (e.g., ENGLISH, IT)',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filter by status (ACTIVE, INACTIVE)',
+  })
   findAll(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
@@ -67,7 +99,7 @@ export class TeacherController {
     @Query('status') status: string,
     @OrganizationId() organizationId: string,
   ) {
-    return this.teacherService.findAll({
+    return this.query.findAll({
       organizationId,
       page: parseInt(page),
       limit: parseInt(limit),
@@ -81,7 +113,7 @@ export class TeacherController {
   @Get('statistics')
   @ApiOperation({ summary: 'Get teachers statistics' })
   getStatistics(@OrganizationId() organizationId: string) {
-    return this.teacherService.getStatistics(organizationId);
+    return this.query.getStatistics(organizationId);
   }
 
   @Roles(UserRole.SUPER_ADMIN)
@@ -93,7 +125,7 @@ export class TeacherController {
     @Query('search') search: string,
     @OrganizationId() organizationId: string,
   ) {
-    return this.teacherService.findDeleted(
+    return this.query.findDeleted(
       organizationId,
       parseInt(page),
       parseInt(limit),
@@ -108,7 +140,7 @@ export class TeacherController {
     @Body() dto: { teachers: CreateTeacherDto[] },
     @OrganizationId() organizationId: string,
   ) {
-    return this.teacherService.bulkCreate(organizationId, dto.teachers);
+    return this.bulk.bulkCreate(organizationId, dto.teachers);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
@@ -118,7 +150,7 @@ export class TeacherController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ) {
-    return this.teacherService.findOne(id, organizationId);
+    return this.query.findOne(id, organizationId);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
@@ -129,7 +161,7 @@ export class TeacherController {
     @OrganizationId() organizationId: string,
     @Body() dto: UpdateTeacherDto,
   ) {
-    return this.teacherService.update(id, organizationId, dto);
+    return this.mutation.update(id, organizationId, dto);
   }
 
   @Roles(UserRole.ADMIN)
@@ -140,27 +172,27 @@ export class TeacherController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ) {
-    return this.teacherService.remove(id, organizationId);
+    return this.mutation.remove(id, organizationId);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get(':id/groups')
-  @ApiOperation({ summary: 'Get teacher\'s groups' })
+  @ApiOperation({ summary: "Get teacher's groups" })
   getGroups(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ) {
-    return this.teacherService.getGroups(id, organizationId);
+    return this.query.getGroups(id, organizationId);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get(':id/schedule')
-  @ApiOperation({ summary: 'Get teacher\'s schedule' })
+  @ApiOperation({ summary: "Get teacher's schedule" })
   getSchedule(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ) {
-    return this.teacherService.getSchedule(id, organizationId);
+    return this.query.getSchedule(id, organizationId);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
@@ -171,7 +203,7 @@ export class TeacherController {
     @OrganizationId() organizationId: string,
     @Body() dto: UpdateStatusDto,
   ) {
-    return this.teacherService.updateStatus(id, organizationId, dto.status);
+    return this.mutation.updateStatus(id, organizationId, dto.status);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
@@ -181,7 +213,7 @@ export class TeacherController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
   ) {
-    return this.teacherService.getPerformance(id, organizationId);
+    return this.query.getPerformance(id, organizationId);
   }
 
   // ── Salary endpoints ────────────────────────────────────────────
@@ -219,6 +251,11 @@ export class TeacherController {
     @Request() req: { user: { id: string } },
   ) {
     const period = body.month ?? new Date().toISOString().slice(0, 7);
-    return this.teacherSalaryService.markPaid(id, organizationId, period, req.user.id);
+    return this.teacherSalaryService.markPaid(
+      id,
+      organizationId,
+      period,
+      req.user.id,
+    );
   }
 }

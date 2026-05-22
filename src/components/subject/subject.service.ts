@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { CreateSubjectDto } from '../../libs/dto/subject/create-subject.dto';
 import { UpdateSubjectDto } from '../../libs/dto/subject/update-subject.dto';
@@ -8,11 +12,18 @@ import { SubjectResponseDto } from '../../libs/dto/subject/subject-response.dto'
 export class SubjectService {
   constructor(private readonly database: DatabaseService) {}
 
-  async create(dto: CreateSubjectDto, organizationId: string): Promise<SubjectResponseDto> {
+  async create(
+    dto: CreateSubjectDto,
+    organizationId: string,
+  ): Promise<SubjectResponseDto> {
     const existing = await this.database.subject.findFirst({
-      where: { organization_id: organizationId, name: { equals: dto.name, mode: 'insensitive' } },
+      where: {
+        organization_id: organizationId,
+        name: { equals: dto.name, mode: 'insensitive' },
+      },
     });
-    if (existing) throw new ConflictException('Subject with this name already exists');
+    if (existing)
+      throw new ConflictException('Subject with this name already exists');
 
     return this.database.subject.create({
       data: { name: dto.name, organization_id: organizationId },
@@ -26,7 +37,10 @@ export class SubjectService {
     });
   }
 
-  async findOne(id: string, organizationId: string): Promise<SubjectResponseDto> {
+  async findOne(
+    id: string,
+    organizationId: string,
+  ): Promise<SubjectResponseDto> {
     const subject = await this.database.subject.findFirst({
       where: { id, organization_id: organizationId },
     });
@@ -34,7 +48,11 @@ export class SubjectService {
     return subject;
   }
 
-  async update(id: string, dto: UpdateSubjectDto, organizationId: string): Promise<SubjectResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateSubjectDto,
+    organizationId: string,
+  ): Promise<SubjectResponseDto> {
     await this.findOne(id, organizationId);
     return this.database.subject.update({ where: { id }, data: dto });
   }

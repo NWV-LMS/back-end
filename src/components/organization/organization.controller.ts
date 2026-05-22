@@ -101,7 +101,9 @@ export class OrganizationController {
       ) => {
         if (!file.mimetype.match(/^image\/(jpeg|jpg|png|webp|gif)$/)) {
           return cb(
-            new BadRequestException('Only image files are allowed (jpeg, jpg, png, webp, gif)'),
+            new BadRequestException(
+              'Only image files are allowed (jpeg, jpg, png, webp, gif)',
+            ),
             false,
           );
         }

@@ -23,6 +23,8 @@ export interface EnrollmentResponseDto {
   student_id: string;
   group_id: string;
   enrolled_at: Date;
+  monthly_fee: string;
+  discount_amount: string;
   student?: StudentSummary;
   group?: GroupSummary;
 }

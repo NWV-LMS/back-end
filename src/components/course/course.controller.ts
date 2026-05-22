@@ -34,7 +34,13 @@ export class CourseController {
     return this.courseService.create(dto, organizationId);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER, UserRole.STUDENT)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.TEACHER,
+    UserRole.STUDENT,
+  )
   @Get()
   findAll(
     @OrganizationId() organizationId: string,
