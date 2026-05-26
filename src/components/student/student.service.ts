@@ -43,6 +43,7 @@ export class StudentService {
       phone: dto.phone,
       address: dto.address ?? null,
       parent: dto.parent,
+      parent_phone: dto.parent_phone ?? null,
       status: dto.status || StudentStatus.ACTIVE,
     };
 
@@ -235,6 +236,7 @@ export class StudentService {
                 phone: dto.phone,
                 address: dto.address ?? null,
                 parent: dto.parent,
+                parent_phone: dto.parent_phone ?? null,
                 status: dto.status || StudentStatus.ACTIVE,
               },
             });

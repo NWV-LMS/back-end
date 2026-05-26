@@ -24,6 +24,10 @@ export class CreateStudentDto {
   @IsOptional()
   parent?: string;
 
+  @IsString()
+  @IsOptional()
+  parent_phone?: string;
+
   @IsEnum(StudentStatus)
   @IsOptional()
   status?: StudentStatus;

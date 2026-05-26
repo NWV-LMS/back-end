@@ -173,6 +173,7 @@ model Student {
   organization_id String        @db.Uuid
   name            String
   parent          String?
+  parent_phone    String?
   phone           String
   address         String?
   status          StudentStatus
