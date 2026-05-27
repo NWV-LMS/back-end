@@ -1,10 +1,11 @@
 import './instrument';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { join } from 'path';
 import helmet from 'helmet';
+import compression from 'compression';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './libs/interceptor/logging.interceptor';
 import { validateEnvOrThrow } from './libs/env.validation';
@@ -14,7 +15,13 @@ async function bootstrap() {
   // Fail fast on misconfiguration (especially in production).
   validateEnvOrThrow();
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    // Suppress default NestJS console logger — pino takes over below.
+    bufferLogs: true,
+  });
+
+  // Route all NestJS internal logs through pino.
+  app.useLogger(app.get(Logger));
 
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
   app.setGlobalPrefix('api');
@@ -24,7 +31,7 @@ async function bootstrap() {
 
   const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
 
-  // Security
+  // Security — must come before compression.
   app.use(
     helmet({
       contentSecurityPolicy: isProd ? undefined : false,
@@ -34,6 +41,9 @@ async function bootstrap() {
         : false,
     }),
   );
+
+  // Compression — after helmet, before routes.
+  app.use(compression());
 
   const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
     .split(',')
@@ -48,7 +58,8 @@ async function bootstrap() {
       : true,
     credentials: true,
   });
-  // Swagger API Documentation
+
+  // Swagger API Documentation (dev only).
   if (!isProd) {
     const config = new DocumentBuilder()
       .setTitle('CRM-LMS API')
@@ -63,7 +74,7 @@ async function bootstrap() {
     SwaggerModule.setup('api-docs', app, document);
   }
 
-  console.log('Starting server...');
+  const logger = new Logger('Bootstrap');
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
@@ -73,10 +84,12 @@ async function bootstrap() {
   );
   app.useGlobalInterceptors(new LoggingInterceptor());
   app.enableShutdownHooks();
-  await app.listen(process.env.PORT || 3001, '0.0.0.0');
-  console.log(`Application is running on: ${await app.getUrl()}`);
+
+  const port = process.env.PORT || 3001;
+  await app.listen(port, '0.0.0.0');
+  logger.log(`Application is running on: ${await app.getUrl()}`);
   if (!isProd) {
-    console.log(`Swagger docs: ${await app.getUrl()}/api-docs`);
+    logger.log(`Swagger docs: ${await app.getUrl()}/api-docs`);
   }
 }
 bootstrap();

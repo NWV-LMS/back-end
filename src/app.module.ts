@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { SentryModule } from '@sentry/nestjs/setup';
+import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ComponentsModule } from './components/components.module';
@@ -21,6 +22,23 @@ import { OrganizationActiveGuard } from './components/auth/guards/organization-a
         `.env.${process.env.NODE_ENV}`, // .env.production
         '.env', // default .env
       ],
+    }),
+    // Structured logger: JSON in production (Vercel, Docker, k8s),
+    // pretty-printed in development. Redacts sensitive fields.
+    LoggerModule.forRoot({
+      pinoHttp: {
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty' }
+            : undefined,
+        level: process.env.LOG_LEVEL ?? 'info',
+        redact: [
+          'req.headers.authorization',
+          'req.headers.cookie',
+          '*.password',
+          '*.refreshToken',
+        ],
+      },
     }),
     // Global rate limit: 60 requests per minute per IP.
     ThrottlerModule.forRoot([

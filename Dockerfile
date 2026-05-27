@@ -5,10 +5,9 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Builder - Install dependencies and build the application
 # -----------------------------------------------------------------------------
-# Must use the same base as the runner so Prisma's "native" engine target
-# matches the runtime glibc/OpenSSL (debian). Alpine builder produced
-# linux-musl engines incompatible with the debian runner.
-FROM node:20-bullseye AS builder
+# node:20-slim (debian-slim) keeps glibc compatibility so Prisma's native
+# engines match the runtime. Alpine uses musl and causes engine mismatches.
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -29,12 +28,11 @@ RUN npx tsc prisma/seed.ts --outDir dist --module commonjs --target ES2021 --ski
 # -----------------------------------------------------------------------------
 # Stage 2: Runner - Production image with minimal footprint
 # -----------------------------------------------------------------------------
-FROM node:20-bullseye AS runner
+FROM node:20-slim AS runner
 
-# Install OpenSSL 1.1 for Prisma engine compatibility
+# Install OpenSSL for Prisma engine compatibility
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
-    libssl1.1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -67,7 +65,13 @@ RUN chmod +x ./entrypoint.sh
 # Set environment variables
 ENV NODE_ENV=production
 
-RUN mkdir -p /app/uploads/logos
+# Create uploads dir and run as non-root for security.
+RUN mkdir -p /app/uploads/logos && \
+    groupadd --system nestjs && \
+    useradd --system --gid nestjs --no-create-home nestjs && \
+    chown -R nestjs:nestjs /app
+
+USER nestjs
 
 # Expose application port
 EXPOSE 3001
