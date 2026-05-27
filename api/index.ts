@@ -26,8 +26,18 @@ async function bootstrap() {
     app.use(helmet());
     // Compression — after helmet, before routes.
     app.use(compression());
+    const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
     app.enableCors({
-      origin: true,
+      origin: isProd
+        ? allowedOrigins.length > 0
+          ? allowedOrigins
+          : false
+        : true,
       credentials: true,
     });
 
