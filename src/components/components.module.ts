@@ -20,6 +20,7 @@ import { CalendarModule } from './calendar/calendar.module';
 import { TeacherModule } from './teacher/teacher.module';
 import { JournalModule } from './journal/journal.module';
 import { SubjectModule } from './subject/subject.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { SubjectModule } from './subject/subject.module';
     TeacherModule,
     JournalModule,
     SubjectModule,
+    HealthModule,
   ],
   exports: [AuthModule, UserModule, TeacherModule],
 })

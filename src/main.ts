@@ -1,3 +1,4 @@
+import './instrument';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -17,6 +18,9 @@ async function bootstrap() {
 
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
   app.setGlobalPrefix('api');
+
+  // Required for correct IP detection behind Vercel's proxy layer.
+  app.set('trust proxy', 1);
 
   const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
 

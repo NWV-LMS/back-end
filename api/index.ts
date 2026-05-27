@@ -1,3 +1,4 @@
+import '../src/instrument';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
 import { ValidationPipe } from '@nestjs/common';
@@ -13,6 +14,8 @@ async function bootstrap() {
 
     // Apply same middleware/pipes as in main.ts
     app.setGlobalPrefix('api');
+    // Required for correct IP detection behind Vercel's proxy layer.
+    app.getHttpAdapter().getInstance().set('trust proxy', 1);
     app.use(helmet());
     app.enableCors({
       origin: true,

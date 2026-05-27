@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { SentryModule } from '@sentry/nestjs/setup';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ComponentsModule } from './components/components.module';
 import { DatabaseModule } from './database/database.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_FILTER } from '@nestjs/core';
+import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { RateLimitGuard } from './components/auth/guards/rate-limit.guard';
 import { OrganizationActiveGuard } from './components/auth/guards/organization-active.guard';
 
@@ -19,13 +22,26 @@ import { OrganizationActiveGuard } from './components/auth/guards/organization-a
         '.env', // default .env
       ],
     }),
+    // Global rate limit: 60 requests per minute per IP.
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60_000,
+        limit: 60,
+      },
+    ]),
+    SentryModule.forRoot(),
     ComponentsModule,
     DatabaseModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    // Rate limit only endpoints decorated with @RateLimit.
+    // Sentry: capture unhandled exceptions before any other filter runs.
+    { provide: APP_FILTER, useClass: SentryGlobalFilter },
+    // Throttler global guard (60 req/min default; tighter limits via @Throttle).
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Legacy per-endpoint rate limit decorator guard — kept for any remaining usages.
     { provide: APP_GUARD, useClass: RateLimitGuard },
     // Block access for users belonging to inactive organizations.
     { provide: APP_GUARD, useClass: OrganizationActiveGuard },
