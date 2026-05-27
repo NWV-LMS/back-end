@@ -1,11 +1,12 @@
 import './instrument';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe, Logger as NestLogger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { join } from 'path';
 import helmet from 'helmet';
 import compression from 'compression';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './libs/interceptor/logging.interceptor';
 import { validateEnvOrThrow } from './libs/env.validation';
@@ -74,7 +75,7 @@ async function bootstrap() {
     SwaggerModule.setup('api-docs', app, document);
   }
 
-  const logger = new Logger('Bootstrap');
+  const logger = new NestLogger('Bootstrap');
   app.useGlobalFilters(new PrismaExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({

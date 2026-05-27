@@ -1,7 +1,8 @@
 import '../src/instrument';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import compression from 'compression';
 import { PrismaExceptionFilter } from '../src/database/prisma-exception.filter';
