@@ -399,6 +399,7 @@ async function run() {
   }
 }
 
+// Intentional console.error: worker.ts runs outside Nest DI, so the pino Logger is unavailable here.
 run().catch((e) => {
   console.error(e);
   process.exit(1);
