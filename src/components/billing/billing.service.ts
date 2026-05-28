@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -40,7 +41,59 @@ function fmtYYYYMMDD(d: Date): string {
 
 @Injectable()
 export class BillingService {
+  private readonly logger = new Logger(BillingService.name);
+
   constructor(private readonly database: DatabaseService) {}
+
+  async generateForAllOrgs(
+    month?: string,
+  ): Promise<{
+    month: string;
+    organizations: number;
+    succeeded: number;
+    failed: number;
+    totals: { created: number; updated: number };
+    errors: { organization_id: string; error: string }[];
+  }> {
+    const target = month ?? fmtYYYYMM(new Date());
+    parseMonthOrThrow(target);
+
+    const orgs = await this.database.organization.findMany({
+      where: { status: 'ACTIVE' },
+      select: { id: true },
+    });
+
+    let succeeded = 0;
+    let failed = 0;
+    let created = 0;
+    let updated = 0;
+    const errors: { organization_id: string; error: string }[] = [];
+
+    for (const org of orgs) {
+      try {
+        const result = await this.generateInvoices(org.id, { month: target });
+        created += result.created;
+        updated += result.updated;
+        succeeded += 1;
+      } catch (err) {
+        failed += 1;
+        const message = err instanceof Error ? err.message : String(err);
+        errors.push({ organization_id: org.id, error: message });
+        this.logger.error(
+          `generateForAllOrgs failed for org=${org.id} month=${target}: ${message}`,
+        );
+      }
+    }
+
+    return {
+      month: target,
+      organizations: orgs.length,
+      succeeded,
+      failed,
+      totals: { created, updated },
+      errors,
+    };
+  }
 
   async generateInvoices(
     organizationId: string,

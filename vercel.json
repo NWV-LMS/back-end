@@ -12,5 +12,11 @@
       "dest": "api/index.ts",
       "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/billing/cron/generate-month",
+      "schedule": "0 0 1 * *"
+    }
   ]
 }
