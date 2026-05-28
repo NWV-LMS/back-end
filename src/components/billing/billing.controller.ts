@@ -29,7 +29,7 @@ import { PayInvoiceDto } from '../../libs/dto/billing/pay-invoice.dto';
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER)
   @Post('invoices/generate')
   generateInvoices(
     @OrganizationId() organizationId: string,
@@ -38,7 +38,7 @@ export class BillingController {
     return this.billingService.generateInvoices(organizationId, dto);
   }
 
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get('invoices')
   listInvoices(
     @OrganizationId() organizationId: string,
@@ -47,7 +47,7 @@ export class BillingController {
     return this.billingService.listInvoices(organizationId, query);
   }
 
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get('invoices/:id')
   getInvoice(
     @OrganizationId() organizationId: string,
@@ -56,7 +56,7 @@ export class BillingController {
     return this.billingService.getInvoice(organizationId, id);
   }
 
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER)
   @Post('invoices/:id/pay')
   payInvoice(
     @OrganizationId() organizationId: string,
