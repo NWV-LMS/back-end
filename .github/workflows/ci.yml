@@ -33,7 +33,17 @@ jobs:
       - name: Type-check + build
         run: npm run build
 
-      - name: Test
+      - name: Test (unit)
         run: npm test -- --passWithNoTests
         env:
           NODE_ENV: test
+
+      - name: Test (integration)
+        run: npm run test:integration
+        env:
+          NODE_ENV: test
+          JWT_ACCESS_SECRET: test-access-secret-32-chars-long!!
+          JWT_REFRESH_SECRET: test-refresh-secret-32-chars-long!
+          JWT_ACCESS_EXPIRES_IN: 15m
+          JWT_REFRESH_EXPIRES_IN: 7d
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
