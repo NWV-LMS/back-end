@@ -16,7 +16,8 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install all dependencies (including devDependencies for build)
-RUN npm ci
+# --ignore-scripts skips postinstall (seed needs DATABASE_URL, unavailable at build time)
+RUN npm ci --ignore-scripts
 
 # Copy source code and build
 COPY . .
