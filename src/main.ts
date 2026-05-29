@@ -4,7 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { join } from 'path';
-import * as helmet from 'helmet';
+import helmet from 'helmet';
 import * as compression from 'compression';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
