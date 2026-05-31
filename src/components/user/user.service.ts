@@ -30,7 +30,7 @@ export class UserService {
   async login(input: LoginDto): Promise<LoginResponseDto> {
     const user = await this.database.user.findUnique({
       where: { phone: input.phone },
-      include: { organization: { select: { status: true } } },
+      include: { organization: { select: { status: true, name: true, logo_url: true } } },
     });
 
     if (!user) {
@@ -81,6 +81,7 @@ export class UserService {
         phone: true,
         created_at: true,
         updated_at: true,
+        organization: { select: { name: true, logo_url: true } },
       },
     });
 
@@ -88,7 +89,6 @@ export class UserService {
       throw new UnauthorizedException();
     }
 
-    // Convert DB entity to response DTO.
     return toUserResponse(user as any);
   }
 
