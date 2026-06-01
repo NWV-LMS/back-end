@@ -21,6 +21,14 @@ import { QueryOrganizationUserDto } from '../../libs/dto/user/query-organization
 
 @Injectable()
 export class UserService {
+  // Fixed bcrypt hash compared against on the "user not found" path so that a
+  // login attempt for a non-existent phone takes the same time as one for a
+  // real account. Without this, response timing leaks which numbers exist.
+  private readonly dummyPasswordHash = bcrypt.hashSync(
+    'invalid-placeholder-password',
+    10,
+  );
+
   constructor(
     private database: DatabaseService,
     private authService: AuthService,
@@ -33,10 +41,23 @@ export class UserService {
       include: { organization: { select: { status: true } } },
     });
 
-    if (!user) {
+    // Always run a bcrypt comparison — even when no user matched — so the
+    // response time does not reveal whether the phone number is registered.
+    // For the not-found case we compare against a fixed dummy hash.
+    const passwordMatch = await bcrypt.compare(
+      input.password,
+      user?.password ?? this.dummyPasswordHash,
+    );
+
+    // Uniform failure for both "no such user" and "wrong password": identical
+    // status and message, so neither response leaks whether the account exists.
+    if (!user || !passwordMatch) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    // Block org users if the organization is inactive.
+
+    // Organization status is checked only AFTER credentials are verified, so an
+    // attacker without a valid password can never reach this branch and use the
+    // differing error to discover that a phone number is registered.
     if (
       user.role !== UserRole.SUPER_ADMIN &&
       user.organization?.status !== OrganizationStatus.ACTIVE
@@ -44,10 +65,6 @@ export class UserService {
       throw new ForbiddenException('Organization is inactive');
     }
 
-    const passwordMatch = await bcrypt.compare(input.password, user.password);
-    if (!passwordMatch) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
     const payload: JwtPayload = {
       sub: user.id,
       id: user.id, // Added id
