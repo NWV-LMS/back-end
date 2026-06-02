@@ -9,6 +9,11 @@ FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
+# OpenSSL lets `prisma generate` detect the correct engine for the build platform
+# (without it, detection falls back to openssl-1.1.x and the runtime engine mismatches).
+RUN apt-get update && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY package*.json ./
 COPY prisma ./prisma/
 

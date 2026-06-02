@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
@@ -48,6 +49,8 @@ import { OrganizationActiveGuard } from './components/auth/guards/organization-a
         limit: 60,
       },
     ]),
+    // In-process scheduler (replaces Vercel cron on Timeweb App Platform).
+    ScheduleModule.forRoot(),
     SentryModule.forRoot(),
     ComponentsModule,
     DatabaseModule,

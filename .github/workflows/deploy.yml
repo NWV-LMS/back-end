@@ -1,0 +1,30 @@
+name: Deploy to VPS
+
+# Auto-deploy: any push to master SSHes into the Timeweb VPS and runs
+# deploy.sh (git pull both repos -> docker compose up -d --build).
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: {}
+
+# Never run two deploys at once.
+concurrency:
+  group: vps-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH (pull + build + up)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}        # optional; defaults to 22 if unset
+          script_stop: true
+          command_timeout: 30m                 # building Next on the VPS can be slow
+          script: |
+            cd /opt/bilimnuru/back-end
+            bash deploy.sh

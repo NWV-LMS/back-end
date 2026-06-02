@@ -1,14 +1,33 @@
+# =============================================================================
+# Production stack for a single VPS (Timeweb Cloud Server).
+# Full guide: DEPLOY-TIMEWEB.md
+#
+# All services read secrets from ONE file: .env.production.local
+# (no ${} interpolation — fewer footguns, one place to fill).
+#
+# Requires the front-end repo checked out as a SIBLING directory: ../front-end
+#
+# Deploy:
+#   docker compose build                 # build api + front images
+#   docker compose up -d db              # start db, then restore the dump
+#   docker compose up -d                 # start the rest
+# =============================================================================
+
 services:
   nginx:
     image: nginx:alpine
     container_name: crm-lms-nginx
     ports:
       - "80:80"
-      # - "443:443" # Uncomment when SSL is configured
+      # - "443:443"   # enable after certbot issues certificates (see runbook §SSL)
     volumes:
       - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      # SSL (uncomment together with 443 once certs exist):
+      # - /etc/letsencrypt:/etc/letsencrypt:ro
+      # - ./docker/nginx/certbot-www:/var/www/certbot:ro
     depends_on:
       - api
+      - front
     restart: always
     logging: &logging
       driver: "json-file"
@@ -28,9 +47,8 @@ services:
       - .env.production.local
     environment:
       - NODE_ENV=production
-      # Override DATABASE_URL to use the local db container
-      - DATABASE_URL=postgresql://leo:${POSTGRES_PASSWORD:-changeme}@db:5432/crm_prod
-      # Set RUN_SEED=true ONLY on first deploy to seed initial data
+      # RUN_SEED=true ONLY on the very first deploy of an EMPTY db.
+      # When restoring a dump (the normal migration path), leave it false.
       - RUN_SEED=${RUN_SEED:-false}
     volumes:
       - uploads-data:/app/uploads
@@ -43,14 +61,45 @@ services:
         limits:
           memory: 1G
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/api/health || exit 1"]
+      # node is always present in the image; wget/curl are not on node:20-bookworm-slim.
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 40s
     logging: *logging
 
-  # Worker is disabled for MVP. Enable when Telegram/WhatsApp notifications are needed.
+  front:
+    image: abduvalileo/crm-lms-front:latest
+    build:
+      context: ../front-end
+      dockerfile: Dockerfile
+    container_name: crm-lms-front_prod
+    expose:
+      - "3000"
+    # JWT_ACCESS_SECRET is read from the SAME .env.production.local as the api,
+    # so the front middleware verifies tokens with the exact backend secret.
+    env_file:
+      - .env.production.local
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      # Internal URL: the front's server-side proxy/middleware reaches the api
+      # over the compose network. Overrides any API_URL present in env_file.
+      - API_URL=http://api:3001
+      - NEXT_PUBLIC_APP_ENV=production
+    depends_on:
+      - api
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    logging: *logging
+
+  # Notification worker (Telegram/WhatsApp) — disabled until reminders are needed.
+  # The monthly billing cron runs in-process via @nestjs/schedule (single instance).
   # worker:
   #   image: abduvalileo/crm-lms-api:latest
   #   command: ["node", "dist/src/worker.js"]
@@ -59,36 +108,28 @@ services:
   #     - .env.production.local
   #   environment:
   #     - NODE_ENV=production
-  #     - DATABASE_URL=postgresql://leo:${POSTGRES_PASSWORD:-changeme}@db:5432/crm_prod
   #   depends_on:
   #     db:
   #       condition: service_healthy
   #   restart: always
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 512M
   #   logging: *logging
 
   db:
-    image: postgres:13-alpine
+    # postgres:17 to match the production dump (pg_dump 17.2); pg13 cannot restore it.
+    image: postgres:17-alpine
     container_name: crm-lms-db_prod
-    environment:
-      POSTGRES_DB: crm_prod
-      POSTGRES_USER: leo
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    # POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD come from .env.production.local.
+    env_file:
+      - .env.production.local
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U leo -d crm_prod']
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
     restart: always
     logging: *logging
-    # Port exposed only on loopback for debugging; remove for full isolation.
-    # ports:
-    #   - "127.0.0.1:5432:5432"
 
 volumes:
   db-data:
