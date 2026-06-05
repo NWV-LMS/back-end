@@ -40,6 +40,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Some VPS bridge networks have no egress during build; host net is reliable.
+      network: host
     container_name: crm-lms-api_prod
     expose:
       - "3001"
@@ -74,6 +76,8 @@ services:
     build:
       context: ../front-end
       dockerfile: Dockerfile
+      # Some VPS bridge networks have no egress during build; host net is reliable.
+      network: host
     container_name: crm-lms-front_prod
     expose:
       - "3000"
