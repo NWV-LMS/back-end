@@ -34,6 +34,11 @@ echo -e "${BLUE}3. Build + restart (migrations auto-run via entrypoint)...${NC}"
 cd "$BACK_DIR"
 docker compose up -d --build --remove-orphans
 
+# nginx resolves front/api container IPs once at startup; recreated containers
+# get new IPs, so a stale nginx serves 502 until restarted.
+echo -e "${BLUE}3b. Restart nginx (re-resolve upstream IPs)...${NC}"
+docker compose restart nginx
+
 echo -e "${BLUE}4. Prune old images...${NC}"
 docker image prune -f
 
