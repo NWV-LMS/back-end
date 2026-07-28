@@ -4,6 +4,7 @@ export interface GroupSummary {
   course?: {
     id: string;
     title: string;
+    price?: string;
   };
   teacher?: {
     id: string;

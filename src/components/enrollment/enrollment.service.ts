@@ -33,6 +33,7 @@ const ENROLLMENT_INCLUDE = {
         select: {
           id: true,
           title: true,
+          price: true,
         },
       },
       teacher: {

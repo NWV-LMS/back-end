@@ -11,7 +11,7 @@ type EnrollmentWithRelations = Enrollment & {
   group?: {
     id: string;
     name: string;
-    course?: { id: string; title: string };
+    course?: { id: string; title: string; price?: string };
     teacher?: { id: string; full_name: string };
   };
 };
