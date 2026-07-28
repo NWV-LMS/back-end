@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Builder - Install dependencies and build the application
 # -----------------------------------------------------------------------------
-FROM node:20-slim AS builder
+FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ RUN npm prune --omit=dev
 # -----------------------------------------------------------------------------
 # Stage 2: Runner - Production image with minimal footprint
 # -----------------------------------------------------------------------------
-FROM node:20-slim AS runner
+FROM node:20-bookworm-slim AS runner
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
