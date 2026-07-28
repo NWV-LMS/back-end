@@ -12,7 +12,7 @@ export class QueryEnrollmentDto {
   @Type(() => Number)
   @IsInt({ message: 'limit must be an integer' })
   @Min(1, { message: 'limit must be at least 1' })
-  @Max(100, { message: 'limit cannot exceed 100' })
+  @Max(1000, { message: 'limit cannot exceed 1000' })
   limit: number = 10;
 
   @IsOptional()
