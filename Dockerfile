@@ -45,9 +45,8 @@ RUN npm ci --omit=dev --ignore-scripts
 # Install Prisma CLI for migrations (required in production)
 RUN npm install prisma @prisma/config dotenv --save --ignore-scripts
 
-# Copy Prisma files and generated clients from builder
+# Copy Prisma files from builder
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/generated ./generated
 
 # Copy the Prisma generated client from node_modules (this is the critical fix!)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
