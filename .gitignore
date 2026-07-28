@@ -65,3 +65,8 @@ docs/
 
 # Uploaded files (logos, etc.) — persisted via Docker volume in prod
 /uploads
+
+# Database dumps (contain real PII — NEVER commit)
+backup_*.sql
+*.dump
+*.sql.gz
