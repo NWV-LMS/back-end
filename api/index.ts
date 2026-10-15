@@ -8,6 +8,7 @@ import compression from 'compression';
 import { PrismaExceptionFilter } from '../src/database/prisma-exception.filter';
 import { LoggingInterceptor } from '../src/libs/interceptor/logging.interceptor';
 import { validateEnvOrThrow } from '../src/libs/env.validation';
+import { configureTrustedProxy } from '../src/libs/trusted-proxy';
 
 let cachedServer: any;
 
@@ -24,8 +25,7 @@ async function bootstrap() {
 
     // Apply same middleware/pipes as in main.ts
     app.setGlobalPrefix('api');
-    // Required for correct IP detection behind Vercel's proxy layer.
-    app.getHttpAdapter().getInstance().set('trust proxy', 1);
+    configureTrustedProxy(app.getHttpAdapter().getInstance());
     app.use(helmet());
     // Compression — after helmet, before routes.
     app.use(compression());
