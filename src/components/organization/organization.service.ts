@@ -18,6 +18,8 @@ import { UpdateOrganizationStatusDto } from '../../libs/dto/organization/update-
 import { Message } from '../../libs/enums/common.enums';
 import { toPlatformOrganization } from '../../libs/mappers/organization.mapper';
 import { DatabaseService } from '../../database/database.service';
+import { encryptSecretUpdate } from '../../libs/crypto/secrets';
+import { OrganizationSettingsResponseDto } from '../../libs/dto/organization/organization-settings-response.dto';
 
 @Injectable()
 export class OrganizationService {
@@ -109,10 +111,10 @@ export class OrganizationService {
         phone: input.phone,
         status: input.status,
         telegram_enabled: input.telegram_enabled,
-        telegram_bot_token: input.telegram_bot_token,
+        telegram_bot_token: encryptSecretUpdate(input.telegram_bot_token),
         telegram_chat_id: input.telegram_chat_id,
         whatsapp_enabled: input.whatsapp_enabled,
-        whatsapp_cloud_token: input.whatsapp_cloud_token,
+        whatsapp_cloud_token: encryptSecretUpdate(input.whatsapp_cloud_token),
         whatsapp_phone_number_id: input.whatsapp_phone_number_id,
         whatsapp_api_version: input.whatsapp_api_version,
         whatsapp_cloud_base_url: input.whatsapp_cloud_base_url,
@@ -137,16 +139,49 @@ export class OrganizationService {
     } as Organ;
   }
 
-  async getOrganization(id: string) {
+  async getOrganization(id: string): Promise<OrganizationSettingsResponseDto> {
     const org = await this.database.organization.findUnique({
       where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        status: true,
+        created_at: true,
+        updated_at: true,
+        logo_url: true,
+        telegram_enabled: true,
+        telegram_chat_id: true,
+        whatsapp_enabled: true,
+        whatsapp_phone_number_id: true,
+        whatsapp_api_version: true,
+        whatsapp_cloud_base_url: true,
+        whatsapp_target: true,
+      },
     });
 
     if (!org) {
       throw new BadRequestException('Organization not found');
     }
 
-    return org;
+    return {
+      id: org.id,
+      name: org.name,
+      email: org.email,
+      phone: org.phone,
+      status: org.status,
+      created_at: org.created_at,
+      updated_at: org.updated_at,
+      logo_url: org.logo_url,
+      telegram_enabled: org.telegram_enabled,
+      telegram_chat_id: org.telegram_chat_id,
+      whatsapp_enabled: org.whatsapp_enabled,
+      whatsapp_phone_number_id: org.whatsapp_phone_number_id,
+      whatsapp_api_version: org.whatsapp_api_version,
+      whatsapp_cloud_base_url: org.whatsapp_cloud_base_url,
+      whatsapp_target: org.whatsapp_target,
+    };
   }
 
   async listOrganizations(
