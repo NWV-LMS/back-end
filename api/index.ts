@@ -7,11 +7,13 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { PrismaExceptionFilter } from '../src/database/prisma-exception.filter';
 import { LoggingInterceptor } from '../src/libs/interceptor/logging.interceptor';
+import { validateEnvOrThrow } from '../src/libs/env.validation';
 
 let cachedServer: any;
 
 async function bootstrap() {
   if (!cachedServer) {
+    validateEnvOrThrow();
     const app = await NestFactory.create(AppModule, {
       // Suppress default NestJS console logger — pino takes over below.
       bufferLogs: true,
