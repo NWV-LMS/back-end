@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
+import { enrollmentAccessWhere } from '../enrollment/enrollment-access';
 import { DatabaseService } from '../../database/database.service';
 import { CreateJournalEntryDto } from '../../libs/dto/journal/create-journal-entry.dto';
 import { QueryJournalDto } from '../../libs/dto/journal/query-journal.dto';
@@ -23,7 +24,12 @@ export class JournalService {
     dto: CreateJournalEntryDto,
   ): Promise<JournalEntryResponseDto[]> {
     const group = await this.prisma.group.findFirst({
-      where: { id: dto.group_id, organization_id: organizationId },
+      where: {
+        id: dto.group_id,
+        organization_id: organizationId,
+        course: { organization_id: organizationId },
+        teacher: { organization_id: organizationId },
+      },
     });
 
     if (!group) {
@@ -39,10 +45,34 @@ export class JournalService {
     const teacherId = userRole === UserRole.TEACHER ? userId : group.teacher_id;
     const date = new Date(dto.date);
 
+    // Validate the entire batch before writing any entry. A UUID alone does not
+    // establish that the student belongs to this organization and group.
+    const studentIds = [
+      ...new Set(dto.entries.map((entry) => entry.student_id)),
+    ];
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: {
+        ...enrollmentAccessWhere(organizationId, {
+          sub: userId,
+          role: userRole,
+        }),
+        group_id: dto.group_id,
+        student_id: { in: studentIds },
+      },
+      select: { student_id: true },
+    });
+    if (
+      new Set(enrollments.map((entry) => entry.student_id)).size !==
+      studentIds.length
+    ) {
+      throw new NotFoundException('Student enrollment not found in this group');
+    }
+
     const results = await this.prisma.$transaction(
       dto.entries.map((entry) =>
         this.prisma.journalEntry.upsert({
           where: {
+            organization_id: organizationId,
             group_id_student_id_date: {
               group_id: dto.group_id,
               student_id: entry.student_id,
@@ -60,6 +90,7 @@ export class JournalService {
             notes: entry.notes ?? null,
           },
           update: {
+            teacher_id: teacherId,
             status: entry.status,
             score: entry.score ?? null,
             notes: entry.notes ?? null,
@@ -91,11 +122,20 @@ export class JournalService {
     } = query;
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = { organization_id: organizationId };
+    const groupScope = {
+      organization_id: organizationId,
+      course: { organization_id: organizationId },
+      teacher: { organization_id: organizationId },
+      ...(userRole === UserRole.TEACHER ? { teacher_id: userId } : {}),
+    };
+    const where: Record<string, unknown> = {
+      organization_id: organizationId,
+      group: groupScope,
+      student: { organization_id: organizationId },
+      teacher: { organization_id: organizationId },
+    };
 
-    if (userRole === UserRole.TEACHER) {
-      where['teacher_id'] = userId;
-    } else if (teacher_id) {
+    if (userRole !== UserRole.TEACHER && teacher_id) {
       where['teacher_id'] = teacher_id;
     }
 

@@ -16,6 +16,8 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { OrganizationId } from '../auth/decorators/organization-id.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../../libs/types/auth';
 import { UserRole } from '@prisma/client';
 
 import { CreateEnrollmentDto } from '../../libs/dto/enrollment/create-enrollment.dto';
@@ -47,8 +49,9 @@ export class EnrollmentController {
   findAll(
     @Query() query: QueryEnrollmentDto,
     @OrganizationId() organizationId: string,
+    @CurrentUser() user: JwtPayload,
   ): Promise<PaginatedEnrollmentResponseDto> {
-    return this.enrollmentService.findAll(organizationId, query);
+    return this.enrollmentService.findAll(organizationId, query, user);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
@@ -56,8 +59,9 @@ export class EnrollmentController {
   findByGroup(
     @Param('groupId', new ParseUUIDPipe({ version: '4' })) groupId: string,
     @OrganizationId() organizationId: string,
+    @CurrentUser() user: JwtPayload,
   ): Promise<EnrollmentResponseDto[]> {
-    return this.enrollmentService.findByGroup(groupId, organizationId);
+    return this.enrollmentService.findByGroup(groupId, organizationId, user);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
@@ -65,8 +69,13 @@ export class EnrollmentController {
   findByStudent(
     @Param('studentId', new ParseUUIDPipe({ version: '4' })) studentId: string,
     @OrganizationId() organizationId: string,
+    @CurrentUser() user: JwtPayload,
   ): Promise<EnrollmentResponseDto[]> {
-    return this.enrollmentService.findByStudent(studentId, organizationId);
+    return this.enrollmentService.findByStudent(
+      studentId,
+      organizationId,
+      user,
+    );
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
@@ -74,8 +83,9 @@ export class EnrollmentController {
   findOne(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
+    @CurrentUser() user: JwtPayload,
   ): Promise<EnrollmentResponseDto> {
-    return this.enrollmentService.findOne(id, organizationId);
+    return this.enrollmentService.findOne(id, organizationId, user);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
@@ -84,8 +94,9 @@ export class EnrollmentController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() dto: UpdateEnrollmentDto,
     @OrganizationId() organizationId: string,
+    @CurrentUser() user: JwtPayload,
   ): Promise<EnrollmentResponseDto> {
-    return this.enrollmentService.update(id, organizationId, dto);
+    return this.enrollmentService.update(id, organizationId, dto, user);
   }
 
   @Roles(UserRole.ADMIN)
@@ -93,7 +104,8 @@ export class EnrollmentController {
   remove(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
+    @CurrentUser() user: JwtPayload,
   ): Promise<DeleteEnrollmentResponseDto> {
-    return this.enrollmentService.remove(id, organizationId);
+    return this.enrollmentService.remove(id, organizationId, user);
   }
 }

@@ -1,10 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma, UserRole } from '@prisma/client';
 import { DatabaseService } from '../../database/database.service';
 import { CreateProgressDto } from '../../libs/dto/progress/create-progress.dto';
 import { UpdateProgressDto } from '../../libs/dto/progress/update-progress.dto';
 import { QueryProgressDto } from '../../libs/dto/progress/query-progress.dto';
 import { ProgressResponseDto } from '../../libs/dto/progress/progress-response.dto';
 import { toProgressResponse } from '../../libs/mappers/progress.mapper';
+import {
+  EnrollmentActor,
+  enrollmentAccessWhere,
+} from '../enrollment/enrollment-access';
+import { lessonTenantWhere } from '../lesson/lesson-access';
 
 @Injectable()
 export class ProgressService {
@@ -13,22 +23,14 @@ export class ProgressService {
   async create(
     dto: CreateProgressDto,
     organizationId: string,
+    actor: EnrollmentActor,
   ): Promise<ProgressResponseDto> {
-    // Validate enrollment exists and belongs to organization
-    const enrollment = await this.database.enrollment.findFirst({
-      where: { id: dto.enrollment_id, organization_id: organizationId },
-    });
-    if (!enrollment) {
-      throw new NotFoundException('Enrollment not found');
-    }
-
-    // Validate lesson exists
-    const lesson = await this.database.lesson.findUnique({
-      where: { id: dto.lesson_id },
-    });
-    if (!lesson) {
-      throw new NotFoundException('Lesson not found');
-    }
+    await this.validateReferences(
+      organizationId,
+      actor,
+      dto.enrollment_id,
+      dto.lesson_id,
+    );
 
     const progress = await this.database.progress.create({
       data: {
@@ -47,11 +49,18 @@ export class ProgressService {
     return toProgressResponse(progress);
   }
 
-  async findAll(organizationId: string, query: QueryProgressDto) {
+  async findAll(
+    organizationId: string,
+    query: QueryProgressDto,
+    actor: EnrollmentActor,
+  ) {
     const { page = 1, limit = 20, enrollment_id, lesson_id, completed } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = { organization_id: organizationId };
+    const where: Prisma.ProgressWhereInput = this.accessWhere(
+      organizationId,
+      actor,
+    );
 
     if (enrollment_id) {
       where.enrollment_id = enrollment_id;
@@ -93,9 +102,10 @@ export class ProgressService {
   async findOne(
     id: string,
     organizationId: string,
+    actor: EnrollmentActor,
   ): Promise<ProgressResponseDto> {
     const progress = await this.database.progress.findFirst({
-      where: { id, organization_id: organizationId },
+      where: { id, ...this.accessWhere(organizationId, actor) },
       include: {
         enrollment: { select: { id: true, student_id: true, group_id: true } },
         lesson: { select: { id: true, title: true, course_id: true } },
@@ -113,12 +123,24 @@ export class ProgressService {
     id: string,
     dto: UpdateProgressDto,
     organizationId: string,
+    actor: EnrollmentActor,
   ): Promise<ProgressResponseDto> {
-    await this.findOne(id, organizationId);
+    const current = await this.findOne(id, organizationId, actor);
+    await this.validateReferences(
+      organizationId,
+      actor,
+      dto.enrollment_id ?? current.enrollment_id,
+      dto.lesson_id ?? current.lesson_id,
+    );
 
     const progress = await this.database.progress.update({
       where: { id },
-      data: dto,
+      data: {
+        enrollment_id: dto.enrollment_id,
+        lesson_id: dto.lesson_id,
+        completed: dto.completed,
+        title: dto.title,
+      },
       include: {
         enrollment: { select: { id: true, student_id: true, group_id: true } },
         lesson: { select: { id: true, title: true, course_id: true } },
@@ -128,18 +150,39 @@ export class ProgressService {
     return toProgressResponse(progress);
   }
 
-  async remove(id: string, organizationId: string): Promise<void> {
-    await this.findOne(id, organizationId);
+  async remove(
+    id: string,
+    organizationId: string,
+    actor: EnrollmentActor,
+  ): Promise<void> {
+    await this.findOne(id, organizationId, actor);
 
     await this.database.progress.delete({
       where: { id },
     });
   }
 
-  async getStudentProgress(studentId: string, organizationId: string) {
+  async getStudentProgress(
+    studentId: string,
+    organizationId: string,
+    actor: EnrollmentActor,
+  ) {
+    if (actor.role === UserRole.STUDENT) {
+      const student = await this.database.student.findFirst({
+        where: {
+          id: studentId,
+          organization_id: organizationId,
+          user_id: actor.sub,
+        },
+      });
+      if (!student) throw new NotFoundException('Student not found');
+    }
     // Get all enrollments for the student
     const enrollments = await this.database.enrollment.findMany({
-      where: { student_id: studentId, organization_id: organizationId },
+      where: {
+        student_id: studentId,
+        ...enrollmentAccessWhere(organizationId, actor),
+      },
       select: { id: true },
     });
 
@@ -151,7 +194,7 @@ export class ProgressService {
 
     const progress = await this.database.progress.findMany({
       where: {
-        organization_id: organizationId,
+        ...this.accessWhere(organizationId, actor),
         enrollment_id: { in: enrollmentIds },
       },
       include: {
@@ -179,5 +222,42 @@ export class ProgressService {
         percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
       },
     };
+  }
+
+  private accessWhere(
+    organizationId: string,
+    actor: EnrollmentActor,
+  ): Prisma.ProgressWhereInput {
+    return {
+      organization_id: organizationId,
+      enrollment: enrollmentAccessWhere(organizationId, actor),
+      lesson: lessonTenantWhere(organizationId),
+    };
+  }
+
+  private async validateReferences(
+    organizationId: string,
+    actor: EnrollmentActor,
+    enrollmentId: string,
+    lessonId: string,
+  ) {
+    const enrollment = await this.database.enrollment.findFirst({
+      where: {
+        id: enrollmentId,
+        ...enrollmentAccessWhere(organizationId, actor),
+      },
+      include: { group: { select: { course_id: true } } },
+    });
+    if (!enrollment) throw new NotFoundException('Enrollment not found');
+
+    const lesson = await this.database.lesson.findFirst({
+      where: { id: lessonId, ...lessonTenantWhere(organizationId) },
+    });
+    if (!lesson) throw new NotFoundException('Lesson not found');
+    if (lesson.course_id !== enrollment.group.course_id) {
+      throw new BadRequestException(
+        'Lesson must belong to the enrollment course',
+      );
+    }
   }
 }

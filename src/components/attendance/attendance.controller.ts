@@ -27,7 +27,7 @@ export class AttendanceController {
   @Post()
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   mark(@CurrentUser() user: JwtPayload, @Body() dto: MarkAttendanceDto) {
-    return this.attendanceService.mark(user.organization_id!, dto);
+    return this.attendanceService.mark(user.organization_id!, dto, user);
   }
 
   @Get()
@@ -40,6 +40,6 @@ export class AttendanceController {
   ) {
     dto.page = page;
     dto.limit = limit;
-    return this.attendanceService.findAll(user.organization_id!, dto);
+    return this.attendanceService.findAll(user.organization_id!, dto, user);
   }
 }

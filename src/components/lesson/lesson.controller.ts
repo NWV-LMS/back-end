@@ -36,7 +36,11 @@ export class LessonController {
     @CurrentUser() user: JwtPayload,
     @Body() createLessonDto: CreateLessonDto,
   ) {
-    return this.lessonService.create(user.organization_id!, createLessonDto);
+    return this.lessonService.create(
+      user.organization_id!,
+      createLessonDto,
+      user,
+    );
   }
 
   @Get()
@@ -49,7 +53,7 @@ export class LessonController {
   ) {
     dto.page = page;
     dto.limit = limit;
-    return this.lessonService.findAll(user.organization_id!, dto);
+    return this.lessonService.findAll(user.organization_id!, dto, user);
   }
 
   @Get(':id')
@@ -58,7 +62,7 @@ export class LessonController {
     @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.lessonService.findOne(id, user.organization_id!);
+    return this.lessonService.findOne(id, user.organization_id!, user);
   }
 
   @Patch(':id')
@@ -72,6 +76,7 @@ export class LessonController {
       id,
       user.organization_id!,
       updateLessonDto,
+      user,
     );
   }
 
@@ -82,7 +87,7 @@ export class LessonController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: RescheduleLessonDto,
   ) {
-    return this.lessonService.reschedule(id, user.organization_id!, dto);
+    return this.lessonService.reschedule(id, user.organization_id!, dto, user);
   }
 
   @Delete(':id')
@@ -91,6 +96,6 @@ export class LessonController {
     @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.lessonService.remove(id, user.organization_id!);
+    return this.lessonService.remove(id, user.organization_id!, user);
   }
 }

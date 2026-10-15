@@ -15,6 +15,7 @@ import {
 import { PaginatedEnrollmentResponseDto } from '../../libs/dto/enrollment/paginated-enrollment-response.dto';
 import { Prisma } from '@prisma/client';
 import { toEnrollmentResponse } from '../../libs/mappers/enrollment.mapper';
+import { EnrollmentActor, enrollmentAccessWhere } from './enrollment-access';
 
 const ENROLLMENT_INCLUDE = {
   student: {
@@ -69,6 +70,8 @@ export class EnrollmentService {
       where: {
         id: dto.group_id,
         organization_id: organizationId,
+        course: { organization_id: organizationId },
+        teacher: { organization_id: organizationId },
       },
     });
 
@@ -111,20 +114,15 @@ export class EnrollmentService {
   async findAll(
     organizationId: string,
     query: QueryEnrollmentDto,
+    actor: EnrollmentActor,
   ): Promise<PaginatedEnrollmentResponseDto> {
     const { page, limit, student_id, group_id } = query;
     const skip = (page - 1) * limit;
 
-    const groupWhere: Prisma.GroupWhereInput = {
-      organization_id: organizationId,
+    const where: Prisma.EnrollmentWhereInput = {
+      ...enrollmentAccessWhere(organizationId, actor),
+      ...(group_id ? { group_id } : {}),
     };
-    const where: Prisma.EnrollmentWhereInput = {};
-
-    if (group_id) {
-      groupWhere.id = group_id;
-    }
-
-    where.group = groupWhere;
 
     if (student_id) {
       where.student_id = student_id;
@@ -156,13 +154,12 @@ export class EnrollmentService {
   async findOne(
     id: string,
     organizationId: string,
+    actor: EnrollmentActor,
   ): Promise<EnrollmentResponseDto> {
     const enrollment = await this.database.enrollment.findFirst({
       where: {
         id,
-        group: {
-          organization_id: organizationId,
-        },
+        ...enrollmentAccessWhere(organizationId, actor),
       },
       include: ENROLLMENT_INCLUDE,
     });
@@ -178,11 +175,13 @@ export class EnrollmentService {
   async findByGroup(
     groupId: string,
     organizationId: string,
+    actor: EnrollmentActor,
   ): Promise<EnrollmentResponseDto[]> {
     const group = await this.database.group.findFirst({
       where: {
         id: groupId,
         organization_id: organizationId,
+        ...(actor.role === 'TEACHER' ? { teacher_id: actor.sub } : {}),
       },
     });
 
@@ -193,6 +192,7 @@ export class EnrollmentService {
     const enrollments = await this.database.enrollment.findMany({
       where: {
         group_id: groupId,
+        ...enrollmentAccessWhere(organizationId, actor),
       },
       orderBy: { enrolled_at: 'desc' },
       include: ENROLLMENT_INCLUDE,
@@ -205,6 +205,7 @@ export class EnrollmentService {
   async findByStudent(
     studentId: string,
     organizationId: string,
+    actor: EnrollmentActor,
   ): Promise<EnrollmentResponseDto[]> {
     const student = await this.database.student.findFirst({
       where: {
@@ -220,9 +221,7 @@ export class EnrollmentService {
     const enrollments = await this.database.enrollment.findMany({
       where: {
         student_id: studentId,
-        group: {
-          organization_id: organizationId,
-        },
+        ...enrollmentAccessWhere(organizationId, actor),
       },
       orderBy: { enrolled_at: 'desc' },
       include: ENROLLMENT_INCLUDE,
@@ -236,14 +235,24 @@ export class EnrollmentService {
     id: string,
     organizationId: string,
     dto: UpdateEnrollmentDto,
+    actor: EnrollmentActor,
   ): Promise<EnrollmentResponseDto> {
-    await this.findOne(id, organizationId);
+    const current = await this.findOne(id, organizationId, actor);
+
+    if (dto.student_id) {
+      const student = await this.database.student.findFirst({
+        where: { id: dto.student_id, organization_id: organizationId },
+      });
+      if (!student) throw new NotFoundException('Student not found');
+    }
 
     if (dto.group_id) {
       const group = await this.database.group.findFirst({
         where: {
           id: dto.group_id,
           organization_id: organizationId,
+          course: { organization_id: organizationId },
+          teacher: { organization_id: organizationId },
         },
       });
 
@@ -251,14 +260,34 @@ export class EnrollmentService {
         throw new NotFoundException('Group not found');
       }
 
+      const [attendance, progress] = await Promise.all([
+        this.database.attendance.count({
+          where: {
+            enrollment_id: id,
+            lesson: { course_id: { not: group.course_id } },
+          },
+        }),
+        this.database.progress.count({
+          where: {
+            enrollment_id: id,
+            lesson: { course_id: { not: group.course_id } },
+          },
+        }),
+      ]);
+      if (attendance || progress) {
+        throw new BadRequestException(
+          'Cannot move enrollment to a different course with existing attendance or progress',
+        );
+      }
+    }
+
+    if (dto.student_id || dto.group_id) {
       const existingEnrollment = await this.database.enrollment.findFirst({
         where: {
           organization_id: organizationId,
           id: { not: id },
-          student_id: (
-            await this.database.enrollment.findUnique({ where: { id } })
-          )?.student_id,
-          group_id: dto.group_id,
+          student_id: dto.student_id ?? current.student_id,
+          group_id: dto.group_id ?? current.group_id,
         },
       });
 
@@ -271,7 +300,12 @@ export class EnrollmentService {
 
     const updated = await this.database.enrollment.update({
       where: { id },
-      data: dto,
+      data: {
+        student_id: dto.student_id,
+        group_id: dto.group_id,
+        monthly_fee: dto.monthly_fee,
+        discount_amount: dto.discount_amount,
+      },
       include: ENROLLMENT_INCLUDE,
     });
 
@@ -282,8 +316,9 @@ export class EnrollmentService {
   async remove(
     id: string,
     organizationId: string,
+    actor: EnrollmentActor,
   ): Promise<DeleteEnrollmentResponseDto> {
-    const enrollment = await this.findOne(id, organizationId);
+    const enrollment = await this.findOne(id, organizationId, actor);
 
     const relatedAttendance = await this.database.attendance.count({
       where: { enrollment_id: id },
