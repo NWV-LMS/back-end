@@ -32,6 +32,7 @@ describe('Organization access with verified JWTs (integration)', () => {
         sub: user.id,
         role: user.role,
         organization_id: user.organization_id,
+        token_use: 'access',
         ...overrides,
       },
       { secret: secret ?? process.env.JWT_ACCESS_SECRET, expiresIn: '15m' },
@@ -135,5 +136,30 @@ describe('Organization access with verified JWTs (integration)', () => {
     await request(app.getHttpServer()).get('/api/auth/me').expect(401);
     expect(dbMock.organization.findUnique).not.toHaveBeenCalled();
     expect(dbMock.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it.each(['refresh', undefined])(
+    'rejects a token with token_use=%s before querying the database',
+    async (tokenUse) => {
+      await request(app.getHttpServer())
+        .get('/api/auth/me')
+        .auth(token({ token_use: tokenUse }), { type: 'bearer' })
+        .expect(401);
+      expect(dbMock.organization.findUnique).not.toHaveBeenCalled();
+      expect(dbMock.user.findUnique).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects a token signed with an unsupported algorithm', async () => {
+    const accessToken = jwt.sign(
+      { sub: user.id, token_use: 'access' },
+      { secret: process.env.JWT_ACCESS_SECRET, algorithm: 'HS384' },
+    );
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .auth(accessToken, { type: 'bearer' })
+      .expect(401);
+    expect(dbMock.user.findUnique).not.toHaveBeenCalled();
+    expect(dbMock.organization.findUnique).not.toHaveBeenCalled();
   });
 });

@@ -1,9 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
+import { createHash, randomUUID } from 'crypto';
 
-import { T } from '../../libs/types/common';
 import { toUserResponse } from '../../libs/mappers/user.mapper';
 import { DatabaseService } from '../../database/database.service';
 import { RefreshTokenDto } from '../../libs/dto/auth/refresh-token.dto';
@@ -35,25 +34,40 @@ export class AuthService {
     if (!refreshExpires) throw new Error('JWT_REFRESH_EXPIRES_IN is not set');
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: accessSecret,
-        expiresIn: accessExpires,
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: refreshSecret,
-        expiresIn: refreshExpires,
-      }),
+      this.jwtService.signAsync(
+        { ...payload, token_use: 'access' },
+        {
+          secret: accessSecret,
+          expiresIn: accessExpires,
+          algorithm: 'HS256',
+          jwtid: randomUUID(),
+        },
+      ),
+      this.jwtService.signAsync(
+        { ...payload, token_use: 'refresh' },
+        {
+          secret: refreshSecret,
+          expiresIn: refreshExpires,
+          algorithm: 'HS256',
+          jwtid: randomUUID(),
+        },
+      ),
     ]);
 
     return { accessToken, refreshToken };
   }
 
   async storeRefreshToken(userId: string, refreshToken: string): Promise<void> {
-    const hashed = await bcrypt.hash(refreshToken, 10);
     await this.database.user.update({
       where: { id: userId },
-      data: { refresh_token: hashed } as T,
+      data: { refresh_token: this.refreshTokenDigest(refreshToken) },
     });
+  }
+
+  private refreshTokenDigest(refreshToken: string): string {
+    // JWTs exceed bcrypt's 72-byte input limit. Hash every byte of the signed,
+    // high-entropy token instead; existing bcrypt sessions require a new login.
+    return `sha256:${createHash('sha256').update(refreshToken).digest('hex')}`;
   }
 
   async refresh(dto: RefreshTokenDto) {
@@ -63,7 +77,11 @@ export class AuthService {
       if (!refreshSecret) throw new Error('JWT_REFRESH_SECRET is not set');
       const decoded = this.jwtService.verify<JwtPayload>(dto.refreshToken, {
         secret: refreshSecret,
+        algorithms: ['HS256'],
       });
+      if (decoded.token_use !== 'refresh') {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
 
       const user = await this.database.user.findUnique({
         where: { id: decoded.sub },
@@ -80,8 +98,8 @@ export class AuthService {
       ) {
         throw new UnauthorizedException('Organization is inactive');
       }
-      const match = await bcrypt.compare(dto.refreshToken, user.refresh_token);
-      if (!match) {
+      const previousDigest = this.refreshTokenDigest(dto.refreshToken);
+      if (previousDigest !== user.refresh_token) {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
@@ -96,13 +114,21 @@ export class AuthService {
       };
 
       const tokens = await this.generateTokens(payload);
-      await this.storeRefreshToken(user.id, tokens.refreshToken);
+      // Consume this exact session once. A concurrent rotation, logout or
+      // password change must never let a stale request restore a session.
+      const rotated = await this.database.user.updateMany({
+        where: { id: user.id, refresh_token: previousDigest },
+        data: { refresh_token: this.refreshTokenDigest(tokens.refreshToken) },
+      });
+      if (rotated.count !== 1) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
       return {
         ...tokens,
         // Always return API-safe DTO, not raw DB entity.
         user: toUserResponse(user as any),
       };
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
   }

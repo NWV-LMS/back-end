@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -20,10 +20,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: secret,
+      algorithms: ['HS256'],
     });
   }
 
   async validate(payload: JwtPayload): Promise<JwtPayload> {
+    if (payload.token_use !== 'access') {
+      throw new UnauthorizedException('Invalid access token');
+    }
     const user = { ...payload, id: payload.sub };
     // Passport has verified the JWT before invoking this callback. Check the
     // current organization status here, before any protected controller runs.

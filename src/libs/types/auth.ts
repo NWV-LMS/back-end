@@ -8,6 +8,7 @@ export interface JwtPayload {
   name: string;
   role: UserRole;
   organization_id: string | null;
+  token_use?: 'access' | 'refresh';
 }
 
 export interface JwtTokens {
