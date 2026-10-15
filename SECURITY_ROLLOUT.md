@@ -80,3 +80,10 @@ see [test/README.md](test/README.md). Security regressions cover denied access
 with unchanged database state, legitimate authorized paths, legacy corrupt
 relations, concurrent password changes and refresh rotations, credential
 encryption/migration, and credential-free HTTP logging.
+
+Final verification on the installed dependency tree passed the build and
+ESLint, **152 unit tests, 23 integration tests, and 130 PostgreSQL E2E tests**
+(305 tests total). The restarted development API, database readiness, invalid
+login behavior, and generated Swagger document were also verified. Production
+dependency audit exits zero at the high threshold; remaining moderate and
+development advisories are explicitly documented in SECURITY_AUDIT.md.

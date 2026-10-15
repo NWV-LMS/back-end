@@ -15,6 +15,11 @@ Counts include parent packages affected by the same underlying advisory;
 30 entries do not mean 30 independently exploitable bugs. Audit databases
 change; rerun the commands below when reviewing or deploying.
 
+The final installed-tree audit (`npm audit --omit=dev --audit-level=high`)
+also exits successfully with **0 critical and 0 high**, and reports **36
+moderate** entries. Its six additional peer-dependent NestJS package entries
+inherit the existing NestJS advisory; they are not additional advisory roots.
+
 ## Applied changes
 
 - Upgrade compression to 1.8.2, which fixes leaked compression streams on
@@ -56,7 +61,10 @@ tooling move to versions that already depend on patched releases.
 
 Development packages are also audited; a production-only result must not be
 presented as a clean full-tree audit. The final full-tree audit reports
-**0 critical, 44 high, 36 moderate, and 0 low** package entries. Most high
+**0 critical, 46 high, 42 moderate, and 0 low** installed-tree package entries.
+The lockfile-only full audit reports 44 high and 36 moderate: the installed tree
+also marks peer-dependent packages such as ts-jest and jest-pnp-resolver.
+Most high
 entries are parent-tool reports of the same development dependency.
 Unpatched braces 3.0.3 remains in Jest,
 file-watching, linting, and build-tool glob handling (GHSA-vfj7-8cjw-p6xm).
