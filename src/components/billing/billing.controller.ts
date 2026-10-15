@@ -23,6 +23,7 @@ import {
   PaginatedInvoiceResponseDto,
 } from '../../libs/dto/billing/invoice-response.dto';
 import { PayInvoiceDto } from '../../libs/dto/billing/pay-invoice.dto';
+import { JwtPayload } from '../../libs/types/auth';
 
 @UseGuards(JwtAuthGuard, OrganizationIdGuard, RolesGuard)
 @Controller('billing')
@@ -48,8 +49,9 @@ export class BillingController {
   listInvoices(
     @OrganizationId() organizationId: string,
     @Query() query: QueryInvoiceDto,
+    @CurrentUser() actor: JwtPayload,
   ): Promise<PaginatedInvoiceResponseDto> {
-    return this.billingService.listInvoices(organizationId, query);
+    return this.billingService.listInvoices(organizationId, query, actor);
   }
 
   @Roles(
@@ -62,8 +64,9 @@ export class BillingController {
   getInvoice(
     @OrganizationId() organizationId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() actor: JwtPayload,
   ): Promise<InvoiceResponseDto> {
-    return this.billingService.getInvoice(organizationId, id);
+    return this.billingService.getInvoice(organizationId, id, actor);
   }
 
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER)
