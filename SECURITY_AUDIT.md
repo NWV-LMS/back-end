@@ -1,127 +1,94 @@
-# Security Audit — Remaining Vulnerabilities
+# Dependency security review
 
-Last audit: 2026-05-27
+Audit date: 2026-10-16. Runtime used for validation: Node.js 24.
 
-## Status
+## Scope and current production result
 
-| Severity | Before | After safe fix |
-| -------- | ------ | -------------- |
-| Critical | 1      | 0              |
-| High     | 15     | 7              |
-| Moderate | 20     | 16             |
-| Low      | 4      | 3              |
-| **Total**| **40** | **26**         |
+The dependency changes preserve NestJS 10, Express 4, Prisma 5.22, Jest 29,
+and the application dependency APIs. No framework major upgrade or
+`npm audit fix --force` was applied.
 
-What landed without `--force`:
-- Critical `handlebars` (8 CVEs, prototype pollution + JS injection) — resolved.
-- Removed accidental top-level `npm` and `install` dependencies (unused in source).
-- Patched many transitive packages via lockfile-only updates.
+`npm audit --omit=dev --package-lock-only` reports **0 critical, 0 high,
+30 moderate, and 0 low** vulnerable package entries, compared with
+**3 critical, 5 high, 32 moderate, and 1 low** before this change.
+Counts include parent packages affected by the same underlying advisory;
+30 entries do not mean 30 independently exploitable bugs. Audit databases
+change; rerun the commands below when reviewing or deploying.
 
-## Remaining vulnerabilities require a major version bump
+## Applied changes
 
-All 26 open advisories collapse into **7 direct-dependency major upgrades**. Once these are bumped, the transitive vulnerabilities they pull (multer, qs, lodash, js-yaml, ajv, picomatch, file-type, glob, tmp, webpack, etc.) resolve automatically.
+- Upgrade compression to 1.8.2, which fixes leaked compression streams on
+  premature response close (GHSA-vc2v-76pw-4v95).
+- Keep NestJS 10 and override its pinned Express adapter dependencies to
+  compatible patched releases: Express 4.22.3, body-parser 1.20.8, and
+  Multer 2.4.0. This addresses multipart cleanup, malformed field-name,
+  resource exhaustion, and asynchronous file-filter advisories.
+- Require qs 6.16.1 and proxy-addr 2.0.8 throughout the tree. The latter fixes
+  IPv4-mapped IPv6 trust-subnet spoofing (GHSA-jqcg-44mw-7w3h).
+- Override Swagger's pinned lodash and js-yaml to patched releases in their
+  current major versions. Patch the scheduler's pinned uuid within major 11.
+- Remove unused hbs and Prisma 7 PostgreSQL/SQLite adapters. There are no
+  source, seed, or configuration references to these adapters or a template
+  view engine. The application uses the standard Prisma 5.22 client.
+  Remaining development-only Handlebars is updated to 4.7.10.
+- Apply compatible lockfile updates for brace-expansion, form-data,
+  browserslist, Babel, fflate, YAML parsing, and fast-copy. Scope overrides
+  for pinned development tools to Nest CLI (glob/webpack) and Angular DevKit
+  (ajv/picomatch); do not replace APIs with incompatible major versions.
+- Upgrade pinned Inquirer within its current major versions (8.2.7 for
+  Nest CLI, 9.3.8 for the schematics CLI). Both use maintained
+  @inquirer/external-editor, removing vulnerable external-editor/tmp without
+  forcing an incompatible pre-1.0 tmp dependency into old consumers.
 
-### 1. `@nestjs/core` 10 → 11
+The overrides are explicit security constraints for dependencies pinned by
+upstream NestJS packages. Reassess and remove them when the framework and
+tooling move to versions that already depend on patched releases.
 
-- Current: `^10.0.0` (installed 10.4.22)
-- Target: `^11.1.24`
-- Severity (direct): moderate — [GHSA-36xv-jgw5-4q75](https://github.com/advisories/GHSA-36xv-jgw5-4q75)
-- Breaking: yes. NestJS 11 raises minimum Node to 20 LTS, swaps Express 4 → 5 path-to-regexp behavior, and changes some lifecycle hook ordering. See the NestJS 11 migration guide.
+## Remaining production advisories
 
-### 2. `@nestjs/platform-express` 10 → 11 ⚠️ highest impact
+| Dependency family | Advisory and applicability | Required follow-up |
+| --- | --- | --- |
+| NestJS core 10 | GHSA-36xv-jgw5-4q75, downstream output injection; the installed core is in the advisory range. This review does not claim the framework advisory is resolved by application fixes. | Plan and validate a coordinated supported NestJS major upgrade; do not override core independently of its adapters and peers. |
+| file-type 20.4.1 via Nest common | GHSA-5v7r-6r5c-r473 and GHSA-j47w-4g3g-c36v, malformed ASF / ZIP parsing DoS. Application source currently does not use Nest FileTypeValidator or call file-type; the logo upload checks the MIME header without this parser. | Move to a framework release with patched file-type before enabling that validator; a transitive major upgrade was deliberately not forced. |
+| Sentry 8 / OpenTelemetry | GHSA-8988-4f7v-96qf, unbounded W3C baggage allocation, and GHSA-qqmp-wf37-98f9, database usernames included in telemetry attributes. Sentry is initialized in `src/instrument.ts` and enabled when SENTRY_DSN is configured. No external Sentry delivery was tested. | Upgrade Sentry and its OpenTelemetry integrations together and validate instrumentation. Do not force OpenTelemetry 2 into an SDK that expects version 1. |
 
-- Current: `^10.0.0` (installed 10.4.22)
-- Target: `^11.1.24`
-- Severity (direct): high
-- Cascades fixes for:
-  - **`multer` <= 2.1.0** — high — 3 DoS CVEs ([GHSA-xf7r-hgr6-v32p](https://github.com/advisories/GHSA-xf7r-hgr6-v32p), [GHSA-v52c-386h-88mc](https://github.com/advisories/GHSA-v52c-386h-88mc), [GHSA-5528-5vmv-3xc2](https://github.com/advisories/GHSA-5528-5vmv-3xc2))
-  - **`qs` 6.7.0 – 6.15.1** — moderate ([GHSA-w7fw-mjwx-w883](https://github.com/advisories/GHSA-w7fw-mjwx-w883), [GHSA-q8mj-m7cp-5q26](https://github.com/advisories/GHSA-q8mj-m7cp-5q26))
-  - **`body-parser` 1.20.3 – 1.20.4** — moderate (transitive via qs)
-  - **`express` 4.21.0 – 4.22.1** — moderate (transitive via qs)
-- Breaking: yes. Express 5 changes async error propagation and route parsing; `multer.diskStorage` API is unchanged but body parsing semantics differ. Any custom Express middleware needs review.
-- File-upload code in this repo uses `@nestjs/platform-express` — verify `MulterModule` config still compiles.
+## Development dependency advisories
 
-### 3. `@nestjs/swagger` 7 → 11 ⚠️ 4-major jump
+Development packages are also audited; a production-only result must not be
+presented as a clean full-tree audit. The final full-tree audit reports
+**0 critical, 44 high, 36 moderate, and 0 low** package entries. Most high
+entries are parent-tool reports of the same development dependency.
+Unpatched braces 3.0.3 remains in Jest,
+file-watching, linting, and build-tool glob handling (GHSA-vfj7-8cjw-p6xm).
+This package is used in build/development paths, not exposed API routes.
+Avoid processing untrusted patterns until upstream tooling is updated.
+Development-only sprintf-js also remains affected by unbounded
+precision-specifier DoS (GHSA-hp3w-g68c-fv3c), inherited through YAML tooling.
+No patched compatible version was available for that dependency. The full
+audit below remains nonzero.
 
-- Current: `^7.4.2` (installed 7.4.2)
-- Target: `^11.4.4`
-- Severity (direct): moderate
-- Cascades fixes for:
-  - **`lodash` <= 4.17.23** — high — 3 CVEs (prototype pollution + code injection via `_.template` / `_.unset` / `_.omit`)
-  - **`js-yaml` 4.0.0 – 4.1.0** — moderate (prototype pollution in merge)
-- Breaking: yes, biggest delta. Decorator signatures and `SwaggerModule.setup` options changed between v7 and v11. Schema generation for inheritance + `PartialType` / `OmitType` mostly preserved; spot-check generated OpenAPI output.
-
-### 4. `@nestjs/terminus` 10 → 11
-
-- Current: `^10.3.0` (installed 10.3.0)
-- Target: `^11.1.1`
-- Severity (direct): moderate
-- Breaking: yes (must move in lockstep with `@nestjs/core` 11). Health-check indicator interfaces unchanged in practice.
-
-### 5. `@sentry/nestjs` 8 → 10
-
-- Current: `^8.55.2` (installed 8.55.2)
-- Target: `^10.54.0`
-- Severity (direct): moderate
-- Breaking: yes. v9 + v10 reworked transaction APIs and the integration init signature. The `SentryModule.forRoot()` call site will likely need adjustment, and `Sentry.captureException` usage is preserved.
-
-### 6. `@nestjs/cli` 10 → 11 (dev)
-
-- Current: `^10.0.0` (installed 10.4.9)
-- Target: `^11.0.17+`
-- Severity (direct): high
-- Cascades fixes for:
-  - **`webpack` 5.49.0 – 5.104.0** — low (HttpUriPlugin SSRF)
-  - **`glob`, `tmp`, `inquirer`, `external-editor`** — low/high (build-time only)
-- Breaking: yes, but dev-only. `nest build` config schema mostly compatible; verify `nest-cli.json` still parses.
-
-### 7. `@nestjs/schematics` 10 → 11 (dev) + `@nestjs/testing` 10 → 11 (dev)
-
-- Current: `^10.0.0` each
-- Severity (direct): moderate
-- Cascades fixes for:
-  - **`ajv` <8.18.0** — moderate (ReDoS via `$data`)
-  - **`picomatch` <=2.3.1 || 4.0.0 – 4.0.3** — high (method injection in POSIX char classes + ReDoS via extglob)
-  - **`@angular-devkit/core`, `@angular-devkit/schematics`, `@angular-devkit/schematics-cli`** — moderate (transitive)
-- Breaking: yes, but dev-only. Required to keep test toolchain on the same major as runtime NestJS.
-
----
-
-## Recommended path forward
-
-Do these as **one coordinated NestJS-10-to-11 upgrade PR** rather than piecemeal — the `@nestjs/*` packages must move together to avoid peer-dependency conflicts:
+## Reproduction and validation
 
 ```bash
-npm install \
-  @nestjs/common@^11 \
-  @nestjs/core@^11 \
-  @nestjs/platform-express@^11 \
-  @nestjs/swagger@^11 \
-  @nestjs/terminus@^11 \
-  @nestjs/jwt@^11 \
-  @nestjs/mapped-types@^2 \
-  @nestjs/passport@^11 \
-  @nestjs/config@^4 \
-  @sentry/nestjs@^10
-
-npm install --save-dev \
-  @nestjs/cli@^11 \
-  @nestjs/schematics@^11 \
-  @nestjs/testing@^11
+npm ci --ignore-scripts
+npx prisma generate
+npm run build
+npm test -- --runInBand
+npm run test:integration -- --runInBand
+npm run test:e2e -- --runInBand
+npm audit --omit=dev --package-lock-only
+npm audit --package-lock-only
 ```
 
-Then:
+`--ignore-scripts` prevents the repository postinstall from seeding a database
+as part of dependency installation. Generate Prisma explicitly and use a
+dedicated test database for integration/e2e checks. Package signatures,
+lockfile integrity hashes, and TLS verification remain enabled. Build and
+application test outcomes are recorded with the security-change commits;
+this document describes the dependency scope and does not assert a clean
+full audit or externally verified production telemetry.
 
-1. Run `npm audit` — should drop to 0.
-2. Run `npm run build && npm test` — fix typing breakages.
-3. Manual smoke test:
-   - File upload endpoint (`/uploads`) — multer config + serverless routing in `api/index.ts`.
-   - Swagger UI at `/api` — confirm OpenAPI doc renders.
-   - Health endpoint (`@nestjs/terminus`).
-   - Sentry capture — trigger a thrown exception in dev.
-4. Deploy to Vercel preview, run the test creds from `CLAUDE.md` against `/api/auth/login`.
-5. Promote to production only after preview smoke passes.
-
-## What was NOT applied automatically
-
-`npm audit fix --force` would attempt the entire NestJS 10 → 11 jump unattended. Not safe without the manual smoke test above, so it was left for the user to decide.
+After the frozen install, a local compatibility smoke check passed for
+normal multipart upload, file-size enforcement, malformed multipart rejection,
+gzip responses, cleanup of all gzip streams after 10 aborted responses, and
+server health after those requests.
