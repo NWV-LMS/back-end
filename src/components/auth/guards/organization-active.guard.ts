@@ -20,6 +20,10 @@ export class OrganizationActiveGuard implements CanActivate {
     // Not an authenticated request (or not using JwtAuthGuard) -> allow.
     if (!user) return true;
 
+    return this.validateOrganization(user);
+  }
+
+  async validateOrganization(user: JwtPayload): Promise<boolean> {
     // Platform owner bypasses organization status checks.
     if (user.role === UserRole.SUPER_ADMIN) return true;
 

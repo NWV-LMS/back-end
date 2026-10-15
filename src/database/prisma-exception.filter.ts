@@ -22,7 +22,9 @@ export class PrismaExceptionFilter implements ExceptionFilter {
     const response = host.switchToHttp().getResponse<Response>();
     const httpException = this.toHttpException(exception);
 
-    response.status(httpException.getStatus()).json(httpException.getResponse());
+    response
+      .status(httpException.getStatus())
+      .json(httpException.getResponse());
   }
 
   private toHttpException(exception: unknown): HttpException {

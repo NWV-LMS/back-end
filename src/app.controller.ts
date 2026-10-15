@@ -9,9 +9,4 @@ export class AppController {
   getApiInfo() {
     return this.appService.getApiInfo();
   }
-
-  @Get('health')
-  healthCheck(): Promise<import('./libs/config').HealthCheckResponse> {
-    return this.appService.healthCheck();
-  }
 }

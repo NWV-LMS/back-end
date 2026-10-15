@@ -45,9 +45,7 @@ export class BillingService {
 
   constructor(private readonly database: DatabaseService) {}
 
-  async generateForAllOrgs(
-    month?: string,
-  ): Promise<{
+  async generateForAllOrgs(month?: string): Promise<{
     month: string;
     organizations: number;
     succeeded: number;
@@ -350,23 +348,34 @@ export class BillingService {
     cashierUserId: string,
     dto: PayInvoiceDto,
   ): Promise<{ message: string; invoice: InvoiceResponseDto }> {
-    const invoice = await this.database.invoice.findFirst({
-      where: { id: invoiceId, organization_id: organizationId },
-      select: {
-        id: true,
-        student_id: true,
-        amount_due: true,
-        amount_paid: true,
-        status: true,
-        due_date: true,
-      },
-    });
-    if (!invoice) throw new NotFoundException('Invoice not found');
-    if (invoice.status === InvoiceStatus.VOID) {
-      throw new BadRequestException('Invoice is void');
-    }
-
     await this.database.$transaction(async (tx) => {
+      // Serialize payments for this invoice before reading its balance/status.
+      // The lock is held until the payment and invoice update commit together.
+      const lockedInvoices = await tx.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "Invoice"
+        WHERE "id" = ${invoiceId}::uuid
+          AND "organization_id" = ${organizationId}::uuid
+        FOR UPDATE
+      `;
+      if (lockedInvoices.length === 0) {
+        throw new NotFoundException('Invoice not found');
+      }
+      const invoice = await tx.invoice.findFirst({
+        where: { id: invoiceId, organization_id: organizationId },
+        select: {
+          id: true,
+          student_id: true,
+          amount_due: true,
+          amount_paid: true,
+          status: true,
+          due_date: true,
+        },
+      });
+      if (!invoice) throw new NotFoundException('Invoice not found');
+      if (invoice.status === InvoiceStatus.VOID) {
+        throw new BadRequestException('Invoice is void');
+      }
+
       const payment = await tx.payment.create({
         data: {
           organization_id: organizationId,
@@ -380,6 +389,8 @@ export class BillingService {
           receipt_number: await this.generateReceiptNumber(organizationId),
         },
       });
+
+      if (payment.status !== PaymentStatus.COMPLETED) return;
 
       const nextPaid = invoice.amount_paid.add(payment.amount);
       const isPaid = nextPaid.greaterThanOrEqualTo(invoice.amount_due);

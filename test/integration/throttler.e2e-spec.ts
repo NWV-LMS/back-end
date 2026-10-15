@@ -4,6 +4,7 @@
 jest.mock('bcrypt', () => ({
   compare: jest.fn().mockResolvedValue(false), // always bad password → 401
   hash: jest.fn().mockResolvedValue('hashed'),
+  hashSync: jest.fn().mockReturnValue('hashed-dummy-password'),
 }));
 
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -52,12 +53,14 @@ describe('ThrottlerGuard on POST /api/auth/login (integration)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   it('rejects with 429 after exceeding the 5-request-per-minute limit', async () => {

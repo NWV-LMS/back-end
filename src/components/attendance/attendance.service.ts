@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Attendance, Prisma } from '@prisma/client';
 import { DatabaseService } from '../../database/database.service';
 import { MarkAttendanceDto } from '../../libs/dto/attendance/mark-attendance.dto';

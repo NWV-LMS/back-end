@@ -8,6 +8,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { OrganizationsController } from './organizations.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { OrganizationActiveGuard } from './guards/organization-active.guard';
 import { UserModule } from '../user/user.module';
 import { OrganizationModule } from '../organization/organization.module';
 
@@ -30,7 +31,7 @@ import { OrganizationModule } from '../organization/organization.module';
     }),
   ],
   controllers: [AuthController, OrganizationsController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, OrganizationActiveGuard],
   exports: [AuthService],
 })
 export class AuthModule {}

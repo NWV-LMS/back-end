@@ -6,7 +6,6 @@ import { DatabaseService } from '../../database/database.service';
 
 const ORG = 'org-111';
 const STUDENT_A = 'student-aaa';
-const STUDENT_B = 'student-bbb';
 const INVOICE_ID = 'invoice-001';
 const CASHIER_ID = 'user-cashier';
 
@@ -68,6 +67,7 @@ describe('BillingService', () => {
       },
       payment: { create: jest.fn() },
       $transaction: jest.fn(),
+      $queryRaw: jest.fn().mockResolvedValue([{ id: INVOICE_ID }]),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -275,6 +275,25 @@ describe('BillingService', () => {
   // ── payInvoice ────────────────────────────────────────────────────────────
 
   describe('payInvoice', () => {
+    it('rejects invoices outside the organization without creating a payment', async () => {
+      (db.$queryRaw as jest.Mock).mockResolvedValue([]);
+
+      await expect(
+        service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {
+          amount: 5000,
+          method: 'CASH',
+        }),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(db.invoice.findFirst).not.toHaveBeenCalled();
+      expect(db.payment.create).not.toHaveBeenCalled();
+      const [query, invoiceId, organizationId] = (db.$queryRaw as jest.Mock)
+        .mock.calls[0];
+      expect(query.join('')).toContain('"organization_id" = ');
+      expect(invoiceId).toBe(INVOICE_ID);
+      expect(organizationId).toBe(ORG);
+    });
+
     it('throws NotFoundException when invoice not found', async () => {
       (db.invoice.findFirst as jest.Mock).mockResolvedValue(null);
       await expect(
@@ -321,6 +340,7 @@ describe('BillingService', () => {
       (db.payment.create as jest.Mock).mockResolvedValue({
         id: 'pay-x',
         amount: new Prisma.Decimal('5000'),
+        status: PaymentStatus.COMPLETED,
       });
       (db.invoice.update as jest.Mock).mockResolvedValue({});
 
@@ -354,6 +374,7 @@ describe('BillingService', () => {
       (db.payment.create as jest.Mock).mockResolvedValue({
         id: 'pay-x',
         amount: new Prisma.Decimal('2000'),
+        status: PaymentStatus.COMPLETED,
       });
       (db.invoice.update as jest.Mock).mockResolvedValue({});
 
@@ -387,6 +408,7 @@ describe('BillingService', () => {
       (db.payment.create as jest.Mock).mockResolvedValue({
         id: 'pay-x',
         amount: new Prisma.Decimal('1000'),
+        status: PaymentStatus.COMPLETED,
       });
       (db.invoice.update as jest.Mock).mockResolvedValue({});
 
@@ -420,6 +442,7 @@ describe('BillingService', () => {
       (db.payment.create as jest.Mock).mockResolvedValue({
         id: 'pay-x',
         amount: new Prisma.Decimal('5000'),
+        status: PaymentStatus.COMPLETED,
       });
       (db.invoice.update as jest.Mock).mockResolvedValue({});
 
@@ -441,6 +464,100 @@ describe('BillingService', () => {
           }),
         }),
       );
+    });
+
+    it.each([
+      PaymentStatus.PENDING,
+      PaymentStatus.CANCELLED,
+      PaymentStatus.REFUNDED,
+    ])('does not reduce debt for a %s payment', async (status) => {
+      const invoice = fakeInvoice(
+        STUDENT_A,
+        InvoiceStatus.OPEN,
+        '5000',
+        '1000',
+      );
+      (db.invoice.findFirst as jest.Mock).mockResolvedValue(invoice);
+      (db.payment.create as jest.Mock).mockResolvedValue({
+        id: 'pay-x',
+        amount: new Prisma.Decimal('4000'),
+        status,
+      });
+
+      const result = await service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {
+        amount: 4000,
+        method: 'TRANSFER',
+        status,
+      });
+
+      expect(db.payment.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status }),
+        }),
+      );
+      expect(db.invoice.update).not.toHaveBeenCalled();
+      expect(result.invoice.amount_paid).toBe('1000');
+      expect(result.invoice.debt).toBe('4000');
+      expect(result.invoice.status).toBe(InvoiceStatus.OPEN);
+    });
+
+    it('preserves both payments when requests arrive concurrently', async () => {
+      const invoice = fakeInvoice(STUDENT_A, InvoiceStatus.OPEN, '5000', '0');
+      invoice.due_date = new Date(Date.now() + 86400000);
+      (db.invoice.findFirst as jest.Mock).mockImplementation(async () => ({
+        ...invoice,
+      }));
+      (db.payment.create as jest.Mock).mockImplementation(async ({ data }) => ({
+        ...data,
+        amount: new Prisma.Decimal(data.amount),
+      }));
+      (db.invoice.update as jest.Mock).mockImplementation(async ({ data }) => {
+        invoice.amount_paid = data.amount_paid;
+        invoice.status = data.status;
+        return { ...invoice };
+      });
+
+      // Model a PostgreSQL row lock: concurrent transactions run, but each
+      // invoice reader waits for the previous transaction's lock to release.
+      let lockTail = Promise.resolve();
+      (db.$transaction as jest.Mock).mockImplementation(async (callback) => {
+        let release: (() => void) | undefined;
+        const tx = {
+          invoice: db.invoice,
+          payment: db.payment,
+          $queryRaw: jest.fn(async (query, invoiceId, organizationId) => {
+            expect(query.join('')).toContain('FOR UPDATE');
+            expect(invoiceId).toBe(INVOICE_ID);
+            expect(organizationId).toBe(ORG);
+            const previous = lockTail;
+            lockTail = new Promise<void>((resolve) => {
+              release = resolve;
+            });
+            await previous;
+            return [{ id: INVOICE_ID }];
+          }),
+        };
+        try {
+          return await callback(tx);
+        } finally {
+          release?.();
+        }
+      });
+
+      await Promise.all([
+        service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {
+          amount: 2000,
+          method: 'CASH',
+        }),
+        service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {
+          amount: 3000,
+          method: 'TRANSFER',
+        }),
+      ]);
+
+      expect(db.payment.create).toHaveBeenCalledTimes(2);
+      expect(invoice.amount_paid.toString()).toBe('5000');
+      expect(invoice.status).toBe(InvoiceStatus.PAID);
     });
   });
 

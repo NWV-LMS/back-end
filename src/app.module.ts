@@ -11,7 +11,6 @@ import { DatabaseModule } from './database/database.module';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { RateLimitGuard } from './components/auth/guards/rate-limit.guard';
-import { OrganizationActiveGuard } from './components/auth/guards/organization-active.guard';
 
 @Module({
   imports: [
@@ -64,8 +63,6 @@ import { OrganizationActiveGuard } from './components/auth/guards/organization-a
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     // Legacy per-endpoint rate limit decorator guard — kept for any remaining usages.
     { provide: APP_GUARD, useClass: RateLimitGuard },
-    // Block access for users belonging to inactive organizations.
-    { provide: APP_GUARD, useClass: OrganizationActiveGuard },
   ],
 })
 export class AppModule {}

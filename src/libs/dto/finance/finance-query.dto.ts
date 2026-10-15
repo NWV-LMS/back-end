@@ -1,11 +1,3 @@
-import { IsOptional, IsString } from 'class-validator';
+import { DateRangeQueryDto } from '../common/date-range-query.dto';
 
-export class FinanceQueryDto {
-  @IsOptional()
-  @IsString()
-  from?: string;
-
-  @IsOptional()
-  @IsString()
-  to?: string;
-}
+export class FinanceQueryDto extends DateRangeQueryDto {}

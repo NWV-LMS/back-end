@@ -7,6 +7,7 @@ import {
   PaginatedExpenseResponseDto,
 } from '../../libs/dto/expense/expense-response.dto';
 import { DatabaseService } from '../../database/database.service';
+import { buildDateRangeFilter } from '../../libs/date-range';
 
 @Injectable()
 export class ExpenseService {
@@ -41,9 +42,7 @@ export class ExpenseService {
     const where: any = { organization_id: organizationId };
     if (category) where.category = category;
     if (from || to) {
-      where.paid_at = {};
-      if (from) where.paid_at.gte = new Date(from);
-      if (to) where.paid_at.lte = new Date(to);
+      where.paid_at = buildDateRangeFilter(from, to);
     }
 
     const [items, total] = await Promise.all([

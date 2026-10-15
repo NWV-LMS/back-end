@@ -1,5 +1,14 @@
 import * as request from 'supertest';
-import { createTestApp, closeTestApp, getApp, getAuthToken } from './setup-e2e';
+import {
+  createTestApp,
+  closeTestApp,
+  getApp,
+  getAuthToken,
+  getDatabase,
+  getTestOrganizationId,
+  getTestStudentId,
+  getTestAdminId,
+} from './setup-e2e';
 
 describe('FinanceController (e2e)', () => {
   let authToken: string;
@@ -7,16 +16,50 @@ describe('FinanceController (e2e)', () => {
   beforeAll(async () => {
     await createTestApp();
     authToken = await getAuthToken();
+    const organization_id = getTestOrganizationId();
+    const paid_at = new Date('2026-06-15T12:30:00.000Z');
+    await getDatabase().$transaction([
+      getDatabase().payment.create({
+        data: {
+          organization_id,
+          student_id: getTestStudentId(),
+          amount: 500000,
+          method: 'CASH',
+          status: 'COMPLETED',
+          paid_at,
+        },
+      }),
+      getDatabase().payment.create({
+        data: {
+          organization_id,
+          student_id: getTestStudentId(),
+          amount: 900000,
+          method: 'CARD',
+          status: 'PENDING',
+          paid_at,
+        },
+      }),
+      getDatabase().expense.create({
+        data: {
+          organization_id,
+          created_by: getTestAdminId(),
+          category: 'SALARY',
+          amount: 100000,
+          description: 'E2E salary',
+          paid_at,
+        },
+      }),
+    ]);
   });
 
   afterAll(async () => {
     await closeTestApp();
   });
 
-  describe('GET /finance/summary', () => {
+  describe('GET /api/finance/summary', () => {
     it('should return financial summary', async () => {
       const response = await request(getApp().getHttpServer())
-        .get('/finance/summary')
+        .get('/api/finance/summary')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -31,27 +74,39 @@ describe('FinanceController (e2e)', () => {
     });
 
     it('should accept date range filters', async () => {
-      const today = new Date().toISOString().split('T')[0];
       const response = await request(getApp().getHttpServer())
-        .get(`/finance/summary?from=${today}&to=${today}`)
+        .get('/api/finance/summary?from=2026-06-15&to=2026-06-15')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body.period.from).toBe(today);
-      expect(response.body.period.to).toBe(today);
+      expect(response.body).toEqual({
+        totalIncome: 500000,
+        totalExpenses: 100000,
+        profit: 400000,
+        paymentCount: 1,
+        expenseCount: 1,
+        period: { from: '2026-06-15', to: '2026-06-15' },
+      });
+    });
+
+    it.each(['not-a-date', '2026-02-30'])('rejects invalid date %s', (date) => {
+      return request(getApp().getHttpServer())
+        .get(`/api/finance/summary?from=${date}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
     });
 
     it('should fail without auth', () => {
       return request(getApp().getHttpServer())
-        .get('/finance/summary')
+        .get('/api/finance/summary')
         .expect(401);
     });
   });
 
-  describe('GET /finance/report', () => {
+  describe('GET /api/finance/report', () => {
     it('should return full financial report', async () => {
       const response = await request(getApp().getHttpServer())
-        .get('/finance/report')
+        .get('/api/finance/report?from=2026-06-15&to=2026-06-15')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -70,37 +125,31 @@ describe('FinanceController (e2e)', () => {
 
     it('should include income breakdown by method', async () => {
       const response = await request(getApp().getHttpServer())
-        .get('/finance/report')
+        .get('/api/finance/report?from=2026-06-15&to=2026-06-15')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      if (response.body.incomeByMethod.length > 0) {
-        const item = response.body.incomeByMethod[0];
-        expect(item).toHaveProperty('method');
-        expect(item).toHaveProperty('total');
-        expect(item).toHaveProperty('count');
-      }
+      expect(response.body.incomeByMethod).toEqual([
+        { method: 'CASH', total: 500000, count: 1 },
+      ]);
     });
 
     it('should include expense breakdown by category', async () => {
       const response = await request(getApp().getHttpServer())
-        .get('/finance/report')
+        .get('/api/finance/report?from=2026-06-15&to=2026-06-15')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      if (response.body.expenseByCategory.length > 0) {
-        const item = response.body.expenseByCategory[0];
-        expect(item).toHaveProperty('category');
-        expect(item).toHaveProperty('total');
-        expect(item).toHaveProperty('count');
-      }
+      expect(response.body.expenseByCategory).toEqual([
+        { category: 'SALARY', total: 100000, count: 1 },
+      ]);
     });
 
     it('should accept date range filters', async () => {
       const from = '2026-01-01';
       const to = '2026-12-31';
       const response = await request(getApp().getHttpServer())
-        .get(`/finance/report?from=${from}&to=${to}`)
+        .get(`/api/finance/report?from=${from}&to=${to}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -110,7 +159,7 @@ describe('FinanceController (e2e)', () => {
 
     it('should fail without auth', () => {
       return request(getApp().getHttpServer())
-        .get('/finance/report')
+        .get('/api/finance/report')
         .expect(401);
     });
   });

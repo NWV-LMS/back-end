@@ -38,7 +38,12 @@ export class BillingController {
     return this.billingService.generateInvoices(organizationId, dto);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.TEACHER,
+  )
   @Get('invoices')
   listInvoices(
     @OrganizationId() organizationId: string,
@@ -47,7 +52,12 @@ export class BillingController {
     return this.billingService.listInvoices(organizationId, query);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.TEACHER,
+  )
   @Get('invoices/:id')
   getInvoice(
     @OrganizationId() organizationId: string,

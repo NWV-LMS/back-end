@@ -2,7 +2,11 @@ import { User as PrismaUser } from '@prisma/client';
 import { User as UserDto } from '../dto/user/user-response.dto';
 
 // DB entity -> API response DTO mapper.
-export const toUserResponse = (user: PrismaUser & { organization?: { name?: string; logo_url?: string | null } | null }): UserDto => ({
+export const toUserResponse = (
+  user: PrismaUser & {
+    organization?: { name?: string; logo_url?: string | null } | null;
+  },
+): UserDto => ({
   id: user.id,
   organization_id: user.organization_id ?? undefined,
   organization_name: user.organization?.name ?? undefined,

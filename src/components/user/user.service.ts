@@ -38,7 +38,9 @@ export class UserService {
   async login(input: LoginDto): Promise<LoginResponseDto> {
     const user = await this.database.user.findUnique({
       where: { phone: input.phone },
-      include: { organization: { select: { status: true, name: true, logo_url: true } } },
+      include: {
+        organization: { select: { status: true, name: true, logo_url: true } },
+      },
     });
 
     // Always run a bcrypt comparison — even when no user matched — so the

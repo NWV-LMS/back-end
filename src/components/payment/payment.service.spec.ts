@@ -169,8 +169,8 @@ describe('PaymentService', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             paid_at: expect.objectContaining({
-              gte: expect.any(Date),
-              lte: expect.any(Date),
+              gte: new Date('2026-05-01T00:00:00.000Z'),
+              lt: new Date('2026-06-01T00:00:00.000Z'),
             }),
           }),
         }),
