@@ -124,18 +124,13 @@ export class UserService {
   //*** Update User */
 
   async updateUser(userId: string, input: UserUpdateDto): Promise<User> {
-    const user = await this.database.user.update({
-      where: { id: userId },
-      data: {
-        full_name: input.full_name,
-        email: input.email,
-        phone: input.phone,
-      },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException();
-    }
+    // Explicitly allow profile fields only, even when called outside a controller.
+    const data: Prisma.UserUpdateManyMutationInput = {
+      full_name: input.full_name,
+      email: input.email,
+      phone: input.phone,
+    };
+    const where: Prisma.UserWhereInput = { id: userId };
 
     if (input.new_password) {
       if (!input.password) {
@@ -143,40 +138,58 @@ export class UserService {
           'Current password is required to set a new password',
         );
       }
+      if (input.new_password !== input.confirm_new_password) {
+        throw new BadRequestException('Passwords do not match');
+      }
+
+      const user = await this.database.user.findUnique({
+        where: { id: userId },
+        select: { password: true },
+      });
+      if (!user) {
+        throw new UnauthorizedException();
+      }
 
       const isMatch = await bcrypt.compare(input.password, user.password);
       if (!isMatch) {
         throw new BadRequestException('Current password is incorrect');
       }
 
-      if (input.new_password !== input.confirm_new_password) {
-        throw new BadRequestException('Passwords do not match');
-      }
-      const hashed = await bcrypt.hash(input.new_password, 10);
-      await this.database.user.update({
-        where: { id: userId },
-        data: {
-          password: hashed,
-          refresh_token: null, // force re-login
-        } as T,
-      });
+      // Do expensive hashing before opening the transaction. Compare-and-swap
+      // below rejects a concurrent password change made after this read.
+      where.password = user.password;
+      data.password = await bcrypt.hash(input.new_password, 10);
+      data.refresh_token = null;
     }
 
-    const updated = await this.database.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        organization_id: true,
-        full_name: true,
-        phone: true,
-        created_at: true,
-        updated_at: true,
-      },
+    return this.database.$transaction(async (tx) => {
+      // A failed password check must not persist any profile changes. Password,
+      // profile, and refresh-session revocation are written atomically.
+      const result = await tx.user.updateMany({ where, data });
+      if (result.count !== 1) {
+        if (input.new_password) {
+          throw new BadRequestException(
+            'Password changed concurrently; retry with the current password',
+          );
+        }
+        throw new UnauthorizedException();
+      }
+
+      const updated = await tx.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          organization_id: true,
+          full_name: true,
+          phone: true,
+          created_at: true,
+          updated_at: true,
+        },
+      });
+      return toUserResponse(updated as any);
     });
-    // Convert DB entity to response DTO.
-    return toUserResponse(updated as any);
   }
 
   /**
