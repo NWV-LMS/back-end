@@ -38,3 +38,22 @@ Linked payment mutations lock the invoice before the payment and reconcile
 `amount_paid` from its `COMPLETED` payments inside the same transaction. `VOID`
 invoices retain their status. This repairs cached totals on affected invoices;
 it does not run a historical reconciliation of untouched invoices.
+
+Teacher salary concurrency regressions can be run separately:
+
+```sh
+npm run test:e2e -- --runInBand --runTestsByPath test/teacher-salary-concurrency.e2e-spec.ts
+```
+
+These tests send concurrent HTTP requests for both new and pending salary
+periods: one request must succeed, the others must return `409`, and exactly one
+salary expense must remain. They also check tenant and role boundaries, rollback
+and retry after failed writes, and salary calculations with a single database
+connection. Deliberately failed writes produce expected error logs.
+
+Salary payment takes a transaction-scoped PostgreSQL advisory lock for the
+teacher UUID and period before checking `PAID`. Calculation, expense creation,
+and the salary snapshot use the same transaction connection. The lock applies
+across application instances, and unrelated teachers or periods have separate
+keys. Any future salary writer must follow the same locking rule. This does not
+normalize month input or repair previously duplicated expenses.
