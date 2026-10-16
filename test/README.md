@@ -57,3 +57,7 @@ and the salary snapshot use the same transaction connection. The lock applies
 across application instances, and unrelated teachers or periods have separate
 keys. Any future salary writer must follow the same locking rule. This does not
 normalize month input or repair previously duplicated expenses.
+
+`npm run test:integration` also exercises the exported Vercel handler, including
+its cold start, middleware, warm requests, readiness and authentication guards.
+Only its database provider is replaced, so this check needs no PostgreSQL.
