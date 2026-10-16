@@ -2,8 +2,9 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
-import { PaymentStatus } from '@prisma/client';
+import { PaymentStatus, Prisma } from '@prisma/client';
 import { CreatePaymentDto } from '../../libs/dto/payment/create-payment.dto';
 import { UpdatePaymentDto } from '../../libs/dto/payment/update-payment.dto';
 import { QueryPaymentDto } from '../../libs/dto/payment/query-payment.dto';
@@ -13,6 +14,11 @@ import {
 } from '../../libs/dto/payment/payment-response.dto';
 import { DatabaseService } from '../../database/database.service';
 import { buildDateRangeFilter } from '../../libs/date-range';
+import {
+  InvoiceBalance,
+  lockInvoice,
+  reconcileInvoiceBalance,
+} from '../billing/invoice-balance';
 
 @Injectable()
 export class PaymentService {
@@ -114,38 +120,95 @@ export class PaymentService {
     id: string,
     input: UpdatePaymentDto,
   ): Promise<PaymentResponseDto> {
-    const existing = await this.database.payment.findFirst({
-      where: { id, organization_id: organizationId },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Payment not found');
-    }
-
-    const updated = await this.database.payment.update({
-      where: { id },
-      data: {
-        amount: input.amount,
-        method: input.method,
-        status: input.status,
-        description: input.description,
-      },
-      include: { student: { select: { name: true } } },
+    const updated = await this.database.$transaction(async (tx) => {
+      const invoice = await this.lockPaymentForMutation(tx, organizationId, id);
+      const payment = await tx.payment.update({
+        where: { id, organization_id: organizationId },
+        data: {
+          amount: input.amount,
+          method: input.method,
+          status: input.status,
+          description: input.description,
+        },
+        include: { student: { select: { name: true } } },
+      });
+      if (invoice) {
+        await reconcileInvoiceBalance(tx, organizationId, invoice);
+      }
+      return payment;
     });
 
     return this.toResponseDto(updated);
   }
 
   async remove(organizationId: string, id: string): Promise<void> {
-    const existing = await this.database.payment.findFirst({
+    await this.database.$transaction(async (tx) => {
+      const invoice = await this.lockPaymentForMutation(tx, organizationId, id);
+      await tx.payment.delete({
+        where: { id, organization_id: organizationId },
+      });
+      if (invoice) {
+        await reconcileInvoiceBalance(tx, organizationId, invoice);
+      }
+    });
+  }
+
+  private async lockPaymentForMutation(
+    tx: Prisma.TransactionClient,
+    organizationId: string,
+    id: string,
+  ): Promise<InvoiceBalance | null> {
+    // invoice_id is immutable through the API. Discover it before locking, then
+    // re-read the payment after the locks to detect concurrent deletion.
+    const existing = await tx.payment.findFirst({
       where: { id, organization_id: organizationId },
     });
-
     if (!existing) {
       throw new NotFoundException('Payment not found');
     }
 
-    await this.database.payment.delete({ where: { id } });
+    let invoice: InvoiceBalance | null = null;
+    if (existing.invoice_id) {
+      await lockInvoice(tx, organizationId, existing.invoice_id);
+      invoice = await tx.invoice.findFirst({
+        where: {
+          id: existing.invoice_id,
+          organization_id: organizationId,
+          student_id: existing.student_id,
+          student: { organization_id: organizationId },
+        },
+        select: {
+          id: true,
+          student_id: true,
+          amount_due: true,
+          status: true,
+          due_date: true,
+        },
+      });
+      if (!invoice) throw new NotFoundException('Invoice not found');
+    }
+
+    const locked = await tx.$queryRaw<{ id: string }[]>`
+      SELECT "id" FROM "Payment"
+      WHERE "id" = ${id}::uuid
+        AND "organization_id" = ${organizationId}::uuid
+      FOR UPDATE
+    `;
+    const current = await tx.payment.findFirst({
+      where: { id, organization_id: organizationId },
+    });
+    if (locked.length === 0 || !current) {
+      throw new NotFoundException('Payment not found');
+    }
+    if (
+      current.invoice_id !== existing.invoice_id ||
+      current.student_id !== existing.student_id
+    ) {
+      throw new ConflictException(
+        'Payment relation changed; retry the request',
+      );
+    }
+    return invoice;
   }
 
   private toResponseDto(payment: any): PaymentResponseDto {

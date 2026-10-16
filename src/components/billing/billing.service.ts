@@ -18,6 +18,7 @@ import {
   EnrollmentActor,
   enrollmentAccessWhere,
 } from '../enrollment/enrollment-access';
+import { lockInvoice, reconcileInvoiceBalance } from './invoice-balance';
 
 function parseMonthOrThrow(month: string): Date {
   // Expect YYYY-MM
@@ -394,17 +395,7 @@ export class BillingService {
     dto: PayInvoiceDto,
   ): Promise<{ message: string; invoice: InvoiceResponseDto }> {
     await this.database.$transaction(async (tx) => {
-      // Serialize payments for this invoice before reading its balance/status.
-      // The lock is held until the payment and invoice update commit together.
-      const lockedInvoices = await tx.$queryRaw<{ id: string }[]>`
-        SELECT "id" FROM "Invoice"
-        WHERE "id" = ${invoiceId}::uuid
-          AND "organization_id" = ${organizationId}::uuid
-        FOR UPDATE
-      `;
-      if (lockedInvoices.length === 0) {
-        throw new NotFoundException('Invoice not found');
-      }
+      await lockInvoice(tx, organizationId, invoiceId);
       const invoice = await tx.invoice.findFirst({
         where: { id: invoiceId, ...this.invoiceAccessWhere(organizationId) },
         select: {
@@ -421,7 +412,7 @@ export class BillingService {
         throw new BadRequestException('Invoice is void');
       }
 
-      const payment = await tx.payment.create({
+      await tx.payment.create({
         data: {
           organization_id: organizationId,
           student_id: invoice.student_id,
@@ -435,25 +426,7 @@ export class BillingService {
         },
       });
 
-      if (payment.status !== PaymentStatus.COMPLETED) return;
-
-      const nextPaid = invoice.amount_paid.add(payment.amount);
-      const isPaid = nextPaid.greaterThanOrEqualTo(invoice.amount_due);
-      const now = new Date();
-      const isOverdue = !isPaid && now.getTime() > invoice.due_date.getTime();
-      const nextStatus = isPaid
-        ? InvoiceStatus.PAID
-        : isOverdue
-          ? InvoiceStatus.OVERDUE
-          : InvoiceStatus.OPEN;
-
-      await tx.invoice.update({
-        where: { id: invoice.id },
-        data: {
-          amount_paid: nextPaid,
-          status: nextStatus,
-        },
-      });
+      await reconcileInvoiceBalance(tx, organizationId, invoice);
     });
 
     const refreshed = await this.getInvoice(organizationId, invoiceId);

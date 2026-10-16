@@ -65,7 +65,7 @@ describe('BillingService', () => {
         deleteMany: jest.fn(),
         createMany: jest.fn(),
       },
-      payment: { create: jest.fn() },
+      payment: { create: jest.fn(), aggregate: jest.fn() },
       $transaction: jest.fn(),
       $queryRaw: jest.fn().mockResolvedValue([{ id: INVOICE_ID }]),
     };
@@ -342,6 +342,9 @@ describe('BillingService', () => {
         amount: new Prisma.Decimal('5000'),
         status: PaymentStatus.COMPLETED,
       });
+      (db.payment.aggregate as jest.Mock).mockResolvedValue({
+        _sum: { amount: new Prisma.Decimal('5000') },
+      });
       (db.invoice.update as jest.Mock).mockResolvedValue({});
 
       await service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {
@@ -375,6 +378,9 @@ describe('BillingService', () => {
         id: 'pay-x',
         amount: new Prisma.Decimal('2000'),
         status: PaymentStatus.COMPLETED,
+      });
+      (db.payment.aggregate as jest.Mock).mockResolvedValue({
+        _sum: { amount: new Prisma.Decimal('2000') },
       });
       (db.invoice.update as jest.Mock).mockResolvedValue({});
 
@@ -410,6 +416,9 @@ describe('BillingService', () => {
         amount: new Prisma.Decimal('1000'),
         status: PaymentStatus.COMPLETED,
       });
+      (db.payment.aggregate as jest.Mock).mockResolvedValue({
+        _sum: { amount: new Prisma.Decimal('1000') },
+      });
       (db.invoice.update as jest.Mock).mockResolvedValue({});
 
       await service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {
@@ -444,6 +453,9 @@ describe('BillingService', () => {
         amount: new Prisma.Decimal('5000'),
         status: PaymentStatus.COMPLETED,
       });
+      (db.payment.aggregate as jest.Mock).mockResolvedValue({
+        _sum: { amount: new Prisma.Decimal('5000') },
+      });
       (db.invoice.update as jest.Mock).mockResolvedValue({});
 
       await service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {
@@ -477,11 +489,15 @@ describe('BillingService', () => {
         '5000',
         '1000',
       );
+      invoice.due_date = new Date(Date.now() + 86400000);
       (db.invoice.findFirst as jest.Mock).mockResolvedValue(invoice);
       (db.payment.create as jest.Mock).mockResolvedValue({
         id: 'pay-x',
         amount: new Prisma.Decimal('4000'),
         status,
+      });
+      (db.payment.aggregate as jest.Mock).mockResolvedValue({
+        _sum: { amount: new Prisma.Decimal('1000') },
       });
 
       const result = await service.payInvoice(ORG, INVOICE_ID, CASHIER_ID, {
@@ -495,7 +511,14 @@ describe('BillingService', () => {
           data: expect.objectContaining({ status }),
         }),
       );
-      expect(db.invoice.update).not.toHaveBeenCalled();
+      expect(db.invoice.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            amount_paid: new Prisma.Decimal('1000'),
+            status: InvoiceStatus.OPEN,
+          },
+        }),
+      );
       expect(result.invoice.amount_paid).toBe('1000');
       expect(result.invoice.debt).toBe('4000');
       expect(result.invoice.status).toBe(InvoiceStatus.OPEN);
@@ -507,9 +530,24 @@ describe('BillingService', () => {
       (db.invoice.findFirst as jest.Mock).mockImplementation(async () => ({
         ...invoice,
       }));
-      (db.payment.create as jest.Mock).mockImplementation(async ({ data }) => ({
-        ...data,
-        amount: new Prisma.Decimal(data.amount),
+      const payments: { amount: Prisma.Decimal; status: PaymentStatus }[] = [];
+      (db.payment.create as jest.Mock).mockImplementation(async ({ data }) => {
+        const payment = {
+          ...data,
+          amount: new Prisma.Decimal(data.amount),
+        };
+        payments.push(payment);
+        return payment;
+      });
+      (db.payment.aggregate as jest.Mock).mockImplementation(async () => ({
+        _sum: {
+          amount: payments
+            .filter((payment) => payment.status === PaymentStatus.COMPLETED)
+            .reduce(
+              (total, payment) => total.add(payment.amount),
+              new Prisma.Decimal(0),
+            ),
+        },
       }));
       (db.invoice.update as jest.Mock).mockImplementation(async ({ data }) => {
         invoice.amount_paid = data.amount_paid;

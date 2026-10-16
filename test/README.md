@@ -21,3 +21,20 @@ creates its own organization, admin account, and student, logs in through
 seed passwords, or production credentials are needed. Mocked integration tests
 run with their separate Jest configuration and are excluded from the real
 database E2E suite.
+
+Payment/invoice consistency regressions can be run separately:
+
+```sh
+npm run test:e2e -- --runInBand --runTestsByPath test/payment-invoice-consistency.e2e-spec.ts
+```
+
+These tests use real PostgreSQL transactions and multiple connections to check
+status and amount changes, deletion, tenant isolation, decimal totals, and
+concurrent billing/payment requests. They also deliberately exceed the invoice
+decimal capacity to verify that a failed invoice write rolls back the payment
+change; that case expects an HTTP 500 and a database overflow log.
+
+Linked payment mutations lock the invoice before the payment and reconcile
+`amount_paid` from its `COMPLETED` payments inside the same transaction. `VOID`
+invoices retain their status. This repairs cached totals on affected invoices;
+it does not run a historical reconciliation of untouched invoices.
