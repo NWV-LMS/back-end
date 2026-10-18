@@ -8,6 +8,7 @@ export interface JwtPayload {
   name: string;
   role: UserRole;
   organization_id: string | null;
+  session_id?: string;
   token_use?: 'access' | 'refresh';
 }
 

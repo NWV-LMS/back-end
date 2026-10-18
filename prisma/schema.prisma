@@ -3,22 +3,22 @@ generator client {
   binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
 }
 
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Organization {
-  id                 String             @id @default(uuid()) @db.Uuid
-  name               String             @unique
+  accountInvitations AccountInvitation[]
+  id                 String              @id @default(uuid()) @db.Uuid
+  name               String              @unique
   status             OrganizationStatus
-  created_at         DateTime           @default(now())
-  updated_at         DateTime           @default(now()) @updatedAt
+  created_at         DateTime            @default(now())
+  updated_at         DateTime            @default(now()) @updatedAt
   email              String
   phone              String
   // Notifications (per-organization)
-  telegram_enabled   Boolean            @default(false)
+  telegram_enabled   Boolean             @default(false)
   telegram_bot_token String?
   telegram_chat_id   String?
 
@@ -55,25 +55,30 @@ model Organization {
 }
 
 model User {
-  id              String          @id @default(uuid()) @db.Uuid
-  organization_id String          @db.Uuid
-  full_name       String
-  email           String
-  password        String
-  role            UserRole
-  created_at      DateTime        @default(now())
-  updated_at      DateTime        @default(now()) @updatedAt
-  phone           String          @unique
-  refresh_token   String?
-  teachingGroups           Group[]         @relation("GroupTeacher")
-  cashierPayments          Payment[]       @relation("PaymentCashier")
-  notes                    Note[]
-  expenses                 Expense[]
-  teacherProfile           TeacherProfile?
-  studentProfile           Student?
-  journalEntriesAsTeacher  JournalEntry[]  @relation("JournalTeacher")
-  organization    Organization    @relation(fields: [organization_id], references: [id])
+  sentAccountInvitations  AccountInvitation[]
+  account_id              String?             @db.Uuid
+  account                 Account?            @relation(fields: [account_id], references: [id], onDelete: SetNull)
+  tenantSessions          TenantSession[]
+  id                      String              @id @default(uuid()) @db.Uuid
+  organization_id         String              @db.Uuid
+  full_name               String
+  email                   String
+  password                String
+  role                    UserRole
+  created_at              DateTime            @default(now())
+  updated_at              DateTime            @default(now()) @updatedAt
+  phone                   String              @unique
+  refresh_token           String?
+  teachingGroups          Group[]             @relation("GroupTeacher")
+  cashierPayments         Payment[]           @relation("PaymentCashier")
+  notes                   Note[]
+  expenses                Expense[]
+  teacherProfile          TeacherProfile?
+  studentProfile          Student?
+  journalEntriesAsTeacher JournalEntry[]      @relation("JournalTeacher")
+  organization            Organization        @relation(fields: [organization_id], references: [id])
 
+  @@unique([account_id, organization_id])
   @@unique([organization_id, email])
   @@index([organization_id, role])
 }
@@ -151,16 +156,16 @@ model GroupSchedule {
 }
 
 model Lesson {
-  id              String       @id @default(uuid()) @db.Uuid
-  organization_id String?      @db.Uuid
-  course_id       String       @db.Uuid
+  id              String        @id @default(uuid()) @db.Uuid
+  organization_id String?       @db.Uuid
+  course_id       String        @db.Uuid
   title           String
   desc            String?
-  start_date      DateTime     @db.Date
-  end_date        DateTime     @db.Date
+  start_date      DateTime      @db.Date
+  end_date        DateTime      @db.Date
   attendance      Attendance[]
   exams           Exam[]
-  course          Course       @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  course          Course        @relation(fields: [course_id], references: [id], onDelete: Cascade)
   organization    Organization? @relation(fields: [organization_id], references: [id])
   progress        Progress[]
 
@@ -182,25 +187,25 @@ model Student {
   user_id String? @unique @db.Uuid
 
   // Qoshimcha maydonlar (CRM uchun)
-  birth_date      DateTime?     @db.Date
+  birth_date      DateTime?      @db.Date
   gender          Gender?
   email           String?
   telegram_handle String?
   photo_url       String?
   emergency_phone String?
-  discount_rate   Decimal       @default(0) @db.Decimal(5, 2)
+  discount_rate   Decimal        @default(0) @db.Decimal(5, 2)
   school_or_work  String?
-  internal_notes  String?       @db.Text
+  internal_notes  String?        @db.Text
   level           StudentLevel?
   deleted_at      DateTime?
-  created_at      DateTime      @default(now())
-  updated_at      DateTime      @default(now()) @updatedAt
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @default(now()) @updatedAt
   enrollments     Enrollment[]
   payments        Payment[]
   invoices        Invoice[]
   journalEntries  JournalEntry[]
-  organization    Organization  @relation(fields: [organization_id], references: [id])
-  user            User?         @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  organization    Organization   @relation(fields: [organization_id], references: [id])
+  user            User?          @relation(fields: [user_id], references: [id], onDelete: SetNull)
 
   // Prevent duplicate student phone numbers inside the same organization.
   @@unique([organization_id, phone])
@@ -397,8 +402,8 @@ model InvoiceItem {
   updated_at      DateTime @default(now()) @updatedAt
 
   organization Organization? @relation(fields: [organization_id], references: [id])
-  invoice      Invoice        @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
-  enrollment   Enrollment     @relation(fields: [enrollment_id], references: [id], onDelete: Restrict)
+  invoice      Invoice       @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  enrollment   Enrollment    @relation(fields: [enrollment_id], references: [id], onDelete: Restrict)
 
   @@unique([invoice_id, enrollment_id])
   @@index([organization_id])
@@ -560,30 +565,30 @@ model TeacherProfile {
   created_at     DateTime      @default(now())
   updated_at     DateTime      @default(now()) @updatedAt
 
-  user           User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  salaryRecords  TeacherSalary[]
+  user          User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  salaryRecords TeacherSalary[]
 
   @@index([status])
   @@index([deleted_at])
 }
 
 model TeacherSalary {
-  id              String           @id @default(uuid()) @db.Uuid
-  organization_id String           @db.Uuid
-  teacher_id      String           @db.Uuid
-  period          String           // YYYY-MM
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  teacher_id      String       @db.Uuid
+  period          String // YYYY-MM
   salary_type     SalaryType
-  amount          Decimal          @db.Decimal(12, 2)
+  amount          Decimal      @db.Decimal(12, 2)
   breakdown       Json
-  status          SalaryStatus     @default(PENDING)
+  status          SalaryStatus @default(PENDING)
   paid_at         DateTime?
-  expense_id      String?          @unique @db.Uuid
-  created_at      DateTime         @default(now())
-  updated_at      DateTime         @default(now()) @updatedAt
+  expense_id      String?      @unique @db.Uuid
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @default(now()) @updatedAt
 
-  organization    Organization     @relation(fields: [organization_id], references: [id])
-  teacher         TeacherProfile   @relation(fields: [teacher_id], references: [user_id], onDelete: Cascade)
-  expense         Expense?         @relation(fields: [expense_id], references: [id], onDelete: SetNull)
+  organization Organization   @relation(fields: [organization_id], references: [id])
+  teacher      TeacherProfile @relation(fields: [teacher_id], references: [user_id], onDelete: Cascade)
+  expense      Expense?       @relation(fields: [expense_id], references: [id], onDelete: SetNull)
 
   @@unique([teacher_id, period])
   @@index([organization_id])
@@ -655,4 +660,106 @@ enum StudentLevel {
   UPPER_INTERMEDIATE
   ADVANCED
   PROFICIENT
+}
+
+// Global identity is separate from tenant-scoped User records. No legacy backfill.
+model Account {
+  id                String           @id @default(uuid()) @db.Uuid
+  email             String           @unique
+  full_name         String
+  password_hash     String?
+  email_verified_at DateTime?
+  auth_version      Int              @default(0)
+  disabled_at       DateTime?
+  created_at        DateTime         @default(now())
+  users             User[]
+  identities        AuthIdentity[]
+  sessions          AccountSession[]
+  tokens            AccountToken[]
+}
+
+model AuthIdentity {
+  id         String  @id @default(uuid()) @db.Uuid
+  provider   String
+  subject    String
+  account_id String  @db.Uuid
+  account    Account @relation(fields: [account_id], references: [id], onDelete: Cascade)
+
+  @@unique([provider, subject])
+  @@unique([account_id, provider])
+}
+
+model AccountSession {
+  id             String          @id @default(uuid()) @db.Uuid
+  account_id     String          @db.Uuid
+  token_hash     String          @unique
+  auth_version   Int
+  expires_at     DateTime
+  revoked_at     DateTime?
+  created_at     DateTime        @default(now())
+  account        Account         @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  tenantSessions TenantSession[]
+
+  @@index([account_id])
+  @@index([expires_at])
+}
+
+model TenantSession {
+  id                 String         @id @default(uuid()) @db.Uuid
+  user_id            String         @db.Uuid
+  account_session_id String         @db.Uuid
+  refresh_hash       String
+  expires_at         DateTime
+  revoked_at         DateTime?
+  user               User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  accountSession     AccountSession @relation(fields: [account_session_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([account_session_id])
+}
+
+model AccountToken {
+  id                    String    @id @default(uuid()) @db.Uuid
+  account_id            String    @db.Uuid
+  token_hash            String    @unique
+  purpose               String
+  binding_hash          String?
+  pending_password_hash String?
+  pending_name          String?
+  auth_version          Int
+  expires_at            DateTime
+  consumed_at           DateTime?
+  account               Account   @relation(fields: [account_id], references: [id], onDelete: Cascade)
+
+  @@index([expires_at])
+}
+
+model GoogleAuthAttempt {
+  id                 String    @id @default(uuid()) @db.Uuid
+  state_hash         String    @unique
+  binding_hash       String
+  nonce              String
+  verifier_encrypted String
+  link_session_id    String?   @db.Uuid
+  expires_at         DateTime
+  consumed_at        DateTime?
+
+  @@index([expires_at])
+}
+
+model AccountInvitation {
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  inviter         User         @relation(fields: [invited_by], references: [id], onDelete: Cascade)
+  id              String       @id @default(uuid()) @db.Uuid
+  organization_id String       @db.Uuid
+  invited_by      String       @db.Uuid
+  email           String
+  role            UserRole
+  token_hash      String       @unique
+  expires_at      DateTime
+  consumed_at     DateTime?
+  revoked_at      DateTime?
+
+  @@index([organization_id])
+  @@index([expires_at])
 }

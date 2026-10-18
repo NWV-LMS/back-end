@@ -1,3 +1,4 @@
+import { digest } from './accounts/account.security';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -70,6 +71,73 @@ export class AuthService {
     return `sha256:${createHash('sha256').update(refreshToken).digest('hex')}`;
   }
 
+  async validateTenant(payload: JwtPayload) {
+    const session = await this.database.tenantSession.findUnique({
+      where: { id: payload.session_id },
+      include: {
+        user: { include: { organization: true } },
+        accountSession: { include: { account: true } },
+      },
+    });
+    const parent = session?.accountSession;
+    if (
+      !session ||
+      !parent ||
+      session.revoked_at ||
+      session.expires_at <= new Date() ||
+      parent.revoked_at ||
+      parent.expires_at <= new Date() ||
+      parent.account.disabled_at ||
+      !parent.account.email_verified_at ||
+      parent.auth_version !== parent.account.auth_version ||
+      session.user_id !== payload.sub ||
+      session.user.account_id !== parent.account_id ||
+      session.user.organization_id !== payload.organization_id ||
+      session.user.role === UserRole.SUPER_ADMIN ||
+      session.user.organization?.status !== OrganizationStatus.ACTIVE
+    )
+      throw new UnauthorizedException('Invalid session');
+    return session;
+  }
+
+  async logoutTenant(payload: JwtPayload) {
+    await this.database.tenantSession.updateMany({
+      where: { id: payload.session_id, user_id: payload.sub },
+      data: { revoked_at: new Date() },
+    });
+    return { success: true };
+  }
+
+  private async refreshTenant(decoded: JwtPayload, refreshToken: string) {
+    const session = await this.validateTenant(decoded);
+    const user = session.user;
+    const previous = digest(refreshToken);
+    if (previous !== session.refresh_hash)
+      throw new UnauthorizedException('Invalid refresh token');
+    const tokens = await this.generateTokens({
+      sub: user.id,
+      id: user.id,
+      role: user.role,
+      email: user.email,
+      phone: user.phone,
+      name: user.full_name,
+      organization_id: user.organization_id,
+      session_id: session.id,
+    });
+    const rotated = await this.database.tenantSession.updateMany({
+      where: {
+        id: session.id,
+        refresh_hash: previous,
+        revoked_at: null,
+        expires_at: { gt: new Date() },
+      },
+      data: { refresh_hash: digest(tokens.refreshToken) },
+    });
+    if (rotated.count !== 1)
+      throw new UnauthorizedException('Invalid refresh token');
+    return { ...tokens, user: toUserResponse(user) };
+  }
+
   async refresh(dto: RefreshTokenDto) {
     try {
       const refreshSecret =
@@ -82,6 +150,9 @@ export class AuthService {
       if (decoded.token_use !== 'refresh') {
         throw new UnauthorizedException('Invalid refresh token');
       }
+
+      if (decoded.session_id)
+        return await this.refreshTenant(decoded, dto.refreshToken);
 
       const user = await this.database.user.findUnique({
         where: { id: decoded.sub },

@@ -59,6 +59,48 @@ export function validateEnvOrThrow(): void {
     }
   }
 
+  if (process.env.ACCOUNT_AUTH_ENABLED === 'true') {
+    for (const key of ['AUTH_BFF_SECRET', 'APP_ENCRYPTION_KEY']) {
+      if (!isNonEmpty(process.env[key]) || process.env[key]!.length < 32)
+        errors.push(`${key} is required for account auth (min 32 chars)`);
+    }
+    for (const key of [
+      'AUTH_APP_URL',
+      'AUTH_SMTP_HOST',
+      'AUTH_SMTP_USER',
+      'AUTH_SMTP_PASSWORD',
+      'AUTH_MAIL_FROM',
+      'GOOGLE_CLIENT_ID',
+      'GOOGLE_CLIENT_SECRET',
+      'GOOGLE_REDIRECT_URI',
+    ]) {
+      if (!isNonEmpty(process.env[key]))
+        errors.push(`${key} is required for account auth`);
+    }
+    for (const key of ['AUTH_APP_URL', 'GOOGLE_REDIRECT_URI']) {
+      try {
+        const url = new URL(process.env[key]!);
+        if (
+          url.username ||
+          url.password ||
+          url.hash ||
+          (url.protocol !== 'https:' &&
+            !(
+              nodeEnv !== 'production' &&
+              url.protocol === 'http:' &&
+              ['localhost', '127.0.0.1'].includes(url.hostname)
+            ))
+        )
+          errors.push(`${key} must be an HTTPS URL`);
+      } catch {
+        errors.push(`${key} must be a valid URL`);
+      }
+    }
+    const port = Number(process.env.AUTH_SMTP_PORT ?? 587);
+    if (!Number.isInteger(port) || port < 1 || port > 65535)
+      errors.push('AUTH_SMTP_PORT must be a valid port');
+  }
+
   if (errors.length > 0) {
     // Keep error text readable in container logs.
     const message = [

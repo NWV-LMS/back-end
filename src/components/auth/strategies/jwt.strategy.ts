@@ -1,3 +1,4 @@
+import { AuthService } from '../auth.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
@@ -9,6 +10,7 @@ import { OrganizationActiveGuard } from '../guards/organization-active.guard';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly configService: ConfigService,
+    private readonly authService: AuthService,
     private readonly organizationActiveGuard: OrganizationActiveGuard,
   ) {
     const secret = configService.get<string>('JWT_ACCESS_SECRET');
@@ -28,7 +30,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (payload.token_use !== 'access') {
       throw new UnauthorizedException('Invalid access token');
     }
-    const user = { ...payload, id: payload.sub };
+    const current = payload.session_id
+      ? (await this.authService.validateTenant(payload)).user
+      : null;
+    const user = {
+      ...payload,
+      id: payload.sub,
+      ...(current
+        ? {
+            role: current.role,
+            email: current.email,
+            phone: current.phone,
+            name: current.full_name,
+          }
+        : {}),
+    };
     // Passport has verified the JWT before invoking this callback. Check the
     // current organization status here, before any protected controller runs.
     await this.organizationActiveGuard.validateOrganization(user);

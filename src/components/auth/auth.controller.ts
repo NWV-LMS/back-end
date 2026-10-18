@@ -38,6 +38,7 @@ export class AuthController {
   @SkipThrottle()
   @Post('logout')
   logout(@CurrentUser() user: JwtPayload) {
+    if (user.session_id) return this.authService.logoutTenant(user);
     return this.userService.logout(user.sub);
   }
 }
