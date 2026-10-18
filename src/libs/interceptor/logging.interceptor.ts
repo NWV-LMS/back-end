@@ -6,6 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
+import { requestPath } from '../logging/http-logging';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -17,7 +18,7 @@ export class LoggingInterceptor implements NestInterceptor {
     if (type === 'http') {
       const req = context.switchToHttp().getRequest();
       const res = context.switchToHttp().getResponse();
-      this.logger.log(`${req.method} ${req.url}`, 'REQUEST');
+      this.logger.log(`${req.method} ${requestPath(req.url)}`, 'REQUEST');
 
       return next.handle().pipe(
         tap(() => {

@@ -1,13 +1,18 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { Attendance, Prisma } from '@prisma/client';
 import { DatabaseService } from '../../database/database.service';
 import { MarkAttendanceDto } from '../../libs/dto/attendance/mark-attendance.dto';
 import { QueryAttendanceDto } from '../../libs/dto/attendance/query-attendance.dto';
 import { AttendanceResponseDto } from '../../libs/dto/attendance/attendance-response.dto';
+import {
+  EnrollmentActor,
+  enrollmentAccessWhere,
+} from '../enrollment/enrollment-access';
+import { lessonTenantWhere } from '../lesson/lesson-access';
 
 @Injectable()
 export class AttendanceService {
@@ -16,13 +21,15 @@ export class AttendanceService {
   async mark(
     organizationId: string,
     dto: MarkAttendanceDto,
+    actor: EnrollmentActor,
   ): Promise<AttendanceResponseDto> {
     // Validate enrollment belongs to organization
     const enrollment = await this.database.enrollment.findFirst({
       where: {
         id: dto.enrollment_id,
-        organization_id: organizationId,
+        ...enrollmentAccessWhere(organizationId, actor),
       },
+      include: { group: { select: { course_id: true } } },
     });
 
     if (!enrollment) {
@@ -33,12 +40,17 @@ export class AttendanceService {
     const lesson = await this.database.lesson.findFirst({
       where: {
         id: dto.lesson_id,
-        course: { organization_id: organizationId },
+        ...lessonTenantWhere(organizationId),
       },
     });
 
     if (!lesson) {
       throw new NotFoundException('Lesson not found');
+    }
+    if (lesson.course_id !== enrollment.group.course_id) {
+      throw new BadRequestException(
+        'Lesson must belong to the enrollment course',
+      );
     }
 
     // Check if attendance already marked (defensive org filter)
@@ -74,7 +86,11 @@ export class AttendanceService {
     return this.toResponse(attendance);
   }
 
-  async findAll(organizationId: string, query: QueryAttendanceDto) {
+  async findAll(
+    organizationId: string,
+    query: QueryAttendanceDto,
+    actor: EnrollmentActor,
+  ) {
     const {
       page = 1,
       limit = 20,
@@ -87,16 +103,16 @@ export class AttendanceService {
 
     const where: Prisma.AttendanceWhereInput = {
       organization_id: organizationId,
+      enrollment: {
+        ...enrollmentAccessWhere(organizationId, actor),
+        ...(group_id ? { group_id } : {}),
+      },
+      lesson: lessonTenantWhere(organizationId),
     };
 
     if (enrollment_id) where.enrollment_id = enrollment_id;
     if (lesson_id) where.lesson_id = lesson_id;
     if (status) where.status = status;
-    if (group_id) {
-      where.enrollment = {
-        group_id: group_id,
-      };
-    }
 
     const [items, total] = await Promise.all([
       this.database.attendance.findMany({

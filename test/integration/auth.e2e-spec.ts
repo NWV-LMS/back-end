@@ -5,6 +5,7 @@
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
   hash: jest.fn().mockResolvedValue('hashed-token'),
+  hashSync: jest.fn().mockReturnValue('hashed-dummy-password'),
 }));
 
 import { INestApplication, ValidationPipe } from '@nestjs/common';
@@ -74,7 +75,7 @@ describe('AuthController /api/auth/login (integration)', () => {
       ({ app, dbMock } = await buildApp());
     });
     afterAll(async () => {
-      await app.close();
+      await app?.close();
     });
 
     it('returns 201 with accessToken and user data', async () => {
@@ -101,7 +102,7 @@ describe('AuthController /api/auth/login (integration)', () => {
       ({ app, dbMock } = await buildApp());
     });
     afterAll(async () => {
-      await app.close();
+      await app?.close();
     });
 
     it('returns 401 Unauthorized', async () => {
@@ -123,7 +124,7 @@ describe('AuthController /api/auth/login (integration)', () => {
       ({ app, dbMock } = await buildApp());
     });
     afterAll(async () => {
-      await app.close();
+      await app?.close();
     });
 
     it('returns 401 Unauthorized when phone does not exist', async () => {
@@ -143,7 +144,7 @@ describe('AuthController /api/auth/login (integration)', () => {
       ({ app } = await buildApp());
     });
     afterAll(async () => {
-      await app.close();
+      await app?.close();
     });
 
     it('returns 400 when phone is missing', async () => {

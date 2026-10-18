@@ -11,6 +11,7 @@ import { AppModule } from './app.module';
 import { LoggingInterceptor } from './libs/interceptor/logging.interceptor';
 import { validateEnvOrThrow } from './libs/env.validation';
 import { PrismaExceptionFilter } from './database/prisma-exception.filter';
+import { configureTrustedProxy } from './libs/trusted-proxy';
 
 async function bootstrap() {
   // Fail fast on misconfiguration (especially in production).
@@ -27,8 +28,7 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
   app.setGlobalPrefix('api');
 
-  // Required for correct IP detection behind Vercel's proxy layer.
-  app.set('trust proxy', 1);
+  configureTrustedProxy(app.getHttpAdapter().getInstance());
 
   const isProd = (process.env.NODE_ENV ?? 'development') === 'production';
 

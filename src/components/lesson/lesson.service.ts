@@ -9,6 +9,12 @@ import { UpdateLessonDto } from '../../libs/dto/lesson/update-lesson.dto';
 import { QueryLessonDto } from '../../libs/dto/lesson/query-lesson.dto';
 import { LessonResponseDto } from '../../libs/dto/lesson/lesson-response.dto';
 import { RescheduleLessonDto } from '../../libs/dto/lesson/reschedule-lesson.dto';
+import {
+  EnrollmentActor,
+  enrollmentAccessWhere,
+} from '../enrollment/enrollment-access';
+import { courseAccessWhere, lessonAccessWhere } from './lesson-access';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class LessonService {
@@ -17,11 +23,12 @@ export class LessonService {
   async create(
     organizationId: string,
     dto: CreateLessonDto,
+    actor: EnrollmentActor,
   ): Promise<LessonResponseDto> {
     const course = await this.database.course.findFirst({
       where: {
         id: dto.course_id,
-        organization_id: organizationId,
+        ...courseAccessWhere(organizationId, actor),
       },
     });
 
@@ -31,6 +38,7 @@ export class LessonService {
 
     const lesson = await this.database.lesson.create({
       data: {
+        organization_id: organizationId,
         course_id: dto.course_id,
         title: dto.title,
         desc: dto.desc,
@@ -42,15 +50,18 @@ export class LessonService {
     return this.toResponse(lesson);
   }
 
-  async findAll(organizationId: string, query: QueryLessonDto) {
+  async findAll(
+    organizationId: string,
+    query: QueryLessonDto,
+    actor: EnrollmentActor,
+  ) {
     const { page = 1, limit = 10, course_id, from_date, to_date } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {
-      course: {
-        organization_id: organizationId,
-      },
-    };
+    const where: Prisma.LessonWhereInput = lessonAccessWhere(
+      organizationId,
+      actor,
+    );
 
     if (course_id) {
       where.course_id = course_id;
@@ -86,13 +97,12 @@ export class LessonService {
   async findOne(
     id: string,
     organizationId: string,
+    actor: EnrollmentActor,
   ): Promise<LessonResponseDto> {
     const lesson = await this.database.lesson.findFirst({
       where: {
         id,
-        course: {
-          organization_id: organizationId,
-        },
+        ...lessonAccessWhere(organizationId, actor),
       },
     });
 
@@ -107,12 +117,50 @@ export class LessonService {
     id: string,
     organizationId: string,
     dto: UpdateLessonDto,
+    actor: EnrollmentActor,
   ): Promise<LessonResponseDto> {
-    await this.findOne(id, organizationId);
+    const current = await this.findOne(id, organizationId, actor);
+    if (dto.course_id) {
+      const course = await this.database.course.findFirst({
+        where: {
+          id: dto.course_id,
+          ...courseAccessWhere(organizationId, actor),
+        },
+      });
+      if (!course) throw new NotFoundException('Course not found');
+
+      if (dto.course_id !== current.course_id) {
+        const [attendance, progress] = await Promise.all([
+          this.database.attendance.count({
+            where: {
+              lesson_id: id,
+              enrollment: { group: { course_id: { not: dto.course_id } } },
+            },
+          }),
+          this.database.progress.count({
+            where: {
+              lesson_id: id,
+              enrollment: { group: { course_id: { not: dto.course_id } } },
+            },
+          }),
+        ]);
+        if (attendance || progress) {
+          throw new BadRequestException(
+            'Cannot move lesson to a different course with existing attendance or progress',
+          );
+        }
+      }
+    }
 
     const updated = await this.database.lesson.update({
       where: { id },
-      data: dto,
+      data: {
+        course_id: dto.course_id,
+        title: dto.title,
+        desc: dto.desc,
+        start_date: dto.start_date,
+        end_date: dto.end_date,
+      },
     });
 
     return this.toResponse(updated);
@@ -121,8 +169,9 @@ export class LessonService {
   async remove(
     id: string,
     organizationId: string,
+    actor: EnrollmentActor,
   ): Promise<{ message: string }> {
-    await this.findOne(id, organizationId);
+    await this.findOne(id, organizationId, actor);
 
     await this.database.lesson.delete({
       where: { id },
@@ -135,8 +184,9 @@ export class LessonService {
     id: string,
     organizationId: string,
     dto: RescheduleLessonDto,
+    actor: EnrollmentActor,
   ): Promise<LessonResponseDto> {
-    await this.findOne(id, organizationId);
+    await this.findOne(id, organizationId, actor);
 
     const start = new Date(dto.start_date);
     const end = new Date(dto.end_date);
@@ -148,19 +198,23 @@ export class LessonService {
       await tx.lesson.update({
         where: { id },
         data: {
-          start_date: dto.start_date as any,
-          end_date: dto.end_date as any,
+          start_date: start,
+          end_date: end,
         },
       });
 
       if (dto.resetAttendance) {
         await tx.attendance.deleteMany({
-          where: { organization_id: organizationId, lesson_id: id },
+          where: {
+            organization_id: organizationId,
+            lesson_id: id,
+            enrollment: enrollmentAccessWhere(organizationId, actor),
+          },
         });
       }
     });
 
-    return this.findOne(id, organizationId);
+    return this.findOne(id, organizationId, actor);
   }
 
   private toResponse(lesson: any): LessonResponseDto {

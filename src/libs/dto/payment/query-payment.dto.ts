@@ -8,8 +8,9 @@ import {
 } from 'class-validator';
 import { PaymentMethod, PaymentStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
+import { DateRangeQueryDto } from '../common/date-range-query.dto';
 
-export class QueryPaymentDto {
+export class QueryPaymentDto extends DateRangeQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -34,12 +35,4 @@ export class QueryPaymentDto {
   @IsOptional()
   @IsEnum(PaymentStatus)
   status?: PaymentStatus;
-
-  @IsOptional()
-  @IsString()
-  from?: string;
-
-  @IsOptional()
-  @IsString()
-  to?: string;
 }

@@ -1,15 +1,9 @@
-import {
-  IsEnum,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Min,
-  Max,
-} from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, Min, Max } from 'class-validator';
 import { ExpenseCategory } from '@prisma/client';
 import { Type } from 'class-transformer';
+import { DateRangeQueryDto } from '../common/date-range-query.dto';
 
-export class QueryExpenseDto {
+export class QueryExpenseDto extends DateRangeQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
@@ -26,12 +20,4 @@ export class QueryExpenseDto {
   @IsOptional()
   @IsEnum(ExpenseCategory)
   category?: ExpenseCategory;
-
-  @IsOptional()
-  @IsString()
-  from?: string;
-
-  @IsOptional()
-  @IsString()
-  to?: string;
 }

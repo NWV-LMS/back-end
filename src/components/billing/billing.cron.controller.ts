@@ -35,7 +35,9 @@ export class BillingCronController {
     if (authHeader !== expected) {
       throw new ForbiddenException('Invalid cron token');
     }
-    this.logger.log(`Cron generate-month started (month=${month ?? 'current'})`);
+    this.logger.log(
+      `Cron generate-month started (month=${month ?? 'current'})`,
+    );
     const result = await this.billingService.generateForAllOrgs(month);
     this.logger.log(
       `Cron generate-month done: month=${result.month} orgs=${result.organizations} ok=${result.succeeded} fail=${result.failed} created=${result.totals.created} updated=${result.totals.updated}`,

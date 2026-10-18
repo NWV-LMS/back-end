@@ -1,10 +1,13 @@
 import * as request from 'supertest';
+import { randomUUID } from 'crypto';
 import {
   createTestApp,
   closeTestApp,
   getApp,
   getAuthToken,
   getTestStudentId,
+  getDatabase,
+  getTestOrganizationId,
 } from './setup-e2e';
 
 describe('PaymentController (e2e)', () => {
@@ -22,10 +25,10 @@ describe('PaymentController (e2e)', () => {
     await closeTestApp();
   });
 
-  describe('POST /payment', () => {
+  describe('POST /api/payment', () => {
     it('should create a payment', async () => {
       const response = await request(getApp().getHttpServer())
-        .post('/payment')
+        .post('/api/payment')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           student_id: testStudentId,
@@ -39,28 +42,33 @@ describe('PaymentController (e2e)', () => {
       expect(response.body.amount).toBe(500000);
       expect(response.body.method).toBe('CASH');
       createdPaymentId = response.body.id;
+      expect(response.body.organization_id).toBe(getTestOrganizationId());
+      await getDatabase().payment.update({
+        where: { id: createdPaymentId },
+        data: { paid_at: new Date('2026-06-15T12:30:00.000Z') },
+      });
     });
 
     it('should fail without auth', () => {
       return request(getApp().getHttpServer())
-        .post('/payment')
+        .post('/api/payment')
         .send({ student_id: testStudentId, amount: 100, method: 'CASH' })
         .expect(401);
     });
 
     it('should validate required fields', () => {
       return request(getApp().getHttpServer())
-        .post('/payment')
+        .post('/api/payment')
         .set('Authorization', `Bearer ${authToken}`)
         .send({})
         .expect(400);
     });
   });
 
-  describe('GET /payment', () => {
+  describe('GET /api/payment', () => {
     it('should return paginated payments', async () => {
       const response = await request(getApp().getHttpServer())
-        .get('/payment')
+        .get('/api/payment')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -73,31 +81,52 @@ describe('PaymentController (e2e)', () => {
 
     it('should filter by status', async () => {
       const response = await request(getApp().getHttpServer())
-        .get('/payment?status=COMPLETED')
+        .get('/api/payment?status=COMPLETED')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(
         response.body.items.every((p: any) => p.status === 'COMPLETED'),
       ).toBe(true);
+      expect(response.body.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: createdPaymentId }),
+        ]),
+      );
     });
 
     it('should paginate correctly', async () => {
       const response = await request(getApp().getHttpServer())
-        .get('/payment?page=1&limit=5')
+        .get('/api/payment?page=1&limit=5')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.meta.limit).toBe(5);
     });
+
+    it('includes payments throughout the final date of a date-only range', async () => {
+      const response = await request(getApp().getHttpServer())
+        .get('/api/payment?from=2026-06-15&to=2026-06-15')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.items).toEqual([
+        expect.objectContaining({ id: createdPaymentId }),
+      ]);
+    });
+
+    it.each(['not-a-date', '2026-02-30'])('rejects invalid date %s', (date) => {
+      return request(getApp().getHttpServer())
+        .get(`/api/payment?from=${date}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
+    });
   });
 
-  describe('GET /payment/:id', () => {
+  describe('GET /api/payment/:id', () => {
     it('should return a single payment', async () => {
-      if (!createdPaymentId) return;
-
       const response = await request(getApp().getHttpServer())
-        .get(`/payment/${createdPaymentId}`)
+        .get(`/api/payment/${createdPaymentId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -106,18 +135,16 @@ describe('PaymentController (e2e)', () => {
 
     it('should return 404 for non-existent payment', () => {
       return request(getApp().getHttpServer())
-        .get('/payment/00000000-0000-0000-0000-000000000000')
+        .get(`/api/payment/${randomUUID()}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });
   });
 
-  describe('PATCH /payment/:id', () => {
+  describe('PATCH /api/payment/:id', () => {
     it('should update a payment', async () => {
-      if (!createdPaymentId) return;
-
       const response = await request(getApp().getHttpServer())
-        .patch(`/payment/${createdPaymentId}`)
+        .patch(`/api/payment/${createdPaymentId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ description: 'Updated description' })
         .expect(200);
@@ -126,12 +153,10 @@ describe('PaymentController (e2e)', () => {
     });
   });
 
-  describe('GET /payment/student/:studentId', () => {
+  describe('GET /api/payment/student/:studentId', () => {
     it('should return payments for a student', async () => {
-      if (!testStudentId) return;
-
       const response = await request(getApp().getHttpServer())
-        .get(`/payment/student/${testStudentId}`)
+        .get(`/api/payment/student/${testStudentId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -142,18 +167,16 @@ describe('PaymentController (e2e)', () => {
     });
   });
 
-  describe('DELETE /payment/:id', () => {
+  describe('DELETE /api/payment/:id', () => {
     it('should delete a payment', async () => {
-      if (!createdPaymentId) return;
-
       await request(getApp().getHttpServer())
-        .delete(`/payment/${createdPaymentId}`)
+        .delete(`/api/payment/${createdPaymentId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       // Verify deletion
       await request(getApp().getHttpServer())
-        .get(`/payment/${createdPaymentId}`)
+        .get(`/api/payment/${createdPaymentId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });

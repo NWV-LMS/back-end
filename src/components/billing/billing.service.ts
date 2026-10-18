@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { InvoiceStatus, PaymentStatus } from '@prisma/client';
+import { InvoiceStatus, PaymentStatus, UserRole } from '@prisma/client';
 import { DatabaseService } from '../../database/database.service';
 import { GenerateInvoicesDto } from '../../libs/dto/billing/generate-invoices.dto';
 import {
@@ -14,6 +14,11 @@ import {
 } from '../../libs/dto/billing/invoice-response.dto';
 import { QueryInvoiceDto } from '../../libs/dto/billing/query-invoice.dto';
 import { PayInvoiceDto } from '../../libs/dto/billing/pay-invoice.dto';
+import {
+  EnrollmentActor,
+  enrollmentAccessWhere,
+} from '../enrollment/enrollment-access';
+import { lockInvoice, reconcileInvoiceBalance } from './invoice-balance';
 
 function parseMonthOrThrow(month: string): Date {
   // Expect YYYY-MM
@@ -45,9 +50,7 @@ export class BillingService {
 
   constructor(private readonly database: DatabaseService) {}
 
-  async generateForAllOrgs(
-    month?: string,
-  ): Promise<{
+  async generateForAllOrgs(month?: string): Promise<{
     month: string;
     organizations: number;
     succeeded: number;
@@ -260,21 +263,26 @@ export class BillingService {
   async listInvoices(
     organizationId: string,
     query: QueryInvoiceDto,
+    actor?: EnrollmentActor,
   ): Promise<PaginatedInvoiceResponseDto> {
     const { page = 1, limit = 20, month, status, student_id, search } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = { organization_id: organizationId };
+    const where = this.invoiceAccessWhere(organizationId, actor);
     if (month) where.month = parseMonthOrThrow(month);
     if (status) where.status = status;
     if (student_id) where.student_id = student_id;
     if (search) {
-      where.student = {
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { phone: { contains: search } },
-        ],
-      };
+      where.AND = [
+        {
+          student: {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { phone: { contains: search } },
+            ],
+          },
+        },
+      ];
     }
 
     const [items, total] = await Promise.all([
@@ -320,9 +328,13 @@ export class BillingService {
   async getInvoice(
     organizationId: string,
     invoiceId: string,
+    actor?: EnrollmentActor,
   ): Promise<InvoiceResponseDto> {
     const invoice = await this.database.invoice.findFirst({
-      where: { id: invoiceId, organization_id: organizationId },
+      where: {
+        id: invoiceId,
+        ...this.invoiceAccessWhere(organizationId, actor),
+      },
       include: {
         student: { select: { name: true, phone: true } },
         items: {
@@ -344,30 +356,63 @@ export class BillingService {
     return this.toInvoiceResponse(invoice as any);
   }
 
+  private invoiceAccessWhere(
+    organizationId: string,
+    actor?: EnrollmentActor,
+  ): Prisma.InvoiceWhereInput {
+    const enrollment = enrollmentAccessWhere(
+      organizationId,
+      !actor || actor.role === UserRole.SUPER_ADMIN
+        ? { sub: actor?.sub ?? '', role: UserRole.ADMIN }
+        : actor,
+    );
+    const where: Prisma.InvoiceWhereInput = {
+      organization_id: organizationId,
+      student: { organization_id: organizationId },
+      items: {
+        every: {
+          OR: [{ organization_id: null }, { organization_id: organizationId }],
+          enrollment,
+        },
+      },
+    };
+    if (actor?.role === UserRole.TEACHER) {
+      where.student = {
+        organization_id: organizationId,
+        enrollments: { some: enrollment },
+      };
+      // Totals cover the entire invoice. Exclude mixed invoices rather than
+      // exposing another teacher's groups or returning misleading partial sums.
+      where.items = { ...where.items, some: {} };
+    }
+    return where;
+  }
+
   async payInvoice(
     organizationId: string,
     invoiceId: string,
     cashierUserId: string,
     dto: PayInvoiceDto,
   ): Promise<{ message: string; invoice: InvoiceResponseDto }> {
-    const invoice = await this.database.invoice.findFirst({
-      where: { id: invoiceId, organization_id: organizationId },
-      select: {
-        id: true,
-        student_id: true,
-        amount_due: true,
-        amount_paid: true,
-        status: true,
-        due_date: true,
-      },
-    });
-    if (!invoice) throw new NotFoundException('Invoice not found');
-    if (invoice.status === InvoiceStatus.VOID) {
-      throw new BadRequestException('Invoice is void');
-    }
-
     await this.database.$transaction(async (tx) => {
-      const payment = await tx.payment.create({
+      await lockInvoice(tx, organizationId, invoiceId);
+      const invoice = await tx.invoice.findFirst({
+        where: { id: invoiceId, ...this.invoiceAccessWhere(organizationId) },
+        select: {
+          id: true,
+          student_id: true,
+          amount_due: true,
+          amount_paid: true,
+          status: true,
+          due_date: true,
+        },
+      });
+      if (!invoice) throw new NotFoundException('Invoice not found');
+      if (invoice.status === InvoiceStatus.VOID) {
+        throw new BadRequestException('Invoice is void');
+      }
+
+      await tx.payment.create({
         data: {
           organization_id: organizationId,
           student_id: invoice.student_id,
@@ -381,23 +426,7 @@ export class BillingService {
         },
       });
 
-      const nextPaid = invoice.amount_paid.add(payment.amount);
-      const isPaid = nextPaid.greaterThanOrEqualTo(invoice.amount_due);
-      const now = new Date();
-      const isOverdue = !isPaid && now.getTime() > invoice.due_date.getTime();
-      const nextStatus = isPaid
-        ? InvoiceStatus.PAID
-        : isOverdue
-          ? InvoiceStatus.OVERDUE
-          : InvoiceStatus.OPEN;
-
-      await tx.invoice.update({
-        where: { id: invoice.id },
-        data: {
-          amount_paid: nextPaid,
-          status: nextStatus,
-        },
-      });
+      await reconcileInvoiceBalance(tx, organizationId, invoice);
     });
 
     const refreshed = await this.getInvoice(organizationId, invoiceId);

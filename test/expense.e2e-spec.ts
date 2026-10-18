@@ -1,5 +1,13 @@
 import * as request from 'supertest';
-import { createTestApp, closeTestApp, getApp, getAuthToken } from './setup-e2e';
+import { randomUUID } from 'crypto';
+import {
+  createTestApp,
+  closeTestApp,
+  getApp,
+  getAuthToken,
+  getDatabase,
+  getTestOrganizationId,
+} from './setup-e2e';
 
 describe('ExpenseController (e2e)', () => {
   let authToken: string;
@@ -14,10 +22,10 @@ describe('ExpenseController (e2e)', () => {
     await closeTestApp();
   });
 
-  describe('POST /expense', () => {
+  describe('POST /api/expense', () => {
     it('should create an expense', async () => {
       const response = await request(getApp().getHttpServer())
-        .post('/expense')
+        .post('/api/expense')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           category: 'SALARY',
@@ -30,18 +38,23 @@ describe('ExpenseController (e2e)', () => {
       expect(response.body.category).toBe('SALARY');
       expect(response.body.amount).toBe(1000000);
       createdExpenseId = response.body.id;
+      expect(response.body.organization_id).toBe(getTestOrganizationId());
+      await getDatabase().expense.update({
+        where: { id: createdExpenseId },
+        data: { paid_at: new Date('2026-06-15T12:30:00.000Z') },
+      });
     });
 
     it('should fail without auth', () => {
       return request(getApp().getHttpServer())
-        .post('/expense')
+        .post('/api/expense')
         .send({ category: 'RENT', amount: 500000, description: 'Office rent' })
         .expect(401);
     });
 
     it('should validate required fields', () => {
       return request(getApp().getHttpServer())
-        .post('/expense')
+        .post('/api/expense')
         .set('Authorization', `Bearer ${authToken}`)
         .send({})
         .expect(400);
@@ -49,17 +62,17 @@ describe('ExpenseController (e2e)', () => {
 
     it('should validate enum values', () => {
       return request(getApp().getHttpServer())
-        .post('/expense')
+        .post('/api/expense')
         .set('Authorization', `Bearer ${authToken}`)
         .send({ category: 'INVALID', amount: 100, description: 'Test' })
         .expect(400);
     });
   });
 
-  describe('GET /expense', () => {
+  describe('GET /api/expense', () => {
     it('should return paginated expenses', async () => {
       const response = await request(getApp().getHttpServer())
-        .get('/expense')
+        .get('/api/expense')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -70,32 +83,43 @@ describe('ExpenseController (e2e)', () => {
 
     it('should filter by category', async () => {
       const response = await request(getApp().getHttpServer())
-        .get('/expense?category=SALARY')
+        .get('/api/expense?category=SALARY')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(
         response.body.items.every((e: any) => e.category === 'SALARY'),
       ).toBe(true);
+      expect(response.body.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: createdExpenseId }),
+        ]),
+      );
     });
 
     it('should filter by date range', async () => {
-      const today = new Date().toISOString().split('T')[0];
       const response = await request(getApp().getHttpServer())
-        .get(`/expense?from=${today}&to=${today}`)
+        .get('/api/expense?from=2026-06-15&to=2026-06-15')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('items');
+      expect(response.body.items).toEqual([
+        expect.objectContaining({ id: createdExpenseId }),
+      ]);
+    });
+
+    it.each(['not-a-date', '2026-02-30'])('rejects invalid date %s', (date) => {
+      return request(getApp().getHttpServer())
+        .get(`/api/expense?to=${date}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(400);
     });
   });
 
-  describe('GET /expense/:id', () => {
+  describe('GET /api/expense/:id', () => {
     it('should return a single expense', async () => {
-      if (!createdExpenseId) return;
-
       const response = await request(getApp().getHttpServer())
-        .get(`/expense/${createdExpenseId}`)
+        .get(`/api/expense/${createdExpenseId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -104,18 +128,16 @@ describe('ExpenseController (e2e)', () => {
 
     it('should return 404 for non-existent expense', () => {
       return request(getApp().getHttpServer())
-        .get('/expense/00000000-0000-0000-0000-000000000000')
+        .get(`/api/expense/${randomUUID()}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });
   });
 
-  describe('PATCH /expense/:id', () => {
+  describe('PATCH /api/expense/:id', () => {
     it('should update an expense', async () => {
-      if (!createdExpenseId) return;
-
       const response = await request(getApp().getHttpServer())
-        .patch(`/expense/${createdExpenseId}`)
+        .patch(`/api/expense/${createdExpenseId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({ amount: 1500000 })
         .expect(200);
@@ -124,18 +146,16 @@ describe('ExpenseController (e2e)', () => {
     });
   });
 
-  describe('DELETE /expense/:id', () => {
+  describe('DELETE /api/expense/:id', () => {
     it('should delete an expense', async () => {
-      if (!createdExpenseId) return;
-
       await request(getApp().getHttpServer())
-        .delete(`/expense/${createdExpenseId}`)
+        .delete(`/api/expense/${createdExpenseId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       // Verify deletion
       await request(getApp().getHttpServer())
-        .get(`/expense/${createdExpenseId}`)
+        .get(`/api/expense/${createdExpenseId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
     });

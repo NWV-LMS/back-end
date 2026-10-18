@@ -36,13 +36,14 @@ export class ProgressController {
     return this.progressService.create(
       createProgressDto,
       user.organization_id!,
+      user,
     );
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
   @Get()
   findAll(@CurrentUser() user: JwtPayload, @Query() query: QueryProgressDto) {
-    return this.progressService.findAll(user.organization_id!, query);
+    return this.progressService.findAll(user.organization_id!, query, user);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER, UserRole.STUDENT)
@@ -54,6 +55,7 @@ export class ProgressController {
     return this.progressService.getStudentProgress(
       studentId,
       user.organization_id!,
+      user,
     );
   }
 
@@ -63,7 +65,7 @@ export class ProgressController {
     @CurrentUser() user: JwtPayload,
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
-    return this.progressService.findOne(id, user.organization_id!);
+    return this.progressService.findOne(id, user.organization_id!, user);
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER)
@@ -77,6 +79,7 @@ export class ProgressController {
       id,
       updateProgressDto,
       user.organization_id!,
+      user,
     );
   }
 
@@ -86,6 +89,6 @@ export class ProgressController {
     @CurrentUser() user: JwtPayload,
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ) {
-    return this.progressService.remove(id, user.organization_id!);
+    return this.progressService.remove(id, user.organization_id!, user);
   }
 }

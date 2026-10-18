@@ -44,6 +44,8 @@ describe('PaymentService', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
+      $transaction: jest.fn(),
+      $queryRaw: jest.fn().mockResolvedValue([{ id: PAYMENT_ID }]),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -55,6 +57,9 @@ describe('PaymentService', () => {
 
     service = module.get<PaymentService>(PaymentService);
     db = module.get(DatabaseService);
+    (db.$transaction as jest.Mock).mockImplementation(async (callback) =>
+      callback(db),
+    );
   });
 
   // ── create ────────────────────────────────────────────────────────────────
@@ -169,8 +174,8 @@ describe('PaymentService', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             paid_at: expect.objectContaining({
-              gte: expect.any(Date),
-              lte: expect.any(Date),
+              gte: new Date('2026-05-01T00:00:00.000Z'),
+              lt: new Date('2026-06-01T00:00:00.000Z'),
             }),
           }),
         }),
@@ -228,7 +233,7 @@ describe('PaymentService', () => {
 
       expect(db.payment.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: PAYMENT_ID },
+          where: { id: PAYMENT_ID, organization_id: ORG },
           data: expect.objectContaining({
             amount: 9000,
             description: 'updated',
@@ -256,7 +261,7 @@ describe('PaymentService', () => {
       await service.remove(ORG, PAYMENT_ID);
 
       expect(db.payment.delete).toHaveBeenCalledWith({
-        where: { id: PAYMENT_ID },
+        where: { id: PAYMENT_ID, organization_id: ORG },
       });
     });
   });

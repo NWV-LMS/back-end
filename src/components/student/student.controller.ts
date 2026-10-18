@@ -26,6 +26,8 @@ import { EnrollStudentDto } from '../../libs/dto/student/enroll-student.dto';
 import { StudentResponseDto } from '../../libs/dto/student/student-response.dto';
 import { CreateStudentResponseDto } from '../../libs/dto/student/create-student-response.dto';
 import { PaginatedStudentResponseDto } from '../../libs/dto/student/paginated-student-response.dto';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../../libs/types/auth';
 
 @UseGuards(JwtAuthGuard, RolesGuard, OrganizationIdGuard)
 @Controller('student')
@@ -51,8 +53,11 @@ export class StudentController {
     UserRole.TEACHER,
   )
   @Get('statistics')
-  getStatistics(@OrganizationId() organizationId: string) {
-    return this.studentService.getStatistics(organizationId);
+  getStatistics(
+    @OrganizationId() organizationId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.studentService.getStatistics(organizationId, user);
   }
 
   @Roles(UserRole.SUPER_ADMIN)
@@ -74,8 +79,9 @@ export class StudentController {
   findAll(
     @Query() query: QueryStudentDto,
     @OrganizationId() organizationId: string,
+    @CurrentUser() user: JwtPayload,
   ): Promise<PaginatedStudentResponseDto> {
-    return this.studentService.findAll(organizationId, query);
+    return this.studentService.findAll(organizationId, query, user);
   }
 
   @Roles(
@@ -88,8 +94,9 @@ export class StudentController {
   findOne(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
+    @CurrentUser() user: JwtPayload,
   ): Promise<StudentResponseDto> {
-    return this.studentService.findOne(id, organizationId);
+    return this.studentService.findOne(id, organizationId, user);
   }
 
   @Roles(
@@ -102,8 +109,9 @@ export class StudentController {
   getDetail(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.studentService.getStudentDetail(id, organizationId);
+    return this.studentService.getStudentDetail(id, organizationId, user);
   }
 
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER)

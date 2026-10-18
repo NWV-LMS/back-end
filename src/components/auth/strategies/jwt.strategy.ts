@@ -1,12 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { AuthService } from '../auth.service';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { JwtPayload } from '../../../libs/types/auth';
+import { OrganizationActiveGuard } from '../guards/organization-active.guard';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly authService: AuthService,
+    private readonly organizationActiveGuard: OrganizationActiveGuard,
+  ) {
     const secret = configService.get<string>('JWT_ACCESS_SECRET');
     if (!secret) {
       // Startup validation should catch this first, but keep a hard guard here too.
@@ -16,10 +22,32 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: secret,
+      algorithms: ['HS256'],
     });
   }
 
-  validate(payload: JwtPayload): JwtPayload {
-    return { ...payload, id: payload.sub };
+  async validate(payload: JwtPayload): Promise<JwtPayload> {
+    if (payload.token_use !== 'access') {
+      throw new UnauthorizedException('Invalid access token');
+    }
+    const current = payload.session_id
+      ? (await this.authService.validateTenant(payload)).user
+      : null;
+    const user = {
+      ...payload,
+      id: payload.sub,
+      ...(current
+        ? {
+            role: current.role,
+            email: current.email,
+            phone: current.phone,
+            name: current.full_name,
+          }
+        : {}),
+    };
+    // Passport has verified the JWT before invoking this callback. Check the
+    // current organization status here, before any protected controller runs.
+    await this.organizationActiveGuard.validateOrganization(user);
+    return user;
   }
 }

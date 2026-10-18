@@ -38,39 +38,6 @@ type WhatsAppCloudConfig = {
   baseUrl: string;
 };
 
-async function sendWhatsappText(
-  message: string,
-  targetRaw: string,
-  cfg: WhatsAppCloudConfig,
-) {
-  const target = normalizeWhatsAppTarget(targetRaw);
-  if (!target) throw new Error('Invalid WhatsApp target');
-
-  const url = `${cfg.baseUrl}/${cfg.version}/${cfg.phoneNumberId}/messages`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${cfg.token}`,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      recipient_type: 'individual',
-      to: target,
-      type: 'text',
-      text: {
-        preview_url: false,
-        body: message,
-      },
-    }),
-  });
-
-  const text = await res.text().catch(() => '');
-  if (!res.ok) {
-    throw new Error(`WhatsApp send failed: ${res.status} ${text}`);
-  }
-}
-
 async function sendWhatsappTemplate(
   msg: WhatsAppTemplateMessage,
   targetRaw: string,

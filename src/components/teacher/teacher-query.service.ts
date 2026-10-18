@@ -16,19 +16,22 @@ export class TeacherQueryService {
    */
   async findAll(params: {
     organizationId: string;
+    teacherId?: string;
     page: number;
     limit: number;
     search?: string;
     subject?: string;
     status?: string;
   }) {
-    const { organizationId, page, limit, search, subject, status } = params;
+    const { organizationId, teacherId, page, limit, search, subject, status } =
+      params;
     const skip = (page - 1) * limit;
 
     // Build where clause
     const where: Prisma.UserWhereInput = {
       organization_id: organizationId,
       role: 'TEACHER',
+      ...(teacherId ? { id: teacherId } : {}),
     };
 
     // Search by name or email
@@ -191,6 +194,7 @@ export class TeacherQueryService {
       where: {
         teacher_id: id,
         organization_id: organizationId,
+        course: { organization_id: organizationId },
       },
       include: {
         course: { select: { title: true } },
@@ -230,15 +234,16 @@ export class TeacherQueryService {
 
     const schedules = await this.prisma.groupSchedule.findMany({
       where: {
+        organization_id: organizationId,
         group: {
           teacher_id: id,
           organization_id: organizationId,
+          course: { organization_id: organizationId },
         },
       },
       include: {
         group: {
-          select: { name: true },
-          include: { course: { select: { title: true } } },
+          select: { name: true, course: { select: { title: true } } },
         },
       },
       orderBy: [{ day_of_week: 'asc' }, { start_minute: 'asc' }],

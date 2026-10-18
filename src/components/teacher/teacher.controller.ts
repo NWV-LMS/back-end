@@ -12,6 +12,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
   Request,
+  NotFoundException,
 } from '@nestjs/common';
 import { TeacherQueryService } from './teacher-query.service';
 import { TeacherMutationService } from './teacher-mutation.service';
@@ -24,6 +25,8 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { OrganizationIdGuard } from '../auth/guards/organization-id.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { OrganizationId } from '../auth/decorators/organization-id.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../../libs/types/auth';
 import { UserRole } from '@prisma/client';
 import { IsIn, IsNotEmpty } from 'class-validator';
 
@@ -98,9 +101,11 @@ export class TeacherController {
     @Query('subject') subject: string,
     @Query('status') status: string,
     @OrganizationId() organizationId: string,
+    @CurrentUser() actor: JwtPayload,
   ) {
     return this.query.findAll({
       organizationId,
+      teacherId: actor.role === UserRole.TEACHER ? actor.sub : undefined,
       page: parseInt(page),
       limit: parseInt(limit),
       search,
@@ -149,7 +154,9 @@ export class TeacherController {
   findOne(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
+    @CurrentUser() actor: JwtPayload,
   ) {
+    this.assertTeacherAccess(id, actor);
     return this.query.findOne(id, organizationId);
   }
 
@@ -181,7 +188,9 @@ export class TeacherController {
   getGroups(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
+    @CurrentUser() actor: JwtPayload,
   ) {
+    this.assertTeacherAccess(id, actor);
     return this.query.getGroups(id, organizationId);
   }
 
@@ -191,7 +200,9 @@ export class TeacherController {
   getSchedule(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
+    @CurrentUser() actor: JwtPayload,
   ) {
+    this.assertTeacherAccess(id, actor);
     return this.query.getSchedule(id, organizationId);
   }
 
@@ -212,7 +223,9 @@ export class TeacherController {
   getPerformance(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
+    @CurrentUser() actor: JwtPayload,
   ) {
+    this.assertTeacherAccess(id, actor);
     return this.query.getPerformance(id, organizationId);
   }
 
@@ -224,8 +237,10 @@ export class TeacherController {
   getSalary(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
+    @CurrentUser() actor: JwtPayload,
     @Query('month') month?: string,
   ) {
+    this.assertTeacherAccess(id, actor);
     const period = month ?? new Date().toISOString().slice(0, 7);
     return this.teacherSalaryService.calculate(id, organizationId, period);
   }
@@ -236,8 +251,16 @@ export class TeacherController {
   getSalaryHistory(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @OrganizationId() organizationId: string,
+    @CurrentUser() actor: JwtPayload,
   ) {
+    this.assertTeacherAccess(id, actor);
     return this.teacherSalaryService.getHistory(id, organizationId);
+  }
+
+  private assertTeacherAccess(teacherId: string, actor: JwtPayload): void {
+    if (actor.role === UserRole.TEACHER && actor.sub !== teacherId) {
+      throw new NotFoundException('Teacher not found');
+    }
   }
 
   @Roles(UserRole.ADMIN, UserRole.MANAGER)

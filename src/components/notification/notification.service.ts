@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { NotificationChannel, NotificationJobStatus } from '@prisma/client';
 import { DatabaseService } from '../../database/database.service';
-import { encryptSecret } from '../../libs/crypto/secrets';
+import { encryptSecretUpdate } from '../../libs/crypto/secrets';
 import { NotificationSettingsResponseDto } from '../../libs/dto/notification/notification-settings-response.dto';
 import { UpdateNotificationSettingsDto } from '../../libs/dto/notification/update-notification-settings.dto';
 
@@ -94,11 +94,9 @@ export class NotificationService {
           ? null
           : (dto.telegram_chat_id ?? org.telegram_chat_id),
       telegram_bot_token:
-        dto.telegram_bot_token === ''
-          ? null
-          : dto.telegram_bot_token
-            ? encryptSecret(dto.telegram_bot_token)
-            : org.telegram_bot_token,
+        dto.telegram_bot_token == null
+          ? org.telegram_bot_token
+          : encryptSecretUpdate(dto.telegram_bot_token),
 
       whatsapp_enabled: dto.whatsapp_enabled ?? org.whatsapp_enabled,
       whatsapp_target:
@@ -106,11 +104,9 @@ export class NotificationService {
           ? null
           : (dto.whatsapp_target ?? org.whatsapp_target),
       whatsapp_cloud_token:
-        dto.whatsapp_cloud_token === ''
-          ? null
-          : dto.whatsapp_cloud_token
-            ? encryptSecret(dto.whatsapp_cloud_token)
-            : org.whatsapp_cloud_token,
+        dto.whatsapp_cloud_token == null
+          ? org.whatsapp_cloud_token
+          : encryptSecretUpdate(dto.whatsapp_cloud_token),
       whatsapp_phone_number_id:
         dto.whatsapp_phone_number_id === ''
           ? null

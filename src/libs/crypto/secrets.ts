@@ -1,4 +1,8 @@
 import * as crypto from 'crypto';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 // Format: enc:v1:<base64(iv)>:<base64(tag)>:<base64(ciphertext)>
 const PREFIX = 'enc:v1:';
@@ -21,9 +25,27 @@ function getKey(): Buffer | null {
   return null;
 }
 
-export function encryptSecret(plain: string): string {
+function requireKey(): Buffer {
   const key = getKey();
-  if (!key) return plain; // non-breaking fallback; set APP_ENCRYPTION_KEY in prod
+  if (!key) {
+    throw new ServiceUnavailableException(
+      'Provider credential encryption is not configured',
+    );
+  }
+  return key;
+}
+
+export function assertSecretEncryptionConfigured(): void {
+  requireKey();
+}
+
+export function encryptSecret(plain: string): string {
+  // Inputs are plaintext provider credentials. Accepting client ciphertext can
+  // create unusable double-encrypted values or bypass credential replacement.
+  if (plain.startsWith('enc:')) {
+    throw new BadRequestException('Provider credentials must be plaintext');
+  }
+  const key = requireKey();
 
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
@@ -43,11 +65,23 @@ export function encryptSecret(plain: string): string {
   );
 }
 
+/** Omitted/null fields keep the stored value; an empty string clears it. */
+export function encryptSecretUpdate(
+  plain: string | null | undefined,
+): string | null | undefined {
+  if (plain == null) return undefined;
+  if (plain === '') return null;
+  return encryptSecret(plain);
+}
+
 export function decryptSecret(
   stored: string | null | undefined,
 ): string | null {
   if (!stored) return null;
-  if (!stored.startsWith(PREFIX)) return stored;
+  // Keep legacy plaintext readable until the explicit migration is run.
+  if (!stored.startsWith(PREFIX)) {
+    return stored.startsWith('enc:') ? null : stored;
+  }
 
   const key = getKey();
   if (!key) {

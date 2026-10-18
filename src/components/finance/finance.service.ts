@@ -8,6 +8,7 @@ import {
   ExpenseByCategoryDto,
 } from '../../libs/dto/finance/finance-summary.dto';
 import { DatabaseService } from '../../database/database.service';
+import { buildDateRangeFilter, DateRangeFilter } from '../../libs/date-range';
 
 @Injectable()
 export class FinanceService {
@@ -18,7 +19,7 @@ export class FinanceService {
     query: FinanceQueryDto,
   ): Promise<FinanceSummaryDto> {
     const { from, to } = this.getDateRange(query);
-    const dateFilter = this.buildDateFilter(from, to);
+    const dateFilter = buildDateRangeFilter(query.from ?? from, query.to ?? to);
 
     const [incomeResult, expenseResult, paymentCount, expenseCount] =
       await Promise.all([
@@ -73,7 +74,7 @@ export class FinanceService {
     query: FinanceQueryDto,
   ): Promise<FinanceReportDto> {
     const { from, to } = this.getDateRange(query);
-    const dateFilter = this.buildDateFilter(from, to);
+    const dateFilter = buildDateRangeFilter(query.from ?? from, query.to ?? to);
 
     const [summary, incomeByMethod, expenseByCategory] = await Promise.all([
       this.getSummary(organizationId, query),
@@ -90,7 +91,7 @@ export class FinanceService {
 
   private async getIncomeByMethod(
     organizationId: string,
-    dateFilter: any,
+    dateFilter: DateRangeFilter,
   ): Promise<IncomeByMethodDto[]> {
     const result = await this.database.payment.groupBy({
       by: ['method'],
@@ -112,7 +113,7 @@ export class FinanceService {
 
   private async getExpenseByCategory(
     organizationId: string,
-    dateFilter: any,
+    dateFilter: DateRangeFilter,
   ): Promise<ExpenseByCategoryDto[]> {
     const result = await this.database.expense.groupBy({
       by: ['category'],
@@ -138,9 +139,5 @@ export class FinanceService {
       : new Date(now.getFullYear(), now.getMonth(), 1);
     const to = query.to ? new Date(query.to) : now;
     return { from, to };
-  }
-
-  private buildDateFilter(from: Date, to: Date): any {
-    return { gte: from, lte: to };
   }
 }

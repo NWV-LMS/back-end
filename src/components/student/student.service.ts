@@ -11,14 +11,48 @@ import { QueryStudentDto } from '../../libs/dto/student/query-student.dto';
 import { StudentResponseDto } from '../../libs/dto/student/student-response.dto';
 import { CreateStudentResponseDto } from '../../libs/dto/student/create-student-response.dto';
 import { PaginatedStudentResponseDto } from '../../libs/dto/student/paginated-student-response.dto';
-import { Prisma, StudentStatus } from '@prisma/client';
+import { Prisma, StudentStatus, UserRole } from '@prisma/client';
 import { EnrollmentResponseDto } from '../../libs/dto/enrollment/enrollment-response.dto';
 import { toStudentResponse } from '../../libs/mappers/student.mapper';
 import { toEnrollmentResponse } from '../../libs/mappers/enrollment.mapper';
+import {
+  EnrollmentActor,
+  enrollmentAccessWhere,
+} from '../enrollment/enrollment-access';
 
 @Injectable()
 export class StudentService {
   constructor(private readonly database: DatabaseService) {}
+
+  private enrollmentWhere(
+    organizationId: string,
+    actor?: EnrollmentActor,
+  ): Prisma.EnrollmentWhereInput {
+    // A platform admin's organization was selected by OrganizationIdGuard.
+    // Preserve that tenant-scoped access while reusing the joined-object checks.
+    return enrollmentAccessWhere(
+      organizationId,
+      actor && actor.role !== UserRole.SUPER_ADMIN
+        ? actor
+        : { sub: '', role: UserRole.ADMIN },
+    );
+  }
+
+  private studentWhere(
+    organizationId: string,
+    actor?: EnrollmentActor,
+  ): Prisma.StudentWhereInput {
+    return {
+      organization_id: organizationId,
+      ...(actor?.role === UserRole.TEACHER
+        ? {
+            enrollments: {
+              some: this.enrollmentWhere(organizationId, actor),
+            },
+          }
+        : {}),
+    };
+  }
 
   async create(
     organizationId: string,
@@ -58,6 +92,7 @@ export class StudentService {
   async findAll(
     organizationId: string,
     query: QueryStudentDto,
+    actor?: EnrollmentActor,
   ): Promise<PaginatedStudentResponseDto> {
     const { page = 1, limit = 10, search, status } = query;
     const skip = (page - 1) * limit;
@@ -69,7 +104,7 @@ export class StudentService {
     }
 
     const where: Prisma.StudentWhereInput = {
-      organization_id: organizationId,
+      ...this.studentWhere(organizationId, actor),
       status: status ?? { not: StudentStatus.DELETED },
     };
 
@@ -105,11 +140,12 @@ export class StudentService {
   async findOne(
     id: string,
     organizationId: string,
+    actor?: EnrollmentActor,
   ): Promise<StudentResponseDto> {
     const student = await this.database.student.findFirst({
       where: {
         id,
-        organization_id: organizationId,
+        ...this.studentWhere(organizationId, actor),
         status: { not: StudentStatus.DELETED },
       },
     });
@@ -254,35 +290,36 @@ export class StudentService {
     return { created, skipped, failed };
   }
 
-  async getStatistics(organizationId: string) {
+  async getStatistics(organizationId: string, actor?: EnrollmentActor) {
+    const where = this.studentWhere(organizationId, actor);
     const [total, active, inactive, deleted, enrollmentCount] =
       await Promise.all([
         this.database.student.count({
           where: {
-            organization_id: organizationId,
+            ...where,
             status: { not: StudentStatus.DELETED },
           },
         }),
         this.database.student.count({
           where: {
-            organization_id: organizationId,
+            ...where,
             status: StudentStatus.ACTIVE,
           },
         }),
         this.database.student.count({
           where: {
-            organization_id: organizationId,
+            ...where,
             status: StudentStatus.INACTIVE,
           },
         }),
         this.database.student.count({
           where: {
-            organization_id: organizationId,
+            ...where,
             status: StudentStatus.DELETED,
           },
         }),
         this.database.enrollment.count({
-          where: { organization_id: organizationId },
+          where: this.enrollmentWhere(organizationId, actor),
         }),
       ]);
 
@@ -335,15 +372,20 @@ export class StudentService {
     };
   }
 
-  async getStudentDetail(id: string, organizationId: string) {
+  async getStudentDetail(
+    id: string,
+    organizationId: string,
+    actor?: EnrollmentActor,
+  ) {
     const student = await this.database.student.findFirst({
       where: {
         id,
-        organization_id: organizationId,
+        ...this.studentWhere(organizationId, actor),
         status: { not: StudentStatus.DELETED },
       },
       include: {
         enrollments: {
+          where: this.enrollmentWhere(organizationId, actor),
           include: {
             group: {
               include: {
@@ -395,6 +437,10 @@ export class StudentService {
       where: {
         organization_id: organizationId,
         student_id: id,
+        OR: [
+          { invoice_id: null },
+          { invoice: { organization_id: organizationId, student_id: id } },
+        ],
         paid_at: { gte: monthStart, lt: nextMonthStart },
       },
       _sum: { amount: true },
